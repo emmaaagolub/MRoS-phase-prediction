@@ -10,7 +10,7 @@
 ## ---------------- 1.  SET-UP ---------------------------------
 
 ## Install/load packages & the local repo  ----------------
-pkg_needed <- c("devtools", "tidyverse", "lubridate", "purrr", "progress")
+pkg_needed <- c("devtools", "tidyverse", "lubridate", "purrr", "progress", "readr")
 inst <- pkg_needed[!(pkg_needed %in% installed.packages()[,"Package"])]
 if (length(inst)) install.packages(inst, repos = "https://cloud.r-project.org")
 
@@ -19,6 +19,7 @@ library(tidyverse)
 library(lubridate)
 library(purrr)
 library(progress)
+library(readr)
 
 ## File path setups
 # Get script directory robustly (works in Rscript and RStudio)
@@ -81,21 +82,56 @@ get_lcd <- function() {
 }
 
 ## WCC helper — WCC endpoint only survives a single day at a time, so loop day-by-day and bind.
-get_wcc <- function() {
+get_wcc <- function(start_utc, end_utc, stations_wcc) {
   dates <- seq.Date(as_date(start_utc), as_date(end_utc), by = "day")
-  pb <- progress_bar$new(
-    format = "  WCC downloading [:bar] :percent eta: :eta",
+  pb   <- progress_bar$new(
+    format = "  WCC [:bar] :percent eta: :eta",
     total  = length(dates),
-    width  = 60
+    width = 40
   )
-  map_dfr(dates, function(d) {
-    download_meteo_wcc(as_datetime(d, tz = "UTC"),
-                       as_datetime(d, tz = "UTC") + days(1) - seconds(1),
-                       stations_wcc)
 
-  }) %>%
-    preprocess_meteo("WCC", .)
+  # set up an empty tibble to collect errors
+  error_log <- tibble(date = as.Date(character()), error = character())
+
+  # loop & collect raw results (or NULL on failure)
+  raw_list <- vector("list", length(dates))
+  for (i in seq_along(dates)) {
+    d <- dates[i]
+    pb$tick()
+
+    # throttle to avoid overwhelming the server
+    Sys.sleep(1)
+
+    dt0 <- as_datetime(d, tz = "UTC")
+    dt1 <- dt0 + days(1) - seconds(1)
+
+    raw_list[[i]] <- tryCatch(
+      download_meteo_wcc(dt0, dt1, stations_wcc),
+      error = function(e) {
+        error_log <<- bind_rows(
+          error_log,
+          tibble(date = d, error = e$message)
+        )
+        return(NULL)
+      }
+    )
+  }
+
+  # write any errors out
+  if (nrow(error_log)) {
+    write_csv(error_log, file.path(out_dir, "wcc_error_log.csv"))
+    message("Logged ", nrow(error_log), " WCC errors → wcc_error_log.csv")
+  }
+
+  # bind only the successful days
+  raw_df <- bind_rows(compact(raw_list))  # drops NULLs
+
+  # preprocessing
+  df <- preprocess_meteo("WCC", raw_df)
+
+  return(df)
 }
+
 
 
 ## ---------------- 5.  DOWNLOAD  ----------------------------
@@ -108,13 +144,6 @@ lcd_df  <- get_lcd()
 write_csv(lcd_df,  file.path(out_dir, "lcd_20241001_20250531.csv"))
 
 cat("Downloading WCC (this will take a while)…\n")
-wcc_df  <- get_wcc()
+wcc_df <- get_wcc(start_utc, end_utc, stations_wcc)
 write_csv(wcc_df,  file.path(out_dir, "wcc_20241001_20250531.csv"))
 
-
-## ---------------- 6.  COMBINE & DEDUP ------------------------
-met_all <- bind_rows(hads_df, lcd_df, wcc_df) %>%
-  distinct(id, datetime, .keep_all = TRUE)   # in case of overlaps
-write_csv(met_all, file.path(out_dir, "meteo_all_20241001_20250531.csv"))
-
-cat("\n Finished downloads. CSVs are in:", out_dir, "\n")
