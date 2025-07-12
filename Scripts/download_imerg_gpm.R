@@ -1,19 +1,19 @@
-#!/usr/bin/env Rscript
-# -------------------------------------------------------------
-#  citsci_imerg_download.R
-#  Download GPM IMERG v07 half-hour PLP for a custom date range
-# -------------------------------------------------------------
+###############################################################
+## citsci_imerg_download.R
+##
+## Download GPM IMERG half-hour PLP for a custom date range
+## IMERG lives as HDF5/netCDF on NASA servers
+## OPeNDAP streaming: get_imerg() uses netCDF streaming and gives back an R data frame of values at specified locations...
+## Option to download as gridded tiffs included in the end.
+###############################################################
+
+
 ## ---------------- 1.  SET-UP ---------------------------------
+pkgs <- c("devtools","tidyverse","lubridate","readr","sf","climateR",
+          "terra","furrr","progressr","glue", "httr")
+for(p in pkgs) if(!requireNamespace(p, quietly=TRUE)) install.packages(p)
+lapply(pkgs, library, character.only=TRUE)
 
-
-## Install/load packages & the local repo  ----------------
-pkgs <- c("devtools", "tidyverse", "lubridate", "readr", "sf", "climateR", "terra",
-                "furrr", "progressr", "glue")
-for (p in pkgs) if (!requireNamespace(p, quietly = TRUE)) install.packages(p)
-lapply(pkgs, library, character.only = TRUE)
-
-
-## File path setups
 # Get script directory robustly (works in Rscript and RStudio)
 get_script_dir <- function() {
   # Works when run via `Rscript`
@@ -40,83 +40,114 @@ mros_path  <- normalizePath(file.path(script_dir, "..", "..", "rainOrSnowTools")
 ## Load MRoS Repo (assumes repo is already cloned and in parent directory to this script)
 devtools::load_all(mros_path)
 
+## Set output Dir
+out_dir <- normalizePath(file.path(script_dir, "..", "Data", "gpm_imerg"), mustWork = TRUE)
+
+## Earthdata auth
+Sys.getenv("HOME")
+Sys.getenv("NETRC")
+file.exists(Sys.getenv("NETRC"))
+readLines(Sys.getenv("NETRC"))
+set_config( config(netrc = 1L, netrc_file = Sys.getenv("NETRC")) )
+## In windows, need to adjust security permissions in terminal to replicate in Linux system:
+# > cd $Env:USERPROFILE
+# > icacls ".\.netrc" /inheritance:r
+# > icacls ".\.netrc" /grant:r "EmmaGolub:F"
+# > icacls ".\.netrc" /grant:r "SYSTEM:R"
+# > icacls ".\.netrc"
+
+
 ## ---------------- 2.  USER SETTINGS ---------------------------------
-
-# date window
-start_date <- as.POSIXct("2024-10-01 00:00:00", tz = "UTC")
-end_date   <- as.POSIXct("2025-05-31 23:30:00", tz = "UTC")
-
-# Center point as sf
-pt <- st_point(c(lon_obs, lat_obs)) %>%
-  st_sfc(crs = 4326) %>%
-  st_transform(5070)  # project to meters (NAD83 / Conus Albers)
-
-# Buffer and convert back to lat/lon bounding box
-aoi_bbox <- st_buffer(pt, dist = dist_thresh_m) %>%
-  st_transform(4326) %>%
-  st_bbox()
-
-aoi <- list(
-  xmin = aoi_bbox["xmin"],
-  xmax = aoi_bbox["xmax"],
-  ymin = aoi_bbox["ymin"],
-  ymax = aoi_bbox["ymax"]
+# 4-hour test window on Mar 1 2025, half-hourly steps
+datetimes <- seq(
+  as.POSIXct("2025-03-01 00:00:00", tz="UTC"),
+  as.POSIXct("2025-03-01 04:00:00", tz="UTC"),
+  by = "30 min"
 )
 
-# where to save the GeoTIFFs
-out_dir <- normalizePath(file.path(script_dir, "..", "Data", "gpm_imerg"), mustWork = TRUE)
-dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
 
-varname <- "probabilityLiquidPrecipitation"   # IMERG PLP
+# Bring in MRoS observation records (NULL for now until access to parquet)
+points_file <- NULL
+# points_file <- "/path/to/your/observations.parquet"
 
-## ---------------- 3.  RUNTIME SET-UP ---------------------------------
-
-# Make sure ~/.netrc exists and is 0600:
-#   machine urs.earthdata.nasa.gov
-#   login   <your_Earthdata_user>
-#   password <your_password>
-Sys.setenv("CURL_CA_BUNDLE" = "")
-Sys.getenv("HOME")     # should point to directory containing .netrc
-Sys.setenv("NETRC" = normalizePath("~/.netrc"))
-# TEST THIS BEFORE RUNNING <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-
-# BUILD THE HALF-HOURLY TIMESTAMP VECTOR ----
-timestamps <- seq(start_date, end_date, by = "30 min")
-
-# HELPER FUNCTION TO DOWNLOAD ONE SLICE ----
-download_imerg_slice <- function(ts, aoi, dest_dir, product_version = "GPM_3IMERGHHL.07") {
-
-  base_url   <- construct_gpm_base_url(ts, product_version)
-  prod_stub  <- construct_gpm_product(ts,    product_version)
-
-  # pull the catalog for that Julian day and find the exact file
-  urls       <- get_final_urls(paste0(base_url, "catalog.xml"))
-  slice_url  <- get_closest_url(urls, prod_stub)
-
-  ## read the slice via OPeNDAP + climateR
-  s <- climateR::dap(URL     = slice_url,
-                     varname = varname,
-                     AOI     = aoi,
-                     verbose = FALSE)
-
-  ## write to disk
-  ts_label  <- format(as.POSIXct(ts, tz = "UTC"), "%Y%m%dT%H%M")
-  out_file  <- file.path(dest_dir, glue("IMERG_PLP_{ts_label}.tif"))
-
-  if (!file.exists(out_file)) terra::writeRaster(s, out_file, overwrite = TRUE)
-  out_file
+if(!is.null(points_file) && file.exists(points_file)) {
+  points <- arrow::read_parquet(points_file) %>%
+    rename(
+      placeholder_obs_id = id_column, # adjust to what's actually in parquet
+      lon        = lon_column,     # adjust to what's actually in parquet
+      lat        = lat_column      # adjust to what's actually in parquet
+    ) %>%
+    select(placeholder_obs_id, lon, lat)
+} else {
+  points <- tibble(
+    placeholder_obs_id = "TEST1",
+    lon        = -105.237502,
+    lat        =  39.094364
+  )
 }
 
-## ---------------- 4.  PARELLEL DOWNLOAD ---------------------------------
-plan(multisession, workers = max(1, parallel::detectCores() - 1))
-progressr::handlers(global = TRUE)
+# Expand to every combination of point × datetime
+queries <- crossing(points, datetime_utc = datetimes)
 
-with_progress({
-  future_walk(timestamps,
-              download_imerg_slice,
-              aoi       = aoi,
-              dest_dir  = out_dir,
-              .progress = TRUE)
-})
+## ---------------- 3.  RUN GET_IMERG() ---------------------------------
+results <- queries %>%
+  mutate(
+    plp = pmap_dbl(
+      list(datetime_utc, lon, lat),
+      function(dt, lo, la) {
+        get_imerg(
+          datetime_utc    = dt,
+          lon_obs         = lo,
+          lat_obs         = la,
+          product_version = "GPM_3IMERGHHL.07",
+          verbose         = TRUE
+        )
+      }
+    )
+  )
 
-message(" All requested IMERG slices are now in: ", normalizePath(out_dir))
+# save the point‐wise PLP table
+write_csv(
+  results,
+  file.path(out_dir, "imerg_PLP_20250301_4h.csv") # change output name accordingly depending on time frame run
+)
+
+## ---------------- 4. DOWNLOAD TIFFS ---------------------------------
+# Set this to TRUE to grab a small GeoTIFF around each obs point:
+download_tiffs <- TRUE
+
+if(download_tiffs) {
+  # helper: download & crop one half-hour slice around one point
+  download_imerg_tif <- function(datetime, lon, lat, buffer_deg = 0.2) {
+    # build the catalog URL
+    base_url  <- construct_gpm_base_url(format(datetime, "%Y-%m-%dT%H:%M:%OSZ"))
+    catalog   <- paste0(base_url, "catalog.xml")
+    urls      <- get_final_urls(catalog)
+    stub      <- construct_gpm_product(format(datetime, "%Y-%m-%dT%H:%M:%OSZ"))
+    dap_url   <- if(any(idx <- grepl(stub, urls))) urls[idx][1] else get_closest_url(urls, stub)
+
+    # read the full IMERG PLP grid via OPeNDAP
+    r_full <- terra::rast(dap_url, subds="probabilityLiquidPrecipitation")
+
+    # crop to a small box around (lon, lat)
+    ext <- terra::ext(lon - buffer_deg, lon + buffer_deg,
+                      lat - buffer_deg, lat + buffer_deg)
+    r_crop <- terra::crop(r_full, ext)
+
+    # write out
+    ts_lbl <- format(datetime, "%Y%m%dT%H%M")
+    out_f  <- file.path(out_dir,
+                        glue("IMERG_PLP_{ts_lbl}_{lon}_{lat}.tif"))
+    terra::writeRaster(r_crop, out_f, overwrite=TRUE)
+    invisible(out_f)
+  }
+
+  # loop over results (this will be slow if many rows!)
+  # If only datetime, lon, lat, then drop placeholder_obs_id here
+  walk3(
+    results$datetime_utc,
+    results$lon,
+    results$lat,
+    ~ download_imerg_tif(.x, .y, .z)
+  )
+}
