@@ -57,10 +57,10 @@ end_utc   <- as_datetime("2025-05-31 23:59:59", tz = "UTC")
 
 ## Choose reference point & how wide to cast the net ------------
 # Lake Tahoe: 39.097291, -120.028572
-lon_obs       <- -120.028572  # longitude of map centre
-lat_obs       <-  39.097291   # latitude  of map centre
-deg_filter    <- 2            # 2° ~ 280 km
-dist_thresh_m <- 300000       # 300 km # threshold for capturing stations around
+lon_obs       <- -119.5 # -120.028572    # longitude of map centre
+lat_obs       <-  37.75 # 39.097291      # latitude  of map centre
+deg_filter    <- 2.25   # 2              # ~350 km radius
+dist_thresh_m <- 350000 # 300000         # 350 km radius (just outside rectangle's corners) # threshold for capturing stations around
 
 
 ## ---------------- 3.  STATION META ---------------------------
@@ -147,3 +147,21 @@ cat("Downloading WCC (this will take a while)…\n")
 wcc_df <- get_wcc(start_utc, end_utc, stations_wcc)
 write_csv(wcc_df,  file.path(out_dir, "wcc_20241001_20250531.csv"))
 
+
+## ---------------- 6.  GRAB METADATA  ----------------------------
+# collect all station IDs
+all_ids <- c(
+  hads_df$id,
+  lcd_df$id,
+  wcc_df$id
+)
+
+# keep only the uniques
+unique_ids <- unique(all_ids)
+
+# fetch metadata (lat/lon, elev, etc.) for each ID
+stations_meta <- gather_meta(unique_ids)
+
+# inspect
+print(stations_meta)
+write_csv(stations_meta, file.path(out_dir, "station_metadata_20241001_20250531.csv"))
