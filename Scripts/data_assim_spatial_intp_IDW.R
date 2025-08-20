@@ -1,4 +1,3 @@
-################################################################################
 # IDW Spatial Interpolation
 
 ### Part A: Build off of rainOrSnowTools
@@ -16,7 +15,7 @@
 # Use the same IDW (+ lapse) routine as in the MRoS tools to downscale station predictors (Tair, Td, Twb, RH) to the MRoS point (carry both DEM elevation and station meta-elevation for QA)
 # Attach IMERG PLP to each row
 #
-# Output: one tidy row per obs with predictors (station-derived + IMERG + elevation) and target (MRoS phase)
+# Output: modeled_meteo_with_imerg = assimilated df with predictors (station-derived + IMERG + elevation) and target (MRoS phase)
 
 ### Part B: make surfaces that correspond to the same modeling assumptions as the per-obs pipeline
 # Pick an hour t (UTC).
@@ -28,7 +27,7 @@
 ### Part C: Add other gridded data
 # MERRA-2
 # NLDAS-2
-################################################################################
+
 
 
 ## SET-UP ----------------------------------------------------------------------
@@ -119,9 +118,9 @@ stations_long <- bind_rows(stations_list) %>%
   arrange(id, datetime)
 
 
-# ===============================================================================
+# ==============================================================================
 ## PART A - DATA ASSIMILATIONS
-# ===============================================================================
+# ==============================================================================
 
 ## BUILD PER-OBS PREDICTORS ----------------------------------------------------
 
@@ -193,7 +192,7 @@ process_obs <- function(obs_row, stations_long, meta_df) {
 
 
 # TESTING ON 20 rows ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-test_mros_rows <- mros_filter %>% dplyr::slice(20:40)
+test_mros_rows <- mros_filter %>% dplyr::slice(20:80)
 pb <- progress_bar$new(
   total = nrow(test_mros_rows),
   format = "  building modeled_met [:bar] :percent eta: :eta",
@@ -328,7 +327,7 @@ imerg_long_all  <- dplyr::bind_rows(imerg_long_list)
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 
-# # FULL DATASET RUN ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# # FULL DATASET RUN ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # # Read ALL IMERG parquets using lapply, then bind
 # imerg_files <- list.files(imerg_dir, pattern = "\\.parquet$", full.names = TRUE)
 # imerg_long_list <- lapply(imerg_files, read_imerg_wide_to_long)
@@ -392,217 +391,291 @@ arrow::write_parquet(modeled_met_with_imerg, "outputs/modeled_met_TEST_withIMERG
 
 
 
-# ===============================================================================
+# ==============================================================================
 ## PHASE B — CREATING SURFACES
-# ===============================================================================
+# ==============================================================================
+#   - DEM is inspected, reprojected to meters (EPSG:3310) if needed
+#   - A 1-km grid (aligned to DEM) is built
+#   - Points are clipped to DEM AOI (Sierra)
+#   - Predictors (from points) are IDW'd to the 1 km grid
+#   - One GeoTIFF per var per hour (simple & explicit)
+#   - Plotting
 
-# Parameters
-coarse_res_m   <- 1000     # coarser grid resolution=
-idp            <- 2        # IDW power
-t_start <- min(modeled_met_with_imerg$datetime_utc, na.rm = TRUE)
-t_end   <- max(modeled_met_with_imerg$datetime_utc, na.rm = TRUE)
-out_dir_nc     <- "./outputs/nc_coarse"   # NetCDF output dir
-dir.create(out_dir_nc, recursive = TRUE, showWarnings = FALSE)
 
+# Parameters -------------------------------------------------------------------
+coarse_res_m <- 1000          # 1 km output grid
+idw_power    <- 2             # IDW power
+min_points   <- 2             # at least this many points to run IDW
+time_tol_min <- 30            # use points within ± this many minutes of each hour
+out_dir_tif  <- "./outputs/phaseB_tifs"
+dir.create(out_dir_tif, recursive = TRUE, showWarnings = FALSE)
+
+# Predictors to IDW from points
 predictors_to_grid <- c(
   "plp",
-  "temp_wet",
-  "rh",
-  "temp_dew_avg_obs",
-  "temp_air_avg_obs",
-  "mros_plp_proxy",
-  "temp_air_idw_lapse_const",
-  "temp_dew_idw_lapse_const"
+  "temp_wet", "rh", "temp_dew_avg_obs", "temp_air_avg_obs",
+  "mros_plp_proxy", "temp_air_idw_lapse_const", "temp_dew_idw_lapse_const"
 )
 
 
-# COARSE GRID ALIGNED TO DEM --------------------------
+# DEM set up -------------------------------------------------------------------
 dem <- terra::rast(dem_path)
-dem_crs <- crs(dem)
-dem_res <- terra::res(dem)[1]
-fact    <- max(1, round(coarse_res_m / dem_res))
-coarse  <- terra::aggregate(dem, fact = fact, fun = mean)  # 1 km grid, aligned to DEM
-names(coarse) <- "elev_coarse"
-grid_xy <- terra::crds(coarse, df = TRUE)                  # coarse cell centers
-grid_sf <- st_as_sf(grid_xy, coords = c("x","y"), crs = dem_crs)
 
-# IDW HELPER (points → coarse grid) -------------------
-idw_to_raster <- function(src_sf, var, grid_sf, template_raster, idp = 2) {
-  if (!var %in% names(src_sf)) return(NULL)
-  src_ok <- src_sf[!is.na(src_sf[[var]]), ]
-  if (nrow(src_ok) < 3) return(NULL)
-  g <- gstat::gstat(formula = as.formula(paste0(var, "~ 1")),
+cat("\nDEM info\n--------\n")
+print(dem)
+cat("CRS (WKT):\n", terra::crs(dem), "\n")
+cat("Is lon/lat? ", terra::is.lonlat(dem), "\n")
+cat("Resolution: ", paste(terra::res(dem), collapse=", "), "\n")
+cat("Extent:     ", paste(terra::ext(dem)), "\n\n")
+
+# Aggregate to ~1 km (10 m * 100 = 1000 m)
+#   - reduces raster size ~100×
+#   - much faster to reproject
+dem_1km_native <- terra::aggregate(dem, fact = 100, fun = mean, na.rm = TRUE)
+# Reproject the coarsened DEM to match your modeled grid
+#   (replace with the CRS of modeled_met_with_imerg or desired target CRS)
+target_crs <- terra::crs(mros_sf)   # or use "EPSG:4326" explicitly
+dem_1km_proj <- terra::project(dem_1km_native, target_crs, method = "bilinear")
+terra::writeRaster(dem_1km_proj, file.path(out_path, "DEM_1km_projected.tif"), overwrite = TRUE)
+
+# Use this DEM for elevation extraction
+dem <- dem_1km_proj
+
+if (terra::is.lonlat(dem)) {
+  # Work in meters for 1-km gridding
+  # EPSG:3310 (NAD83 / California Albers) is a good Sierra choice
+  dem_m <- terra::project(dem, "EPSG:3310")
+  cat("Reprojected DEM to EPSG:3310 (meters).\n")
+} else {
+  dem_m <- dem
+  cat("DEM already in projected (metric) CRS.\n")
+}
+
+
+# Build coarse grid ------------------------------------------------------------
+coarse <- terra::rast(terra::ext(dem_m), crs = terra::crs(dem_m), resolution = coarse_res_m)
+elev_coarse <- terra::resample(dem_m, coarse, method = "average")
+names(elev_coarse) <- "elev_coarse"
+
+# Create grid centers as sf (these are the IDW targets)
+grid_xy <- as.data.frame(terra::xyFromCell(elev_coarse, 1:terra::ncell(elev_coarse)))
+names(grid_xy) <- c("x", "y")
+grid_sf <- sf::st_as_sf(grid_xy, coords = c("x","y"), crs = terra::crs(elev_coarse))
+
+
+# Filter points to DEM AOI (Sierra only) ---------------------------------------
+stopifnot(all(c("lon","lat","datetime_utc") %in% names(modeled_met_with_imerg)))
+
+aoi_m <- sf::st_as_sf(terra::as.polygons(terra::ext(dem_m), crs = terra::crs(dem_m)))
+pts_ll <- sf::st_as_sf(modeled_met_with_imerg, coords = c("lon","lat"), crs = 4326, remove = FALSE)
+pts_m  <- sf::st_transform(pts_ll, sf::st_crs(aoi_m))
+
+inside <- as.logical(sf::st_within(pts_m, aoi_m, sparse = FALSE)[,1])
+pts_m_sierra <- pts_m[inside, ]
+cat("Points kept in Sierra AOI: ", nrow(pts_m_sierra), " / ", nrow(pts_m), "\n")
+
+
+# IDW one variable to the grid -------------------------------------------------
+idw_to_grid <- function(src_sf, value_col, grid_sf, template, idp = 2, nmin = 3) {
+  if (!value_col %in% names(src_sf)) return(NULL)
+  src_ok <- src_sf[is.finite(src_sf[[value_col]]), ]
+  if (nrow(src_ok) < nmin) return(NULL)
+
+  # src and grid are both in dem_m CRS already
+  g <- gstat::gstat(formula = as.formula(paste0(value_col, "~ 1")),
                     data = src_ok, set = list(idp = idp))
   pred <- predict(g, newdata = grid_sf, debug.level = 0)$var1.pred
-  r <- template_raster
-  values(r) <- as.numeric(pred)
+  r <- template
+  terra::values(r) <- as.numeric(pred)
   r
 }
 
-# PER-HOUR GRIDDING FUNCTION --------------------------
-build_grids_for_hour <- function(h, pts_tbl, coarse, grid_sf, idp = 2,
-                                 predictors = predictors_to_grid) {
-  pts_sel <- pts_tbl %>%
-    filter(floor_date(datetime_utc, "hour") == h)
-  if (nrow(pts_sel) == 0) return(NULL)
 
-  src_sf <- st_as_sf(pts_sel, coords = c("lon","lat"), crs = 4326, remove = FALSE) %>%
-    st_transform(crs = crs(coarse))
-
-  out <- list()
-  for (v in predictors) {
-    if (!v %in% names(src_sf)) next
-    r_v <- idw_to_raster(src_sf, v, grid_sf, coarse, idp = idp)
-    out[[v]] <- r_v
+# Build rasters for each time (± time_tol_min) ---------------------------------
+build_for_time <- function(t0,
+                           predictors = predictors_to_grid,
+                           tol_min = time_tol_min,
+                           nmin = min_points,
+                           idp = idw_power) {
+  # choose points within ± tol_min minutes of t0
+  keep <- abs(as.numeric(difftime(pts_m_sierra$datetime_utc, t0, units = "mins"))) <= tol_min
+  src_t <- pts_m_sierra[keep, ]
+  if (nrow(src_t) < min_points) {
+    message(sprintf("[build_for_time] %s -> only %d pts within +/- %d min; skipping",
+                    format(as.POSIXct(t0, tz="UTC"), "%Y-%m-%d %H:%MZ"),
+                    nrow(src_t), time_tol_min))
+    return(NULL)
   }
-  out$elev_coarse <- coarse
+
+  out <- vector("list", length(predictors) + 1)
+  names(out) <- c(predictors, "elev_coarse")
+
+  for (v in predictors) {
+    out[[v]] <- idw_to_grid(src_t, v, grid_sf, elev_coarse, idp = idp, nmin = nmin)
+  }
+
+  # Always include elevation for reference/stack building
+  out$elev_coarse <- elev_coarse
   out
 }
 
-# DAILY NETCDF WRITER ------------------------
-write_daily_nc <- function(day, daily_layers, hours_by_var, out_dir) {
-  day <- as.Date(day)
 
-  for (v in names(daily_layers)) {
-    layers <- daily_layers[[v]]
-    if (is.null(layers)) next
-
-    # Ensure SpatRaster stack
-    r_stack <- if (inherits(layers, "SpatRaster")) layers else do.call(c, layers)
-
-    # Use the exact hours recorded for this variable
-    hours_vec <- as.POSIXct(hours_by_var[[v]], tz = "UTC")
-    if (is.null(hours_vec)) next
-
-    # Final safety: match lengths (order is already consistent with build loop)
-    nl <- terra::nlyr(r_stack)
-    if (length(hours_vec) != nl) {
-      hours_vec <- hours_vec[seq_len(nl)]
-    }
-
-    terra::time(r_stack) <- hours_vec
-    names(r_stack) <- format(hours_vec, "%Y-%m-%d %H:%M:%S")
-
-    unit_v <- dplyr::case_when(
-      grepl("^temp", v) ~ "K",
-      v %in% c("rh") ~ "percent",
-      v %in% c("plp", "mros_plp_proxy") ~ "1",
-      v == "elev_coarse" ~ "m",
-      TRUE ~ "1"
-    )
-
-    fn <- file.path(out_dir, sprintf("%s_%s.nc", v, format(day, "%Y%m%d")))
-    terra::writeCDF(
-      r_stack,
-      filename   = fn,
-      varname    = v,
-      unit       = unit_v,
-      longname   = v,
-      overwrite  = TRUE,
-      compression= 6,
-      shuffle    = FALSE,   # avoid shuffle warning on float vars
-      zname      = "time"
-    )
+# Write one GeoTIFF per var per time -------------------------------------------
+write_maps_for_time <- function(t0, maps, out_dir = out_dir_tif) {
+  if (is.null(maps)) return(FALSE)
+  stamp <- format(as.POSIXct(t0, tz="UTC"), "%Y%m%dT%H%MZ")
+  wrote_any <- FALSE
+  for (nm in names(maps)) {
+    r <- maps[[nm]]
+    if (is.null(r)) next
+    fn <- file.path(out_dir, sprintf("%s_%s.tif", nm, stamp))
+    terra::writeRaster(r, fn, overwrite = TRUE)
+    wrote_any <- TRUE
   }
+  wrote_any
+}
+# Example: run the first few hours to confirm behavior, then scale up
+map_times <- sort(unique(pts_m_sierra$datetime_utc))
+
+cat("\nBuilding a few hours to verify…\n")
+for (t0 in head(map_times, 5)) {
+  maps <- build_for_time(t0)
+  ok <- isTRUE(write_maps_for_time(t0, maps))  # coerce to TRUE/FALSE
+  message(sprintf("%s %s",
+                  format(as.POSIXct(t0, tz="UTC"), "%Y-%m-%d %H:%MZ"),
+                  if (ok) "-> wrote maps" else "-> skipped (not enough points)"))
 }
 
 
-# Run over hours present in modeled_met_with_imerg
-mm_dt <- modeled_met_with_imerg %>%
-  dplyr::mutate(
-    hour_utc = lubridate::floor_date(datetime_utc, "hour"),
-    date     = as.Date(hour_utc)
-  )
+# Plot for one time ------------------------------------------------------------
+quicklook_plot <- function(t0, vars = c("plp","temp_wet","rh")) {
+  maps <- build_for_time(t0)
+  if (is.null(maps)) { message("No maps for this time"); return(invisible(NULL)) }
 
-days_to_run <- sort(unique(mm_dt$date))
+  keep <- intersect(vars, names(maps))
+  if (length(keep) == 0) { message("None of the requested vars available"); return(invisible(NULL)) }
 
-for (d in days_to_run) {
-  hrs <- sort(unique(mm_dt$hour_utc[mm_dt$date == d]))
-
-  daily_layers  <- list()  # var -> SpatRaster stack
-  hours_by_var  <- list()  # var -> POSIXct vector of hours appended
-
-  for (h in hrs) {
-    maps <- build_grids_for_hour(h, modeled_met_with_imerg, coarse, grid_sf, idp, predictors_to_grid)
-    if (is.null(maps)) next
-
-    for (nm in names(maps)) {
-      lyr <- maps[[nm]]
-      if (is.null(lyr)) next
-
-      if (is.null(daily_layers[[nm]])) {
-        daily_layers[[nm]] <- lyr
-        hours_by_var[[nm]] <- as.POSIXct(h, tz = "UTC")
-      } else {
-        daily_layers[[nm]] <- c(daily_layers[[nm]], lyr)
-        hours_by_var[[nm]] <- c(hours_by_var[[nm]], as.POSIXct(h, tz = "UTC"))
-      }
-    }
-  }
-
-  write_daily_nc(d, daily_layers, hours_by_var, out_dir_nc)
+  rlist <- lapply(keep, function(v) { names(maps[[v]]) <- v; maps[[v]] })
+  r <- do.call(c, rlist)  # stack the selected layers
+  plot(r, main = paste0("Surfaces @ ", format(t0, "%Y-%m-%d %H:%MZ")))
 }
+quicklook_plot(head(map_times, 4))
 
 
 
-# Visualizing -------------------------------
-# Convert raster layer → data.frame for ggplot
-r_to_df <- function(r, nm, h) {
+
+
+# More Plotting ----------------------------------------------------------------
+
+# Helper function: SpatRaster -> tidy df (x, y, value, var)
+.r_to_df <- function(r, var_name) {
   if (is.null(r)) return(NULL)
+  names(r) <- var_name
   df <- as.data.frame(r, xy = TRUE, na.rm = FALSE)
-
-  # Rename *all* non-x/y cols to "value"
-  other_cols <- setdiff(names(df), c("x","y"))
-  if (length(other_cols) == 0) return(NULL)   # safety: nothing to plot
-  if (length(other_cols) > 1) {
-    warning("Multiple value columns found, taking the first one")
-  }
-
-  df$value <- df[[other_cols[1]]]
-  df <- df[c("x","y","value")]
-
-  df$var <- nm
-  df$time <- h
+  valcol <- setdiff(names(df), c("x","y"))
+  if (length(valcol) == 0) return(NULL)
+  df <- df[, c("x","y", valcol[1])]
+  names(df) <- c("x", "y", "value")
+  df$var <- var_name
   df
 }
 
+plotting_IDW_interpolation_many <- function(
+    times,
+    vars = c(
+      "plp",
+      "mros_plp_proxy",
+      "rh",
+      "temp_wet",
+      "temp_air_avg_obs",
+      "temp_dew_avg_obs",
+      "temp_air_idw_lapse_const",
+      "temp_dew_idw_lapse_const"
+    ),
+    tol_min     = time_tol_min,  # ± minutes
+    nmin        = min_points,
+    ncol_panels = 2
+) {
+  if (!"package:patchwork" %in% search()) suppressPackageStartupMessages(library(patchwork))
 
+  # precompute stations
+  stations_sf <- sf::st_as_sf(meta_df, coords = c("lon","lat"), crs = 4326, remove = FALSE) |>
+    sf::st_transform(sf::st_crs(aoi_m))
+  in_aoi <- as.logical(sf::st_within(stations_sf, aoi_m, sparse = FALSE)[,1])
+  stations_sf <- stations_sf[in_aoi, ]
+  st_xy <- sf::st_coordinates(stations_sf)
+  stations_df <- data.frame(x = st_xy[,1], y = st_xy[,2], type = "Station")
 
-# Function
-plot_hours <- function(hours) {
-  dfs <- list()
-
-  for (h in hours) {
-    maps <- build_grids_for_hour(h, modeled_met_with_imerg, coarse, grid_sf, idp, predictors_to_grid)
-    if (is.null(maps)) next
-
-    keep <- c("temp_air_avg_obs","rh","plp","mros_plp_proxy","temp_wet","temp_dew_avg_obs")
-    keep <- keep[keep %in% names(maps)]
-
-    dfs[[as.character(h)]] <- dplyr::bind_rows(
-      lapply(keep, function(k) r_to_df(maps[[k]], k, h))
+  make_plot_for_time <- function(t0) {
+    maps <- build_for_time(
+      t0, predictors = predictors_to_grid,
+      tol_min = tol_min, nmin = nmin, idp = idw_power
     )
+    if (is.null(maps)) {
+      message(sprintf("No maps for %s (not enough points).",
+                      format(as.POSIXct(t0, tz="UTC"), "%Y-%m-%d %H:%MZ")))
+      return(NULL)
+    }
+
+    keep <- intersect(vars, names(maps))
+
+    # obs within tolerance
+    keep_obs <- abs(as.numeric(difftime(pts_m_sierra$datetime_utc, t0, units = "mins"))) <= tol_min
+    obs_sf   <- pts_m_sierra[keep_obs, ]
+    ob_xy    <- sf::st_coordinates(obs_sf)
+    obs_df   <- data.frame(x = ob_xy[,1], y = ob_xy[,2], type = "MRoS Obs")
+
+    pts_df <- rbind(stations_df, obs_df)
+    subtitle_txt <- sprintf("n_stations=%d   n_obs=%d   tol=±%d min",
+                            nrow(stations_df), nrow(obs_df), tol_min)
+
+    # build panels
+    panels <- lapply(keep, function(v) {
+      df_v <- .r_to_df(maps[[v]], v)
+      if (is.null(df_v)) return(NULL)
+
+      ggplot2::ggplot(df_v, ggplot2::aes(x, y)) +
+        ggplot2::geom_raster(ggplot2::aes(fill = value)) +
+        ggplot2::coord_equal() +
+        ggplot2::scale_fill_viridis_c(na.value = NA) +  # keep raster colorbar
+        ggplot2::labs(
+          title    = paste0(v, " @ ", format(as.POSIXct(t0, tz = "UTC"), "%Y-%m-%d %H:%MZ")),
+          subtitle = subtitle_txt, x = NULL, y = NULL, fill = v
+        ) +
+        ggplot2::geom_point(
+          data = pts_df,
+          ggplot2::aes(x, y, shape = type, color = type),
+          size = 2, stroke = 0.5, inherit.aes = FALSE
+        ) +
+        ggplot2::scale_shape_manual(
+          name   = "Points",
+          values = c("Station" = 21, "MRoS Obs" = 24)
+        ) +
+        ggplot2::scale_color_manual(
+          name   = "Points",
+          values = c("Station" = "white", "MRoS Obs" = "red")
+        ) +
+        ggplot2::theme_minimal(base_size = 11) +
+        ggplot2::theme(
+          panel.grid = ggplot2::element_blank(),
+          plot.title = ggplot2::element_text(face = "bold")
+        )
+
+    })
+    panels <- Filter(Negate(is.null), panels)
+    if (length(panels) == 0) return(NULL)
+
+    patchwork::wrap_plots(panels, ncol = ncol_panels)
   }
 
-  df_all <- dplyr::bind_rows(dfs)
-  if (nrow(df_all) == 0) stop("No data frames produced — check build_grids_for_hour output")
+  time_plots <- lapply(times, make_plot_for_time)
+  time_plots <- Filter(Negate(is.null), time_plots)
+  if (length(time_plots) == 0) {
+    message("No plots produced for the provided times.")
+    return(invisible(NULL))
+  }
 
-  df_all <- dplyr::filter(df_all, !is.na(value))
-
-  stations_sf <- sf::st_as_sf(meta_df, coords = c("lon","lat"), crs = 4326) %>%
-    sf::st_transform(crs(coarse))
-
-  ggplot2::ggplot(df_all, ggplot2::aes(x, y, fill = value)) +
-    ggplot2::geom_raster() +
-    ggplot2::facet_grid(var ~ time, scales = "free") +
-    ggplot2::coord_equal() +
-    ggplot2::scale_fill_viridis_c() +
-    ggplot2::labs(title = "Interpolated surfaces", x = NULL, y = NULL, fill = NULL) +
-    ggplot2::theme_minimal() +
-    ggplot2::geom_sf(data = stations_sf, inherit.aes = FALSE,
-                     shape = 24, fill = "white", color = "black",
-                     size = 1.8, alpha = 0.9)
+  # patchwork::wrap_plots(time_plots, ncol = 1)
+  wrap_plots(plots[1:2], ncol = 1)
 }
-
-hrs_all <- sort(unique(lubridate::floor_date(modeled_met_with_imerg$datetime_utc, "hour")))
-plot_hours(hrs_all[1:3])   # try first 3 hours
+plotting_IDW_interpolation_many(head(map_times, 5))
