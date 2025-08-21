@@ -2,3 +2,7 @@
 .Rhistory
 .RData
 .Ruserdata
+
+.pycache
+.__pycache__
+./Scripts/__pycache__
