@@ -770,18 +770,19 @@ for (v in names(stacks)) {
 # ------------------------------------------------------------------------------
 # plotting_IDW_interpolation_many()
 # Purpose:
-#   For each time in `times`, build maps (IDW surfaces) and return a list of
-#   ggplot objects. Each plot is a facet of predictors for that time.
+#   For each time in `times`, build IDW maps and return a list of patchwork
+#   plot-grids. Each predictor has its own plot (→ its own fill scale).
 #
 # Inputs:
 #   times        POSIXct[] UTC times to plot
-#   vars         predictors to include in the panels (must exist in maps)
-#   tol_min      ± minutes time window for including points
-#   nmin         minimum number of points to run IDW per variable
-#   ncol_panels  number of columns in facet grid per time
+#   vars         predictors to include (must exist in `maps`)
+#   tol_min      ± minutes window around each time to include points
+#   nmin         minimum points per variable to run IDW
+#   ncol_panels  number of columns in the grid for predictors
+#   base_size    ggplot theme text size
 #
 # Returns:
-#   list of ggplot objects (one per time). Print with `plots[[i]]`.
+#   named list of patchwork objects (one grid per time). Print with `plots[[i]]`.
 # ------------------------------------------------------------------------------
 plotting_IDW_interpolation_many <- function(
     times,
@@ -800,9 +801,11 @@ plotting_IDW_interpolation_many <- function(
     ncol_panels = 3,     # fewer columns = bigger panels
     base_size   = 10     # text size
 ) {
+  if (!"package:patchwork" %in% search()) suppressPackageStartupMessages(library(patchwork))
+
   out <- list()
 
-  # stations (projected) once
+  # Stations once (project to DEM/grid CRS and clip to AOI)
   stations_sf <- sf::st_as_sf(meta_df, coords = c("lon","lat"), crs = 4326, remove = FALSE) |>
     sf::st_transform(sf::st_crs(aoi_m))
   in_aoi <- as.logical(sf::st_within(stations_sf, aoi_m, sparse = FALSE)[,1])
@@ -810,67 +813,113 @@ plotting_IDW_interpolation_many <- function(
   st_xy <- sf::st_coordinates(stations_sf)
   stations_df <- data.frame(x = st_xy[,1], y = st_xy[,2], type = "Station")
 
-  for (t0 in times) {
-    maps <- build_for_time(t0, predictors = predictors_to_grid, tol_min = tol_min, nmin = nmin, idp = idw_power)
+  # helper: SpatRaster (1 layer) -> df
+  .r_to_df <- function(r, var_name) {
+    if (is.null(r)) return(NULL)
+    names(r) <- var_name
+    df <- as.data.frame(r, xy = TRUE, na.rm = FALSE)
+    valcol <- setdiff(names(df), c("x","y"))
+    if (length(valcol) == 0) return(NULL)
+    df <- df[, c("x","y", valcol[1])]
+    names(df) <- c("x", "y", "value")
+    df$var <- var_name
+    df
+  }
+
+  # build one grid (patchwork) for a single time
+  make_plot_for_time <- function(t0) {
+    maps <- build_for_time(
+      t0, predictors = predictors_to_grid,
+      tol_min = tol_min, nmin = nmin, idp = idw_power
+    )
     if (is.null(maps)) {
       message(sprintf("No maps for %s (not enough points).",
                       format(as.POSIXct(t0, tz="UTC"), "%Y-%m-%d %H:%MZ")))
-      next
+      return(NULL)
     }
 
     keep <- intersect(vars, names(maps))
-    df_list <- lapply(keep, function(v) .r_to_df(maps[[v]], v))
-    df_all  <- dplyr::bind_rows(df_list)
+    if (length(keep) == 0) return(NULL)
 
-    # obs within tolerance
+    # MRoS obs within tolerance (already in grid CRS)
     keep_obs <- abs(as.numeric(difftime(pts_m_sierra$datetime_utc, t0, units = "mins"))) <= tol_min
     obs_sf   <- pts_m_sierra[keep_obs, ]
     ob_xy    <- sf::st_coordinates(obs_sf)
-    obs_df   <- data.frame(x = ob_xy[,1], y = ob_xy[,2])
+    obs_df   <- data.frame(x = ob_xy[,1], y = ob_xy[,2], type = "MRoS Obs")
 
-    p <- ggplot2::ggplot(df_all, ggplot2::aes(x, y)) +
-      ggplot2::geom_raster(ggplot2::aes(fill = value)) +
-      ggplot2::facet_wrap(~ var, ncol = ncol_panels, scales = "free") +
-      ggplot2::coord_cartesian() +
-      ggplot2::scale_fill_viridis_c(na.value = NA) +
-      ggplot2::labs(
-        title    = paste0("Surfaces at ", format(as.POSIXct(t0, tz="UTC"), "%Y-%m-%d %H:%MZ")),
-        subtitle = sprintf("n_stations=%d   n_obs=%d   tol=±%d min",
-                           nrow(stations_df), nrow(obs_df), tol_min),
-        x = NULL, y = NULL, fill = "Value"
-      ) +
-      # stations: white fill, black outline circles
-      ggplot2::geom_point(
-        data = stations_df,
-        ggplot2::aes(x, y),
-        shape = 21, fill = "white", color = "black",
-        size = 2, stroke = 0.5, inherit.aes = FALSE
-      ) +
-      # obs: red filled triangles, black outline
-      ggplot2::geom_point(
-        data = obs_df,
-        ggplot2::aes(x, y),
-        shape = 24, fill = "red", color = "red",
-        size = 2, stroke = 0.5, inherit.aes = FALSE
-      ) +
-      ggplot2::theme_minimal(base_size = base_size) +
-      ggplot2::theme(
-        panel.grid        = ggplot2::element_blank(),
-        plot.title        = ggplot2::element_text(face = "bold"),
-        strip.text        = ggplot2::element_text(face = "bold"),
-        legend.position   = "none",  # manual points => no auto legend
-        plot.margin       = grid::unit(rep(4,4), "pt")
-      )
+    pts_df <- rbind(stations_df, obs_df)
 
+    # build one panel per predictor (independent fill scales)
+    panels <- vector("list", length(keep))
+    for (i in seq_along(keep)) {
+      v     <- keep[i]
+      df_v  <- .r_to_df(maps[[v]], v)
+      if (is.null(df_v)) next
 
-    out[[format(as.POSIXct(t0, tz="UTC"), "%Y-%m-%d %H:%MZ")]] <- p
+      show_legend <- (i == 1)  # show the points legend only once
+
+      p <- ggplot2::ggplot(df_v, ggplot2::aes(x, y)) +
+        ggplot2::geom_raster(ggplot2::aes(fill = value)) +
+        ggplot2::coord_equal() +
+        ggplot2::scale_fill_viridis_c(na.value = NA) +  # independent per plot
+        ggplot2::labs(
+          title    = paste0(v, " @ ", format(as.POSIXct(t0, tz = "UTC"), "%Y-%m-%d %H:%MZ")),
+          subtitle = sprintf("n_stations=%d   n_obs=%d   tol=±%d min",
+                             nrow(stations_df), nrow(obs_df), tol_min),
+          x = NULL, y = NULL, fill = v
+        ) +
+        ggplot2::geom_point(
+          data = pts_df,
+          ggplot2::aes(x, y, shape = type, color = type),
+          size = 1.6, stroke = 0.4, inherit.aes = FALSE,
+          show.legend = show_legend
+        ) +
+        ggplot2::scale_shape_manual(
+          values = c("Station" = 21, "MRoS Obs" = 24),
+          name   = "Points",
+          guide  = if (show_legend) ggplot2::guide_legend(override.aes = list(fill = c("white", "white"))) else "none"
+        ) +
+        ggplot2::scale_color_manual(
+          values = c("Station" = "lightblue", "MRoS Obs" = "red"),
+          name   = "Points",
+          guide  = if (show_legend) "legend" else "none"
+        ) +
+        ggplot2::theme_minimal(base_size = base_size) +
+        ggplot2::theme(
+          panel.grid  = ggplot2::element_blank(),
+          plot.title  = ggplot2::element_text(face = "bold"),
+          strip.text  = ggplot2::element_text(face = "bold"),
+          legend.box  = "vertical",
+          legend.key  = ggplot2::element_rect(fill = NA, color = NA),
+          plot.margin = grid::unit(rep(4,4), "pt")
+        )
+
+      panels[[i]] <- p
+    }
+
+    panels <- Filter(Negate(is.null), panels)
+    if (!length(panels)) return(NULL)
+
+    patchwork::wrap_plots(panels, ncol = ncol_panels)
+  }
+
+  for (t0 in times) {
+    grid_plot <- make_plot_for_time(t0)
+    if (!is.null(grid_plot)) {
+      out[[format(as.POSIXct(t0, tz="UTC"), "%Y-%m-%d %H:%MZ")]] <- grid_plot
+    }
   }
 
   out
 }
 
-plots <- plotting_IDW_interpolation_many(head(map_times, 3), ncol_panels = 3, base_size = 10)
+# Example:
+plots <- plotting_IDW_interpolation_many(map_times, ncol_panels = 3, base_size = 10)
 plots[[1]]
-ggplot2::ggsave("outputs/preview_time1.png", plots[[1]], width = 8, height = 6, dpi = 200)
 
-
+# Save each plot with its timestamp in the filename
+for (nm in names(plots)) {
+  fn <- sprintf("outputs/preview_%s.png", gsub(":", "-", nm))
+  ggplot2::ggsave(fn, plots[[nm]], width = 14, height = 12, dpi = 200)
+  message("Saved ", fn)
+}
