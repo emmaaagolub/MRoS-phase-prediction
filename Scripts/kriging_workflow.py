@@ -552,3 +552,18 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
+
+# INFO - Interpolated rh: 504 source points
+# INFO - Saving results...
+# INFO - Saved temp_air: temp_air_kriging_20250826T0843Z.tif, temp_air_kriging_20250826T0843Z_var.tif
+# INFO - Saved rh: rh_kriging_20250826T0843Z.tif, rh_kriging_20250826T0843Z_var.tif
+# INFO - Saved synced data: modeled_met_kriging_20250826T0843Z.parquet
+# INFO - All results saved successfully
+# INFO - Creating visualizations...
+# INFO - Created visualization: temp_air_kriging_visualization.png
+# INFO - Created visualization: rh_kriging_visualization.png
+# INFO - Visualizations completed
+# INFO - Kriging workflow completed successfully!
+# INFO - Kriging analysis completed successfully!
