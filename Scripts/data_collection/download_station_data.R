@@ -7,6 +7,8 @@
 ###############################################################
 
 
+# Collects data based on https://github.com/LynkerIntel/rainOrSnowTools/blob/cicd_pipeline/R/meteo_access.R
+
 ## ---------------- 1.  SET-UP ---------------------------------
 
 ## Install/load packages & the local repo  ----------------
@@ -71,6 +73,7 @@ stations_wcc  <- station_select("WCC",  lon_obs, lat_obs, deg_filter, dist_thres
 
 ## ---------------- 4.  DOWNLOAD HELPERS -----------------------
 ## HADS and LCD handle long spans internally — just call once
+# preprocess_meteo() in https://github.com/LynkerIntel/rainOrSnowTools/blob/cicd_pipeline/R/meteo_access.R converts temp data into Celcius
 get_hads <- function() {
   download_meteo_hads(start_utc, end_utc, stations_hads) %>%
     preprocess_meteo("HADS", .)
@@ -165,3 +168,6 @@ stations_meta <- gather_meta(unique_ids)
 # inspect
 print(stations_meta)
 write_csv(stations_meta, file.path(out_dir, "station_metadata_20241001_20250531.csv"))
+
+
+# temp dew, and temp wet not calculated using rainorsnowtools method model_meteo... later filled in via similar supplementary calculations in "preprocessing.ipynb"
