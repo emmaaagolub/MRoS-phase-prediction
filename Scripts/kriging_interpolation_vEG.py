@@ -529,63 +529,118 @@ print(f"Wrote {out_nc}")
 
 
 # %%
-# ====================== QUICKLOOK MAPS =============================
-
-def quicklook_hour(ds: xr.Dataset, t: np.datetime64,
-                   st_t: pd.DataFrame, mros_t: pd.DataFrame,
-                   out_png: Path,
-                   vars_to_show=("plp","mros_plp_proxy","temp_air","temp_dew","temp_wet","rh")):
-    if t not in ds.time.values:
+# -------------------- Quick Plotting ------------------------------------
+def quicklook_hour(
+    ds, t, st_t, mros_t, out_png,
+    vars_to_show=("plp","mros_plp_proxy","temp_air","temp_dew","temp_wet","rh")
+):
+    # match time index
+    times_ds = pd.to_datetime(ds.time.values).floor("h")
+    t_floor  = pd.to_datetime(t).floor("h")
+    if t_floor not in times_ds.values:
+        print(f"No matching time {t_floor} in dataset for quicklook.")
         return
-    xvals = ds["x"].values; yvals = ds["y"].values
-    extent = [xvals.min(), xvals.max(), yvals.min(), yvals.max()]
+    ti = int(np.where(times_ds == t_floor)[0][0])
+
+    # axes extent (xmin, xmax, ymin, ymax)
+    xvals = ds["x"].values
+    yvals = ds["y"].values
+    xmin, xmax = float(np.min(xvals)), float(np.max(xvals))
+    ymin, ymax = float(np.min(yvals)), float(np.max(yvals))
+    extent = [xmin, xmax, ymin, ymax]
+
+    # Ensure plot orientation matches row order
+    arr = ds[var].isel(time=ti).values
+    origin = "upper" if (np.diff(yvals).mean() < 0) else "lower"
+    im = ax.imshow(arr, origin=origin, extent=extent, aspect="equal",
+                vmin=0, vmax=100 if var in ("plp","mros_plp_proxy","rh") else None)
 
     keep = [v for v in vars_to_show if v in ds.data_vars]
     if not keep:
+        print("No matching variables to plot.")
         return
-    n = len(keep); ncols = 3; nrows = int(np.ceil(n / ncols))
+    ncols, nrows = 3, int(np.ceil(len(keep)/3))
 
-    fig, axes = plt.subplots(nrows, ncols, figsize=(4.6*ncols, 3.8*nrows), squeeze=False)
-    fig.suptitle(f"Quicklook @ {print_time(t)}", fontsize=14)
+    fig, axes = plt.subplots(nrows, ncols, figsize=(4.5*ncols, 3.8*nrows), squeeze=False)
+    fig.suptitle(f"Quicklook @ {t_floor:%Y-%m-%d %H:%MZ}", fontsize=14)
 
-    target_crs = ds.rio.crs or CRS.from_user_input(CONFIG["proj_fallback"])  # type: ignore
+    # dataset CRS (fallback to configured)
+    target_crs = ds.rio.crs or CRS.from_user_input(CONFIG["proj_fallback"])
     tf = Transformer.from_crs("EPSG:4326", target_crs, always_xy=True)
 
-    st_x = st_y = mo_x = mo_y = []
+    # --- project & CLIP stations ---
+    st_x = np.empty(0)
+    st_y = np.empty(0)
     if len(st_t):
-        st_x, st_y = tf.transform(st_t["lon"].values,  st_t["lat"].values)
-    if len(mros_t):
-        mo_x, mo_y = tf.transform(mros_t["lon"].values, mros_t["lat"].values)
+        sx, sy = tf.transform(st_t["lon"].values, st_t["lat"].values)
+        sx = np.asarray(sx); sy = np.asarray(sy)
+        smask = (sx >= xmin) & (sx <= xmax) & (sy >= ymin) & (sy <= ymax) & np.isfinite(sx) & np.isfinite(sy)
+        st_x, st_y = sx[smask], sy[smask]
 
-    ti = int(np.where(ds.time.values == np.datetime64(t))[0][0])
+    # --- project & CLIP MRoS ---
+    mo_x = np.empty(0)
+    mo_y = np.empty(0)
+    if len(mros_t):
+        mx, my = tf.transform(mros_t["lon"].values, mros_t["lat"].values)
+        mx = np.asarray(mx); my = np.asarray(my)
+        mmask = (mx >= xmin) & (mx <= xmax) & (my >= ymin) & (my <= ymax) & np.isfinite(mx) & np.isfinite(my)
+        mo_x, mo_y = mx[mmask], my[mmask]
 
     for i, var in enumerate(keep):
         ax = axes[i // ncols, i % ncols]
         arr = ds[var].isel(time=ti).values
+
+        # color scaling
         if var in ("plp", "mros_plp_proxy", "rh"):
             im = ax.imshow(arr, origin="lower", extent=extent, aspect="equal", vmin=0, vmax=100)
         else:
             im = ax.imshow(arr, origin="lower", extent=extent, aspect="equal")
+
         ax.set_title(var)
         ax.set_xlabel("x"); ax.set_ylabel("y")
-        if len(st_x):
-            ax.scatter(st_x, st_y, s=15, c="white", edgecolor="k", marker="o", linewidths=0.5, label="Stations")
-        if len(mo_x):
-            ax.scatter(mo_x, mo_y, s=25, c="red", edgecolor="k", marker="^", linewidths=0.6, label="MRoS")
+
+        # overlay
+        if st_x.size:
+            ax.scatter(st_x, st_y, s=15, c="white", edgecolor="k",
+                    marker="o", linewidths=0.5, label="Stations", zorder=3)
+        if mo_x.size:
+            ax.scatter(mo_x, mo_y, s=25, c="red", edgecolor="k",
+                    marker="^", linewidths=0.6, label="MRoS", zorder=3)
+
         ax.legend(loc="upper right", frameon=True, fontsize=8)
         fig.colorbar(im, ax=ax, fraction=0.046, pad=0.02)
 
-    for j in range(n, nrows*ncols):
+    # turn off any leftover panels
+    for j in range(len(keep), nrows*ncols):
         axes[j // ncols, j % ncols].axis("off")
 
     fig.tight_layout(rect=[0, 0.03, 1, 0.95])
-    fig.savefig(out_png, dpi=200); plt.close(fig)
+    fig.savefig(out_png, dpi=200)
+    plt.close(fig)
+    print(
+        f"Saved quicklook: {out_png} | plotted {st_x.size} stations, {mo_x.size} MRoS (clipped to DEM)"
+    )
 
-# sample a few hours
-quick_dir = OUT_DIR / "maps"; quick_dir.mkdir(parents=True, exist_ok=True)
-sample = slice(None, None, max(1, len(hours)//CONFIG["quicklook_every"]))
-for t in pd.to_datetime(ds.time.values)[sample]:
-    t_utc = pd.to_datetime(t).tz_localize("UTC").floor("H")
-    st_t = st_hr[st_hr["hour_utc"].dt.floor("H") == t_utc]
-    mros_t = mros[mros["hour_utc"].dt.floor("H") == t_utc]
-    quicklook_hour(ds, t, st_t, mros_t, out_png=quick_dir / f"Kriging_quick_{print_time(t).replace(':','-')}.png")
+
+# -------------------- Loop --------------------
+quick_dir = Path(CONFIG["out_dir"]) / "maps"
+quick_dir.mkdir(parents=True, exist_ok=True)
+
+# day = "2025-03-04"
+# all_times = pd.to_datetime(ds.time.values).floor("h")  # dataset times
+# mask = all_times.normalize() == pd.to_datetime(day)
+# sample_hours = all_times[mask]
+sample_hours = pd.to_datetime(ds.time.values)[::max(1, len(ds.time)//20)]
+# print(f"Found {len(sample_hours)} timesteps on {day}")
+
+for t in sample_hours:
+    t_floor = pd.to_datetime(t).floor("h")  # tz-naive
+
+    # Ensure obs times are made tz-naive before comparison
+    st_t   = st_hr[st_hr["hour_utc"].dt.tz_convert(None).dt.floor("h") == t_floor]
+    mros_t = mros_hr[mros_hr["hour_utc"].dt.tz_convert(None).dt.floor("h") == t_floor]
+
+    print(f"[{t_floor}] Stations: {len(st_t)}, MRoS: {len(mros_t)}")
+
+    quicklook_hour(ds, t_floor, st_t, mros_t,
+                   out_png=quick_dir / f"quick_{print_time(t_floor).replace(':','-')}.png")
