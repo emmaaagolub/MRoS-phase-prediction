@@ -3,7 +3,8 @@ Description of versions:
 * NOTE: any versions missing in this folder are uploaded in GoogleDrive because of larger file size.
 
 Last ran by: Emma
-12/3/25:  hourly_predictors_1km_kriging_v5_test (UK + OK on calibrated variogram parameters -- FINAL TESTING VERSION)
+12/15/25: hourly_predictors_1km_kriging_v6_test (back to OK with autofit -- FINAL TESTING VERSION)
+12/3/25:  hourly_predictors_1km_kriging_v5_test (UK + OK on calibrated variogram parameters -- TESTING VERSION)
 12/3/25:  hourly_predictors_1km_kriging_v4_test (UK + OK on auto-fitted variogram parameters)
 11/20/25: hourly_predictors_1km_OK_kriging_v3search_test (OK only on RMSE-CV searched variogram parameters)
 11/20/25: hourly_predictors_1km_UK_kriging_v3_test (UK only on fixed variogram parameters)
