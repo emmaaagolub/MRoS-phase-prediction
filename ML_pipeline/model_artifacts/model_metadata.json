@@ -1,0 +1,12 @@
+{
+  "classes": {
+    "0": "snow",
+    "1": "mix",
+    "2": "rain"
+  },
+  "model_type": "XGBoost (multi:softprob)",
+  "spatial_blocking": "random block split, ~25\u201350 km blocks",
+  "training_period": "2024-10-11 to 2025-05-30",
+  "label_source": "MRoS proxy, IMERG PLP mask",
+  "notes": "Model trained with spatial blocking and early stopping on IDW set"
+}

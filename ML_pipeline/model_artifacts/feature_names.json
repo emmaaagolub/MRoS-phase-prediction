@@ -1,0 +1,12 @@
+[
+  "temp_air",
+  "temp_dew",
+  "temp_wet",
+  "rh",
+  "imerg_plp",
+  "prism_tair",
+  "prism_tmean",
+  "prism_tdmean",
+  "prism_ppt_daily",
+  "elev"
+]
