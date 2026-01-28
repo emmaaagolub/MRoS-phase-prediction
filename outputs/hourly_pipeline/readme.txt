@@ -1,16 +1,19 @@
 Description of versions:
 
-* NOTE: any versions missing in this folder are uploaded in GoogleDrive because of larger file size.
+* NOTE: any versions listed here but missing in the folder are uploaded in GoogleDrive due to larger file size.
 
 Last ran by: Emma
+--- Final full versions for ML pipeline: ---
+12/17/25: kriging_OK_hourly_v6_full (FINAL FULL VERSION, on GoogleDrive)
+12/1/25:  hourly_predictors_1km_IDW_full (IDW - FINAL FULL VERSION, on GoogleDrive)
+---
+
 12/15/25: hourly_predictors_1km_kriging_v6_test (back to OK with autofit -- FINAL TESTING VERSION)
 12/3/25:  hourly_predictors_1km_kriging_v5_test (UK + OK on calibrated variogram parameters -- TESTING VERSION)
 12/3/25:  hourly_predictors_1km_kriging_v4_test (UK + OK on auto-fitted variogram parameters)
 11/20/25: hourly_predictors_1km_OK_kriging_v3search_test (OK only on RMSE-CV searched variogram parameters)
 11/20/25: hourly_predictors_1km_UK_kriging_v3_test (UK only on fixed variogram parameters)
 11/20/25: hourly_predictors_1km_OK_kriging_v3auto_test (OK only on auto-fitted variogram parameters)
-
-12/1/25:  hourly_predictors_1km_IDW_full (IDW - FINAL FULL VERSION, on GoogleDrive)
 11/2/25:  hourly_predictors_1km_IDW_v3_test (IDW -- FINAL TESTING VERSION)
 10/8/25:  hourly_predictors_1km_IDW_v2_full (on GoogleDrive)
 9/4/25:   hourly_predictors_1km_IDW_v1_full (on GoogleDrive)
