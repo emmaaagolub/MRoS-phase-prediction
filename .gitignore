@@ -6,3 +6,11 @@
 .pycache
 .__pycache__
 ./Scripts/__pycache__
+
+
+# Local data (do not commit)
+Data/PRISM/
+
+# Large / intermediate ML artifacts (local only)
+ML_pipeline/model_artifacts/*/X_test.parquet
+ML_pipeline/model_artifacts/*/X_test_predictions_combined.parquet
