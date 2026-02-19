@@ -12,5 +12,14 @@
 Data/PRISM/
 
 # Large / intermediate ML artifacts (local only)
-ML_pipeline/model_artifacts/*/X_test.parquet
+ML_pipeline/model_artifacts/*/*/X_test.parquet
+ML_pipeline/model_artifacts/*/*/X_test_predictions_combined.parquet
+ML_pipeline/model_artifacts/*/*/test_predictions.parquet
+ML_pipeline/model_artifacts/*/*/xgb_phase_model.bin
+ML_pipeline/model_artifacts/*/*/y_test.parquet
+
 ML_pipeline/model_artifacts/*/X_test_predictions_combined.parquet
+ML_pipeline/model_artifacts/*/X_test.parquet
+
+outputs/resampled_grids/imerg_hourly_1km.nc
+outputs/resampled_grids/prism_hourly_1km.nc
