@@ -1,0 +1,18 @@
+{
+  "classes": {
+    "0": "snow",
+    "1": "rain",
+    "2": "uncertain/mix (abstention)"
+  },
+  "model_type": "XGBoost (binary:logistic + abstention)",
+  "confidence_threshold": 0.6,
+  "spatial_blocking": "random block split (~25\u201350 km blocks)",
+  "training_period": "2024-10-11 to 2025-05-30",
+  "label_definition": {
+    "snow": "proxy <= 20",
+    "rain": "proxy >= 80",
+    "ambiguous": "excluded from training"
+  },
+  "transition_weighting": "applied to 0\u20134\u00b0C wet-bulb",
+  "notes": "Binary classification with uncertainty region to represent transition zone"
+}
