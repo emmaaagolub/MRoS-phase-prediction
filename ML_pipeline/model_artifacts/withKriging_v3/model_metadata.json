@@ -9,7 +9,7 @@
     "pred_phase_abst==2": "model abstention / uncertainty band (max_prob < threshold)"
   },
   "model_type": "XGBoost (binary:logistic + abstention)",
-  "confidence_threshold": 0.7849999999999999,
+  "confidence_threshold": 0.635,
   "threshold_tuned_on": "validation",
   "spatial_blocking": "random block split (~25\u201350 km blocks)",
   "training_period": "2024-10-11 to 2025-05-30",
