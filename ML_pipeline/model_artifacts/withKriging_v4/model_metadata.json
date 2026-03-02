@@ -1,0 +1,28 @@
+{
+  "classes": {
+    "0": "snow",
+    "1": "rain",
+    "2": "mix"
+  },
+  "model_type": "XGBoost (multi:softprob)",
+  "spatial_blocking": "random block split (~25-50 km blocks)",
+  "training_period": "2024-10-11 to 2025-05-30",
+  "label_definition": {
+    "snow": "proxy <= 20",
+    "rain": "proxy >= 80",
+    "mix": "20 < proxy < 80"
+  },
+  "weights": {
+    "class_weight_balanced": {
+      "0": 0.8730916571714132,
+      "1": 0.8497187297278119,
+      "2": 1.4753944167426931
+    },
+    "label_confidence_multiplier": true,
+    "transition_window_temp_wet_C": [
+      0,
+      4
+    ],
+    "transition_alpha": 1.0
+  }
+}
