@@ -11,17 +11,20 @@ Scripts/__pycache__/
 # Local data (do not commit)
 Data/PRISM/
 
-
-# =========================
-# Large ML artifacts (local only)
-# =========================
-
 # Ignore ALL parquet + NetCDF in model artifacts
 ML_pipeline/model_artifacts/**/*.parquet
 ML_pipeline/model_artifacts/**/*.nc
 ML_pipeline/model_artifacts/**/*.bin
 
-
 # Ignore large resampled grids
 outputs/resampled_grids/**/*.nc
 outputs/resampled_grids/**/*.parquet
+
+# NetCDF + parquet outputs
+*.nc
+*.parquet
+
+# Large pipeline outputs
+outputs/hourly_pipeline/
+ML_pipeline/model_artifacts/
+outputs/resampled_grids/
