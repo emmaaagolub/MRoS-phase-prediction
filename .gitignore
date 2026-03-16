@@ -4,28 +4,24 @@
 .Ruserdata
 
 .pycache
-.__pycache__
-./Scripts/__pycache__
+__pycache__/
+Scripts/__pycache__/
 
 
 # Local data (do not commit)
 Data/PRISM/
 
-# Large / intermediate ML artifacts (local only)
-ML_pipeline/model_artifacts/*/*/X_test.parquet
-ML_pipeline/model_artifacts/*/*/X_test_all.parquet
-ML_pipeline/model_artifacts/*/*/X_test_predictions_combined.parquet
-ML_pipeline/model_artifacts/*/*/test_predictions.parquet
-ML_pipeline/model_artifacts/*/*/xgb_phase_model.bin
-ML_pipeline/model_artifacts/*/*/y_test.parquet
 
-ML_pipeline/model_artifacts/*/X_test_predictions_combined.parquet
-ML_pipeline/model_artifacts/*/X_test.parquet
-ML_pipeline/model_artifacts/*/X_test_all.parquet
-ML_pipeline/model_artifacts/*/test_predictions.parquet
-ML_pipeline/model_artifacts/withIDW_v3/test_predictions.parquet
-ML_pipeline/model_artifacts/*/xgb_phase_model.bin
-ML_pipeline/model_artifacts/*/y_test.parquet
+# =========================
+# Large ML artifacts (local only)
+# =========================
 
-outputs/resampled_grids/imerg_hourly_1km.nc
-outputs/resampled_grids/prism_hourly_1km.nc
+# Ignore ALL parquet + NetCDF in model artifacts
+ML_pipeline/model_artifacts/**/*.parquet
+ML_pipeline/model_artifacts/**/*.nc
+ML_pipeline/model_artifacts/**/*.bin
+
+
+# Ignore large resampled grids
+outputs/resampled_grids/**/*.nc
+outputs/resampled_grids/**/*.parquet
