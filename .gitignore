@@ -1,30 +1,63 @@
+# ------------------------------------------------------------
+# R
 .Rproj.user
 .Rhistory
 .RData
 .Ruserdata
 
-.pycache
+# ------------------------------------------------------------
+# Python
 __pycache__/
-Scripts/__pycache__/
+*.py[cod]
+.ipynb_checkpoints/
+*.egg-info/
+.env
+venv/
 
+# ------------------------------------------------------------
+# Large data files — ALL locations
+# (keeps repo to code + small CSVs only)
 
-# Local data (do not commit)
-Data/PRISM/
+/Data/
 
-# Ignore ALL parquet + NetCDF in model artifacts
-ML_pipeline/model_artifacts/**/*.parquet
-ML_pipeline/model_artifacts/**/*.nc
-ML_pipeline/model_artifacts/**/*.bin
-
-# Ignore large resampled grids
-outputs/resampled_grids/**/*.nc
-outputs/resampled_grids/**/*.parquet
-
-# NetCDF + parquet outputs
+# Raster / gridded
+*.tif
+*.tiff
 *.nc
-*.parquet
+*.nc4
+*.hdf
+*.hdf5
+*.bil
+*.bil.aux.xml
+*.prj
 
-# Large pipeline outputs
+# Tabular / serialized
+*.parquet
+*.arrow
+*.feather
+*.csv.gz
+
+# Compressed archives (downloaded zips from PRISM, USGS, etc.)
+*.zip
+
+# ------------------------------------------------------------
+# Exceptions — small CSVs that ARE tracked
+# (station metadata, error logs, config look-up tables)
+!Data/Stations/station_metadata*.csv
+!Data/Stations/*_error_log.csv
+
+# ------------------------------------------------------------
+# Specific output directories
+# (belt-and-suspenders in case extension rules above miss something)
 outputs/hourly_pipeline/
-ML_pipeline/model_artifacts/
 outputs/resampled_grids/
+Data/
+ML_pipeline/model_artifacts/
+
+# ------------------------------------------------------------
+# OS / editor
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+.vscode/settings.json
