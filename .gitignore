@@ -41,16 +41,8 @@ venv/
 *.zip
 
 # ------------------------------------------------------------
-# Exceptions — small CSVs that ARE tracked
-# (station metadata, error logs, config look-up tables)
-!Data/Stations/station_metadata*.csv
-!Data/Stations/*_error_log.csv
-
-# ------------------------------------------------------------
 # Specific output directories
-# (belt-and-suspenders in case extension rules above miss something)
-outputs/hourly_pipeline/
-outputs/resampled_grids/
+outputs/
 Data/
 ML_pipeline/model_artifacts/
 
