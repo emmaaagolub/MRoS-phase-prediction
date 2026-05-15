@@ -165,194 +165,211 @@ download_batched <- function(source, start_utc, end_utc, stations,
   list(data = bind_rows(compact(results)), errors = error_log)
 }
 
-
-# WCC: loops day-by-day (API only handles one day at a time);
-get_wcc <- function(start_utc, end_utc, stations, out_dir,
-                    max_retries = 3,
-                    station_batch_size = 8,
-                    min_batch_success = 0.6) {
+## WCC snotel data
+get_wcc_awdb <- function(start_utc, end_utc, stations, out_dir) {
   
-  options(timeout = 180)
+  library(httr)
+  library(jsonlite)
   
-  all_dates <- seq.Date(as_date(start_utc), as_date(end_utc), by = "day")
+  # ---- Build station triplets ---------------------------------------------
+  triplets <- stations %>%
+    dplyr::mutate(network_ab = dplyr::case_when(
+      network == "snotel"  ~ "SNTL",
+      network == "snotelt" ~ "SNTLT",
+      network == "scan"    ~ "SCAN",
+      TRUE                 ~ toupper(network)
+    )) %>%
+    dplyr::mutate(triplet = paste(station.id, state, network_ab, sep = ":")) %>%
+    dplyr::pull(triplet)
   
-  # ---- Resume logic -------------------------------------------------------
-  checkpoint_files <- list.files(out_dir, pattern = "wcc_checkpoint_.*\\.csv",
-                                 full.names = TRUE)
+  message("  Fetching AWDB data for ", length(triplets), " stations...")
+  message("  Period: ", as_date(start_utc), " to ", as_date(end_utc))
   
-  if (length(checkpoint_files) > 0) {
-    message("  Found ", length(checkpoint_files),
-            " checkpoint file(s) — checking coverage...")
-    existing_df <- bind_rows(lapply(checkpoint_files, function(f) {
-      read_csv(f, show_col_types = FALSE) %>% normalize_types()
-    }))
-    completed_dates <- existing_df %>%
-      dplyr::mutate(
-        n_batches_succeeded = if ("n_batches_succeeded" %in% names(.)) 
-          as.integer(n_batches_succeeded) else 1L,
-        n_batches_total     = if ("n_batches_total" %in% names(.)) 
-          as.integer(n_batches_total) else 1L,
-        pct_succeeded       = dplyr::case_when(
-          is.na(n_batches_total) ~ 1.0,
-          TRUE ~ n_batches_succeeded / n_batches_total
-        )
-      ) %>%
-      dplyr::filter(pct_succeeded >= min_batch_success) %>%
-      dplyr::pull(datetime) %>%
-      as_date() %>%
-      unique()
-    dates <- all_dates[!(all_dates %in% completed_dates)]
-    message("  Skipping ", length(completed_dates),
-            " sufficiently-covered dates; ", length(dates), " remaining.")
+  # ---- Year chunks x station batches --------------------------------------
+  years              <- seq(year(start_utc), year(end_utc))
+  station_batch_size <- 10
+  station_batches    <- split(triplets,
+                              ceiling(seq_along(triplets) / station_batch_size))
+  total_calls        <- length(years) * length(station_batches)
+  message("  ", length(years), " years x ", length(station_batches),
+          " station batches = ", total_calls, " total requests")
+  
+  # ---- Resume: skip years already checkpointed ---------------------------
+  completed_years <- list.files(out_dir,
+                                pattern = "wcc_awdb_checkpoint_through_.*\\.csv") %>%
+    gsub("wcc_awdb_checkpoint_through_|\\.csv", "", .) %>%
+    as.integer()
+  
+  if (length(completed_years) > 0) {
+    message("  Found checkpoints for years: ",
+            paste(sort(completed_years), collapse = ", "), " — loading...")
+    existing_long <- bind_rows(lapply(
+      file.path(out_dir,
+                paste0("wcc_awdb_checkpoint_through_",
+                       sort(completed_years), ".csv")),
+      read_csv, show_col_types = FALSE
+    ))
+    all_long <- list(existing_long)
+    years    <- years[!(years %in% completed_years)]
+    message("  Skipping completed years; ", length(years), " remaining.")
   } else {
-    existing_df <- NULL
-    dates       <- all_dates
+    all_long <- list()
   }
   
-  if (length(dates) == 0) {
-    message("  All dates already fetched via checkpoints — nothing to do.")
-    return(bind_rows(existing_df) %>% preprocess_meteo("WCC", .))
-  }
-  
-  # ---- Pre-group stations by variable availability ------------------------
-  message("  Probing station variable availability (", nrow(stations),
-          " stations)...")
-  
-  probe_dt <- as_datetime(dates[1], tz = "UTC")
-  
-  var_signature <- sapply(seq_len(nrow(stations)), function(s) {
-    tryCatch({
-      df <- download_meteo_wcc(probe_dt, probe_dt + hours(1), stations[s, ])
-      vars <- c(
-        if ("tair" %in% names(df) && any(!is.na(df$tair))) "tair" else NULL,
-        if ("rh"   %in% names(df) && any(!is.na(df$rh)))   "rh"   else NULL,
-        if ("tdew" %in% names(df) && any(!is.na(df$tdew))) "tdew" else NULL
+  # ---- Fetch helper -------------------------------------------------------
+  fetch_awdb <- function(triplet_batch, begin_date, end_date,
+                         max_retries = 3) {
+    for (attempt in seq_len(max_retries)) {
+      Sys.sleep(c(2, 10, 30)[min(attempt, 3)])
+      
+      resp <- tryCatch(
+        httr::GET(
+          "https://wcc.sc.egov.usda.gov/awdbRestApi/services/v1/data",
+          query = list(
+            stationTriplets = paste(triplet_batch, collapse = ","),
+            elements        = "TOBS,RHUM,DPTP",
+            beginDate       = begin_date,
+            endDate         = end_date,
+            duration        = "HOURLY",
+            periodRef       = "START"
+          ),
+          httr::timeout(300)  # 5 minutes
+        ),
+        error = function(e) { 
+          message("    httr error: ", e$message)
+          NULL 
+        }
       )
-      paste(sort(vars), collapse = "+")
-    }, error = function(e) "unknown")
-  })
-  
-  stations$var_group <- var_signature
-  var_groups         <- split(stations, stations$var_group)
-  message("  Variable groups: ", paste(names(var_groups), collapse = ", "))
-  
-  # Build homogeneous batches within each group
-  # unknown stations run one at a time to avoid column mismatch
-  station_batches <- unlist(lapply(names(var_groups), function(grp_name) {
-    grp <- var_groups[[grp_name]]
-    if (grp_name %in% c("unknown", "")) {
-      # Run individually to avoid column mismatch
-      lapply(seq_len(nrow(grp)), function(s) grp[s, ])
-    } else {
-      split(grp, ceiling(seq_len(nrow(grp)) / station_batch_size))
+      
+      # Guard: skip status_code check if request failed
+      if (is.null(resp)) {
+        message("    Request failed on attempt ", attempt)
+        next
+      }
+      
+      if (httr::status_code(resp) == 200) {
+        return(jsonlite::fromJSON(
+          httr::content(resp, as = "text", encoding = "UTF-8"),
+          simplifyVector = TRUE
+        ))
+      }
+      
+      message("    HTTP ", httr::status_code(resp),
+              " on attempt ", attempt,
+              " (", begin_date, " to ", end_date, ")")
     }
-  }), recursive = FALSE)
+    message("    All retries failed")
+    return(NULL)
+  }
   
-  n_batches <- length(station_batches)
-  message("  ", nrow(stations), " stations -> ", n_batches,
-          " homogeneous batches of ~", station_batch_size)
-  
-  # ---- Progress bar + error log -------------------------------------------
-  pb <- progress_bar$new(
-    format = "  WCC [:bar] :percent eta: :eta",
-    total  = length(dates),
-    width  = 40
-  )
-  
-  error_log <- tibble(
-    date    = as.Date(character()),
-    batch   = integer(),
-    attempt = integer(),
-    error   = character()
-  )
-  
-  raw_list <- vector("list", length(dates))
-  
-  # ---- Day loop -----------------------------------------------------------
-  for (i in seq_along(dates)) {
-    d   <- dates[i]
-    dt0 <- as_datetime(d, tz = "UTC")
-    dt1 <- dt0 + days(1) - seconds(1)
+  # ---- Parse helper -------------------------------------------------------
+  parse_station <- function(station_triplet, data_row) {
+    if (is.null(data_row$values) || length(data_row$values) == 0) return(NULL)
     
-    pb$tick()
+    elements <- data_row$stationElement$elementCode
     
-    day_batch_results <- vector("list", n_batches)
+    dfs <- lapply(seq_along(elements), function(e) {
+      vals <- data_row$values[[e]]
+      if (is.null(vals) || nrow(vals) == 0) return(NULL)
+      data.frame(
+        station  = station_triplet,
+        datetime = as.POSIXct(vals$date, format = "%Y-%m-%d %H:%M",
+                              tz = "UTC"),
+        element  = elements[e],
+        value    = as.numeric(vals$value),
+        stringsAsFactors = FALSE
+      )
+    })
+    
+    bind_rows(compact(dfs))
+  }
+  
+  # ---- Main fetch loop: year x station batch ------------------------------
+  call_n <- 0
+  
+  for (yr in years) {
+    
+    begin_date <- format(max(as_date(start_utc),
+                             as_date(paste0(yr, "-01-01"))), "%Y-%m-%d")
+    end_date   <- format(min(as_date(end_utc),
+                             as_date(paste0(yr, "-12-31"))), "%Y-%m-%d")
     
     for (b in seq_along(station_batches)) {
-      batch         <- station_batches[[b]]
-      batch_success <- FALSE
+      call_n <- call_n + 1
+      message("  [", call_n, "/", total_calls, "]  ",
+              yr, "  batch ", b, "/", length(station_batches),
+              " (", length(station_batches[[b]]), " stations)...")
       
-      for (attempt in seq_len(max_retries)) {
-        Sys.sleep(1)
-        
-        day_batch_results[[b]] <- tryCatch(
-          download_meteo_wcc(dt0, dt1, batch),
-          error = function(e) {
-            error_log <<- bind_rows(error_log, tibble(
-              date    = d,
-              batch   = b,
-              attempt = attempt,
-              error   = e$message
-            ))
-            NULL
-          }
-        )
-        
-        if (!is.null(day_batch_results[[b]])) {
-          batch_success <- TRUE
-          break
-        }
+      result <- fetch_awdb(station_batches[[b]], begin_date, end_date)
+      
+      if (is.null(result) || nrow(result) == 0) {
+        message("    No data returned — skipping.")
+        next
       }
       
-      if (!batch_success) {
-        message("\n  WCC: ", d, " batch ", b, "/", n_batches,
-                " failed all ", max_retries, " attempts — skipped.")
-      }
+      batch_long <- bind_rows(lapply(seq_len(nrow(result)), function(i) {
+        parse_station(result$stationTriplet[i], result$data[[i]])
+      }))
+      
+      all_long[[length(all_long) + 1]] <- batch_long
+      Sys.sleep(1)
     }
     
-    # -- Combine batches for this day, tag with success metadata ------------
-    n_succeeded  <- sum(!sapply(day_batch_results, is.null))
-    day_combined <- bind_rows(lapply(compact(day_batch_results), normalize_types))
-    
-    if (nrow(day_combined) > 0) {
-      day_combined$n_batches_succeeded <- as.character(n_succeeded)
-      day_combined$n_batches_total     <- as.character(n_batches)
-      raw_list[[i]] <- day_combined
-    } else {
-      raw_list[[i]] <- NULL
-    }
-    
-    # -- Checkpoint every 30 days or on last date ---------------------------
-    if (i %% 30 == 0 || i == length(dates)) {
-      checkpoint_df <- bind_rows(compact(raw_list))
-      
-      if (!is.null(existing_df)) {
-        checkpoint_df <- bind_rows(existing_df, checkpoint_df)
-      }
-      
-      if (nrow(checkpoint_df) > 0) {
-        checkpoint_path <- file.path(
-          out_dir,
-          paste0("wcc_checkpoint_through_", d, ".csv")
-        )
-        write_csv(checkpoint_df, checkpoint_path)
-        message("\n  Checkpoint saved through ", d,
-                " -> ", basename(checkpoint_path))
-      }
-    }
+    # ---- Checkpoint after each year --------------------------------------
+    year_df <- bind_rows(all_long)
+    checkpoint_path <- file.path(
+      out_dir,
+      paste0("wcc_awdb_checkpoint_through_", yr, ".csv")
+    )
+    write_csv(year_df, checkpoint_path)
+    message("  Checkpoint saved through ", yr,
+            " -> ", basename(checkpoint_path))
   }
   
-  # ---- Error log ----------------------------------------------------------
-  if (nrow(error_log) > 0) {
-    write_csv(error_log, file.path(out_dir, "wcc_error_log.csv"))
-    message("  Logged ", nrow(error_log), " WCC errors -> wcc_error_log.csv")
+  # ---- Combine all results ------------------------------------------------
+  long_df <- bind_rows(all_long)
+  
+  # Save long_df immediately — if anything below fails, raw data is safe
+  write_csv(long_df, file.path(out_dir, paste0("wcc_awdb_long_raw_",
+                                               format(as_date(start_utc), "%Y%m%d"), "_",
+                                               format(as_date(end_utc),   "%Y%m%d"), ".csv")))
+  message("  Raw long data saved (", nrow(long_df), " rows)")
+  
+  if (nrow(long_df) == 0) {
+    message("  No data retrieved.")
+    return(NULL)
   }
   
-  # ---- Final combine ------------------------------------------------------
-  final_raw <- bind_rows(compact(raw_list))
-  if (!is.null(existing_df)) final_raw <- bind_rows(existing_df, final_raw)
+  # ---- Pivot wide ---------------------------------------------------------
+  wide_df <- long_df %>%
+    tidyr::pivot_wider(
+      names_from  = element,
+      values_from = value
+    ) %>%
+    dplyr::rename_with(tolower) %>%
+    dplyr::rename(
+      tair = any_of("tobs"),
+      rh   = any_of("rhum"),
+      tdew = any_of("dptp")
+    ) %>%
+    dplyr::mutate(
+      .id          = sub(":.*", "", station),
+      date         = format(datetime, "%Y-%m-%d %H:%M"),
+      datetime_lst = datetime,
+      tair         = if ("tair" %in% names(.)) as.numeric(tair) else NA_real_,
+      rh           = if ("rh"   %in% names(.)) as.numeric(rh)   else NA_real_,
+      tdew         = if ("tdew" %in% names(.)) as.numeric(tdew) else NA_real_
+    ) %>%
+    dplyr::select(.id, date, tair, rh, tdew, datetime_lst, datetime)
   
-  final_raw %>% preprocess_meteo("WCC", .)
+  # Save wide_df before preprocessing
+  write_csv(wide_df, file.path(out_dir, paste0("wcc_awdb_raw_",
+                                               format(as_date(start_utc), "%Y%m%d"), "_",
+                                               format(as_date(end_utc),   "%Y%m%d"), ".csv")))
+  message("  Retrieved ", nrow(wide_df), " rows for ",
+          length(unique(wide_df$.id)), " stations.")
+  
+  wide_df %>% preprocess_meteo("WCC", .)
 }
 
 # ## ---------------- TESTING BLOCK (remove before full run) ----------------
@@ -466,7 +483,7 @@ for (region_id in names(REGIONS)) {
   
   # WCC — day-by-day loop with retry
   message("\nDownloading WCC (this will take a while)...")
-  wcc_df <- get_wcc(start_utc, end_utc, stations_wcc, out_dir)
+  wcc_df <- get_wcc_awdb(start_utc, end_utc, stations_wcc, out_dir)
   write_csv(wcc_df, file.path(out_dir, paste0("wcc_", date_suffix, ".csv")))
   
   # Station metadata — separate file per region
@@ -485,8 +502,3 @@ message("\nAll regions complete.")
 
 # Note: temp_dew and temp_wet are not calculated here via model_meteo;
 # they are filled in downstream in preprocessing.ipynb
-
-
-
-# Checks
-round(colMeans(is.na(wcc_df)) * 100, 1)
