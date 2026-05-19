@@ -452,8 +452,21 @@ for (region_id in names(REGIONS)) {
   message("Selecting stations...")
   stations_hads <- station_select("HADS", cfg$lon_obs, cfg$lat_obs,
                                   cfg$deg_filter, cfg$dist_thresh_m)
-  stations_lcd  <- station_select("LCD",  cfg$lon_obs, cfg$lat_obs,
-                                  cfg$deg_filter, cfg$dist_thresh_m)
+  
+  stations_lcd <- lcd_meta %>%
+    dplyr::filter(
+      LONGITUDE >= cfg$lon_obs - cfg$deg_filter & LONGITUDE <= cfg$lon_obs + cfg$deg_filter,
+      LATITUDE  >= cfg$lat_obs - cfg$deg_filter & LATITUDE  <= cfg$lat_obs + cfg$deg_filter
+    ) %>%
+    dplyr::rowwise() %>%
+    dplyr::mutate(dist = geosphere::distHaversine(
+      c(cfg$lon_obs, cfg$lat_obs), c(LONGITUDE, LATITUDE))) %>%
+    dplyr::ungroup() %>%
+    dplyr::filter(dist <= cfg$dist_thresh_m)
+  ## DEPRECATED:
+  # stations_lcd  <- station_select("LCD",  cfg$lon_obs, cfg$lat_obs,
+  #                                 cfg$deg_filter, cfg$dist_thresh_m)
+  
   stations_wcc  <- station_select("WCC",  cfg$lon_obs, cfg$lat_obs,
                                   cfg$deg_filter, cfg$dist_thresh_m)
   
@@ -461,6 +474,7 @@ for (region_id in names(REGIONS)) {
   message("  LCD stations  : ", nrow(stations_lcd))
   message("  WCC stations  : ", nrow(stations_wcc))
   
+  ## ------------ HADS --------------
   # HADS — batched with retry
   message("\nDownloading HADS...")
   hads_out <- download_batched("HADS", start_utc, end_utc, stations_hads,
@@ -471,6 +485,7 @@ for (region_id in names(REGIONS)) {
     write_csv(hads_out$errors, file.path(out_dir, "hads_error_log.csv"))
   # hads_df <- read_csv(file.path(out_dir, paste0("hads_", date_suffix, ".csv")), show_col_types = FALSE)
   
+  ## ------------ LCD ASOS --------------
   # LCD — batched with retry (smaller batches due to API timeout sensitivity)
   message("\nDownloading LCD...")
   lcd_out <- download_batched("LCD", start_utc, end_utc, stations_lcd,
@@ -481,6 +496,7 @@ for (region_id in names(REGIONS)) {
     write_csv(lcd_out$errors, file.path(out_dir, "lcd_error_log.csv"))
   # lcd_df <- read_csv(file.path(out_dir, paste0("lcd_", date_suffix, ".csv")), show_col_types = FALSE)
   
+  ## ------------ WCC SNOTEL --------------
   # WCC — day-by-day loop with retry
   message("\nDownloading WCC (this will take a while)...")
   wcc_df <- get_wcc_awdb(start_utc, end_utc, stations_wcc, out_dir)
