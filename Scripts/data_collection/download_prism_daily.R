@@ -76,9 +76,10 @@ for (d in out_dirs) dir.create(d, showWarnings = FALSE, recursive = TRUE)
 # 3.  Parameters
 # =============================================================================
 
-dates        <- seq(ymd("2024-10-01"), ymd("2025-09-30"), by = "day")
+# dates        <- seq(ymd("2024-10-01"), ymd("2025-09-30"), by = "day")
 # dates        <- seq(ymd("2022-10-01"), ymd("2024-09-30"), by = "day")
 # dates        <- seq(ymd("2025-10-01"), ymd("2026-05-01"), by = "day")
+dates        <- seq(ymd("2022-10-01"), ymd("2026-05-01"), by = "day")
 
 date_codes   <- format(dates, "%Y%m%d")
 variables    <- c("ppt", "tmin", "tmean", "tmax", "tdmean")

@@ -419,9 +419,11 @@ for (region_id in names(regions)) {
   failed_files <- Filter(function(f) {
     tryCatch({
       df <- arrow::read_parquet(f)
-      # A failed day was written as NA, which arrow stores as a 1-row logical NA
-      is.logical(df) || all(is.na(df)) || nrow(df) == 0
-    }, error = function(e) TRUE)   # unreadable = also failed
+      if (is.logical(df) || all(is.na(df)) || nrow(df) == 0) return(TRUE)
+      # Also flag partial days
+      plp_cols <- grep("^plp_\\d{2}$", names(df), value = TRUE)
+      length(plp_cols) < 48
+    }, error = function(e) TRUE)
   }, all_parquets)
   
   if (length(failed_files) == 0) {
