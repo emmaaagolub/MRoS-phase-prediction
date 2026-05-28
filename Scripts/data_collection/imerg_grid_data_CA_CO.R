@@ -18,7 +18,7 @@ library(curl)
 #     CA – Sierra Nevada / Lake Tahoe  (EPSG:26911)
 #     CO – Colorado Mountains          (EPSG:32613)
 #
-#   Temporal window: 2022-10-01 to 2025-05-01
+#   Temporal window: 2022-10-01 to 2026-05-01
 #     NOTE: The loop skips days whose output parquet already exists.
 #
 #   Output: Data/IMERG/{CA|CO}/gpm_imerg_{date}.parquet
@@ -140,7 +140,13 @@ for (d in out_dirs) dir.create(d, showWarnings = FALSE, recursive = TRUE)
 # 3.  Date window
 # -----------------------------------------------------------------------------
 
-all_days <- seq(as.Date("2022-10-01"), as.Date("2025-05-01"), by = "day")
+all_days <- seq(as.Date("2025-05-01"), as.Date("2026-05-01"), by = "day")
+# all_days <- seq(as.Date("2022-10-01"), as.Date("2026-05-01"), by = "day")
+
+
+# IMERG Final (V07) has ~3.5-month latency BUT ends 2025-09-30.
+# V08 Final is planned for summer 2026. Until then, use Late for Oct 2025+.
+FINAL_RUN_END <- as.Date("2025-09-30") 
 
 # IMERG Final product (V07) has ~3.5-month latency:
 #   days older than 120 days  -> "final"  (higher quality)
@@ -151,8 +157,26 @@ latency_cutoff <- Sys.Date() - 120
 # -----------------------------------------------------------------------------
 # 4.  OPeNDAP URL builder
 # -----------------------------------------------------------------------------
+# Probe the first URL of the day to determine which version string is live.
+# Tries versions in order, returns the first that gets HTTP 200.
+resolve_version <- function(date, run, candidates = c("V07C", "V07B")) {
+  for (v in candidates) {
+    probe_url <- paste0(opendap_urls(date, run, version_str = v)[1], ".ascii",
+                        "?lat[0:1:0]")  # tiny request — just one lat value
+    resp <- tryCatch(
+      curl::curl_fetch_memory(probe_url, handle = make_curl_handle()),
+      error = function(e) list(status_code = 0)
+    )
+    if (resp$status_code == 200) {
+      message(sprintf("  [version] %s -> %s", format(date), v))
+      return(v)
+    }
+  }
+  warning(sprintf("  [version] Could not resolve version for %s run='%s'", date, run))
+  return(candidates[1])  # fall back to first candidate and let errors surface naturally
+}
 
-opendap_urls <- function(date, run = "final") {
+opendap_urls <- function(date, run = "final", version_str = NULL) {
   
   if (run == "final") {
     product_id <- "3B-HHR.MS.MRG.3IMERG"
@@ -164,7 +188,13 @@ opendap_urls <- function(date, run = "final") {
     stop("Supply either 'final' or 'late' for run=")
   }
   
-  date        <- as.Date(date)
+  date <- as.Date(date)
+  
+  # Default version logic; can be overridden by caller
+  if (is.null(version_str)) {
+    version_str <- if (run == "late" && date >= as.Date("2026-03-01")) "V07C" else "V07B"
+  }
+  
   year        <- format(date, "%Y")
   julian      <- format(date, "%j")
   origin_time <- as.POSIXct(paste0(date, " 00:00:00"), tz = "UTC")
@@ -182,12 +212,11 @@ opendap_urls <- function(date, run = "final") {
     minutes_diff <- sprintf("%04d",
                             as.integer(difftime(t, origin_time, units = "mins")))
     filename <- glue(
-      "{product_id}.{file_time}-S{start_str}-E{end_str}.{minutes_diff}.V07B.HDF5"
+      "{product_id}.{file_time}-S{start_str}-E{end_str}.{minutes_diff}.{version_str}.HDF5"
     )
     glue("{base_url}{filename}")
   })
 }
-
 
 # -----------------------------------------------------------------------------
 # 5.  Single-URL fetch via .ascii endpoint
@@ -272,7 +301,14 @@ get_gpm_day <- function(day, aoi, run,
                         pause_seconds = 5,
                         workers       = 3) {
   
-  urls        <- opendap_urls(date = day, run = run)
+  # Resolve version string for late run post-2026-03-01 (may be V07C or V07B)
+  version_str <- if (run == "late" && as.Date(day) >= as.Date("2026-03-01")) {
+    resolve_version(day, run, candidates = c("V07C", "V07B"))
+  } else {
+    "V07B"
+  }
+  
+  urls        <- opendap_urls(date = day, run = run, version_str = version_str)
   total_urls  <- length(urls)       # always 48
   num_batches <- ceiling(total_urls / batch_size)
   all_dfs     <- vector("list", total_urls)
@@ -362,7 +398,12 @@ for (region_id in names(regions)) {
       next
     }
     
-    run <- if (as.Date(day) <= latency_cutoff) "final" else "late"
+    # run <- if (as.Date(day) <= latency_cutoff) "final" else "late"
+    run <- if (as.Date(day) <= latency_cutoff & as.Date(day) <= FINAL_RUN_END) {
+      "final"
+    } else {
+      "late"
+    }
     
     message(sprintf("\n[%s] Processing %s (%d/%d)  run='%s'",
                     region_id, day, i, length(all_days), run))
@@ -413,14 +454,12 @@ for (region_id in names(regions)) {
   reg     <- regions[[region_id]]
   out_dir <- out_dirs[[region_id]]
   
-  # Find parquets that contain NA (failed fetches)
   all_parquets <- list.files(out_dir, pattern = "\\.parquet$", full.names = TRUE)
   
   failed_files <- Filter(function(f) {
     tryCatch({
       df <- arrow::read_parquet(f)
       if (is.logical(df) || all(is.na(df)) || nrow(df) == 0) return(TRUE)
-      # Also flag partial days
       plp_cols <- grep("^plp_\\d{2}$", names(df), value = TRUE)
       length(plp_cols) < 48
     }, error = function(e) TRUE)
@@ -431,7 +470,6 @@ for (region_id in names(regions)) {
     next
   }
   
-  # Extract dates from filenames: gpm_imerg_YYYY-MM-DD.parquet
   failed_dates <- as.Date(
     sub("gpm_imerg_(.+)\\.parquet", "\\1", basename(failed_files))
   )
@@ -442,17 +480,22 @@ for (region_id in names(regions)) {
     
     day      <- failed_dates[j]
     out_file <- file.path(out_dir, glue("gpm_imerg_{day}.parquet"))
-    run      <- if (as.Date(day) <= latency_cutoff) "final" else "late"
+    
+    # Fixed: apply same run logic as main loop
+    run <- if (as.Date(day) <= latency_cutoff && as.Date(day) <= FINAL_RUN_END) {
+      "final"
+    } else {
+      "late"
+    }
     
     message(sprintf("\n[%s] RETRY %s (%d/%d)  run='%s'",
                     region_id, day, j, length(failed_dates), run))
     
-    # Wait a bit before retrying — transient server issues often clear
     Sys.sleep(10)
     
     day_df <- tryCatch(
       get_gpm_day(day = day, aoi = reg$aoi, run = run,
-                  pause_seconds = 10),   # slower on retry
+                  pause_seconds = 10),
       error = function(e) {
         message("[ERROR] Retry failed: ", conditionMessage(e))
         NA
@@ -465,21 +508,23 @@ for (region_id in names(regions)) {
   }
 }
 
-# Summary of anything still failing after retry
+# Summary — consistent check for both empty AND partial files
 message("\n--- Final status ---")
 for (region_id in names(regions)) {
   out_dir      <- out_dirs[[region_id]]
   all_parquets <- list.files(out_dir, pattern = "\\.parquet$", full.names = TRUE)
   still_failed <- Filter(function(f) {
     tryCatch({
-      df <- arrow::read_parquet(f)
-      is.logical(df) || all(is.na(df)) || nrow(df) == 0
+      df       <- arrow::read_parquet(f)
+      if (is.logical(df) || all(is.na(df)) || nrow(df) == 0) return(TRUE)
+      plp_cols <- grep("^plp_\\d{2}$", names(df), value = TRUE)
+      length(plp_cols) < 48
     }, error = function(e) TRUE)
   }, all_parquets)
-  message(sprintf("[%s] %d / %d files still failed",
+  message(sprintf("[%s] %d / %d files still incomplete or failed",
                   region_id, length(still_failed), length(all_parquets)))
   if (length(still_failed) > 0) {
-    message("  Still failed dates:")
+    message("  Still failed/partial dates:")
     cat(paste0("    ",
                sub("gpm_imerg_(.+)\\.parquet", "\\1", basename(still_failed))),
         sep = "\n")
