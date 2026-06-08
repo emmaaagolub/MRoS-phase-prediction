@@ -23,9 +23,12 @@ Structure
 
 Usage
 -----
-  python ML_XGBoost_binary_uncertainty_ablation.py
-  python ML_XGBoost_binary_uncertainty_ablation.py --configs 0,1,2
-  python ML_XGBoost_binary_uncertainty_ablation.py --dry-run
+  python ML_XGBoost_binary_uncertainty_ablation_v1.py
+  python ML_XGBoost_binary_uncertainty_ablation_v1.py --configs 0,1,2
+  python ML_XGBoost_binary_uncertainty_ablation_v1.py --dry-run
+
+NOTE: This version employs isotonic calibration, which is better used for the CO dataset.
+
 """
 
 from __future__ import annotations
@@ -42,22 +45,32 @@ from typing import Optional
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+from matplotlib.patches import Patch
 import numpy as np
 import pandas as pd
 import seaborn as sns
 import shap
 import xarray as xr
 import xgboost as xgb
-from betacal import BetaCalibration
+from sklearn.isotonic import IsotonicRegression
+from sklearn.model_selection import KFold
 from pyproj import Transformer
 from sklearn.calibration import calibration_curve
 from sklearn.metrics import (
-    balanced_accuracy_score, brier_score_loss, f1_score,
-    log_loss, recall_score, roc_auc_score,
+    balanced_accuracy_score, 
+    brier_score_loss, 
+    f1_score,
+    log_loss, 
+    recall_score, 
+    roc_auc_score, 
+    average_precision_score,
+    precision_recall_curve,
+    roc_curve,
+    confusion_matrix,
 )
 from sklearn.model_selection import train_test_split
 from pandas.plotting import parallel_coordinates
-
+import matplotlib.ticker as mticker
 
 # =============================================================================
 # 1.  ABLATION CONFIG
@@ -93,7 +106,7 @@ ABLATION_CONFIGS: list[dict] = [
 ]
 
 INTERP_TYPE = "kriging"   # "IDW" or "kriging"
-REGION      = "CA"
+REGION      = "CO"
 
 
 # =============================================================================
@@ -115,9 +128,9 @@ PATHS = {
     "imerg": DATA_DIR / f"resampled_grids/{REGION}/imerg_hourly_1km.nc",
 }
 
-interp_type_folder = "results_binaryXGB_withIDW_v2" if INTERP_TYPE == "IDW" else "results_binaryXGB_withKriging_v2"
+interp_type_folder = "results_binaryXGB_withIDW_v1" if INTERP_TYPE == "IDW" else "results_binaryXGB_withKriging_v1"
 SETUP_DIR      = DATA_DIR / f"ML_pipeline/compiled_input_predictors/{REGION}" / interp_type_folder
-ABLATION_ROOT  = DATA_DIR / f"ML_pipeline/model_artifacts/{REGION}/ablations"
+ABLATION_ROOT  = DATA_DIR / f"ML_pipeline/model_artifacts/{REGION}/ablations_v1"
 SETUP_DIR.mkdir(parents=True, exist_ok=True)
 ABLATION_ROOT.mkdir(parents=True, exist_ok=True)
 
@@ -135,7 +148,7 @@ BINARY_LABEL_MAP = {RAIN_CODE: 0, SNOW_CODE: 1}
 FULL_CLASS_NAMES = ["snow", "rain", "mix"]
 
 # scale_pos_weight sweep
-SCALE_POS_WEIGHT_GRID = [0.15, 0.20, 0.25, 0.30, 0.35, 0.40, 0.50, 0.75, 1.0, 1.25, 1.5, 2.0]
+SCALE_POS_WEIGHT_GRID = [0.05, 0.10, 0.15, 0.20, 0.25, 0.30, 0.35, 0.40, 0.50, 0.75, 1.0, 1.25, 1.5, 2.0]
 
 # Calibration
 CLEAR_PHASE_TWET_C = 2.0
@@ -417,6 +430,282 @@ def expected_calibration_error(y_true, p_pred, n_bins=10):
         ece += mask.sum() * abs(acc - conf)
     return round(ece / max(len(y_true), 1), 4)
 
+def plot_per_experiment_stories(
+    name, graphics_dir,
+    y_val_fit_phase, pred_val_bin05, y_test_fit_phase, pred_test_bin05,
+    y_val_full_phase, pred_val_full, y_test_full_phase, pred_test_full,
+    y_val_bin, p_val_cal, y_test_bin, p_test_cal,
+    p_val_raw, p_test_raw,         
+    val_full_df, test_full_df,
+    base_hb, extra_hb, sigma,
+):
+    def _norm_cm(ax, y_true, y_pred, labels, display_labels, title, cmap="Blues"):
+        cm = confusion_matrix(y_true, y_pred, labels=labels)
+        row_sums = cm.sum(axis=1, keepdims=True)
+        cm_norm = np.divide(cm.astype(float), row_sums,
+                            out=np.zeros_like(cm, dtype=float),
+                            where=row_sums > 0)
+        n = len(labels)
+        ax.imshow(cm_norm, vmin=0, vmax=1, cmap=cmap, aspect="auto")
+        ax.set_xticks(range(n)); ax.set_xticklabels(display_labels, fontsize=8)
+        ax.set_yticks(range(n)); ax.set_yticklabels(display_labels, fontsize=8)
+        ax.set_xlabel("Predicted"); ax.set_ylabel("True")
+        ax.set_title(title, fontsize=9); ax.grid(False)
+        for i in range(n):
+            for j in range(n):
+                color = "white" if cm_norm[i, j] > 0.6 else "black"
+                ax.text(j, i, f"{cm_norm[i,j]:.0%}\n({cm[i,j]})",
+                        ha="center", va="center", fontsize=7, color=color)
+
+    t_wet_val  = val_full_df["temp_wet"].to_numpy()
+    t_wet_test = test_full_df["temp_wet"].to_numpy()
+    p_valf_cal  = val_full_df["p_snow_cal"].to_numpy()
+    p_testf_cal = test_full_df["p_snow_cal"].to_numpy()
+
+    # ── Story 1 ───────────────────────────────────────────────────────────────
+    fig = plt.figure(figsize=(16, 9))
+    fig.suptitle(f"{name} — Story 1: Binary discrimination", fontsize=12, y=1.01)
+
+    ax00 = fig.add_subplot(2, 4, 1)
+    ax01 = fig.add_subplot(2, 4, 2)
+    ax02 = fig.add_subplot(2, 4, 3)
+    ax03 = fig.add_subplot(2, 4, 4)
+
+    _norm_cm(ax00, y_val_fit_phase,  pred_val_bin05,
+             [SNOW_CODE, RAIN_CODE], ["snow","rain"], "Val — binary (0.5 thr)")
+    _norm_cm(ax01, y_test_fit_phase, pred_test_bin05,
+             [SNOW_CODE, RAIN_CODE], ["snow","rain"], "Test — binary (0.5 thr)")
+    _norm_cm(ax02, y_val_full_phase,  pred_val_full,
+             [SNOW_CODE, RAIN_CODE, MIX_CODE], FULL_CLASS_NAMES, "Val — 3-class (band)")
+    _norm_cm(ax03, y_test_full_phase, pred_test_full,
+             [SNOW_CODE, RAIN_CODE, MIX_CODE], FULL_CLASS_NAMES, "Test — 3-class (band)")
+
+    ax_roc = fig.add_subplot(2, 4, (5, 6))
+    ax_pr  = fig.add_subplot(2, 4, (7, 8))
+    split_colors = {"Validation": "#8338ec", "Test": "#ff006e"}
+    for y_true_b, p_cal, split in [
+        (y_val_bin,  p_val_cal,  "Validation"),
+        (y_test_bin, p_test_cal, "Test"),
+    ]:
+        color = split_colors[split]
+        fpr, tpr, _ = roc_curve(y_true_b, p_cal)
+        prec, rec, _ = precision_recall_curve(y_true_b, p_cal)
+        auc = roc_auc_score(y_true_b, p_cal)
+        ap  = average_precision_score(y_true_b, p_cal)
+        ax_roc.plot(fpr, tpr, color=color, lw=2, label=f"{split}  AUC={auc:.3f}")
+        ax_pr.plot(rec, prec,  color=color, lw=2, label=f"{split}  AP={ap:.3f}")
+    ax_roc.plot([0,1],[0,1],"--",color="grey",lw=1,alpha=0.6)
+    ax_roc.set(xlabel="FPR", ylabel="TPR", title="ROC"); ax_roc.legend(fontsize=9)
+    ax_pr.set(xlabel="Recall", ylabel="Precision", title="PR"); ax_pr.legend(fontsize=9)
+    plt.tight_layout()
+    fig.savefig(graphics_dir / "story1_discrimination.png", dpi=150, bbox_inches="tight")
+    plt.close(fig)
+
+ # ── Story 2 ───────────────────────────────────────────────────────────────
+    band_at_zero  = gaussian_half_band(np.array([0.0]), base_hb, extra_hb, sigma)[0]
+    rain_thresh_0 = 0.5 - band_at_zero
+    snow_thresh_0 = 0.5 + band_at_zero
+    split_colors_2 = {"Validation": "#8338ec", "Test": "#ff006e"}
+
+    fig, axes = plt.subplots(2, 2, figsize=(12, 9),
+                             gridspec_kw={"height_ratios": [3, 1]})
+    fig.suptitle(f"{name} — Story 2: Probability calibration", fontsize=12)
+
+    for col, (y_true_b, p_raw, p_cal, split) in enumerate([
+        (y_val_bin,  p_val_raw, p_val_cal,  "Validation"),
+        (y_test_bin, p_test_raw, p_test_cal, "Test"),
+    ]):
+        ax_rel  = axes[0, col]
+        ax_hist = axes[1, col]
+        color   = split_colors_2[split]
+
+        if len(y_true_b) < 10:
+            ax_rel.text(0.5, 0.5, "insufficient data",
+                        ha="center", va="center", transform=ax_rel.transAxes)
+            continue
+
+        frac_raw, mean_raw = calibration_curve(y_true_b, p_raw, n_bins=15, strategy="quantile")
+        frac_cal, mean_cal = calibration_curve(y_true_b, p_cal, n_bins=15, strategy="quantile")
+
+        ax_rel.axvspan(rain_thresh_0, snow_thresh_0, alpha=0.10, color="orange",
+                       label=f"Band at T_wet=0°C ({rain_thresh_0:.2f}–{snow_thresh_0:.2f})")
+        ax_rel.plot([0, 1], [0, 1], "--", color="grey", lw=1.2, alpha=0.7,
+                    label="Perfect calibration")
+        ax_rel.plot(mean_raw, frac_raw, "o--", color="#aaaaaa", lw=1.5, ms=5,
+                    label="Raw XGBoost")
+        ax_rel.plot(mean_cal, frac_cal, "o-",  color=color, lw=2, ms=6,
+                    label="Calibrated (isotonic)")
+        ax_rel.set(xlim=(0,1), ylim=(0,1),
+                   ylabel="Observed snow frequency", title=split)
+        ax_rel.legend(fontsize=9); ax_rel.grid(alpha=0.25)
+
+        bs_raw = brier_score_loss(y_true_b, p_raw)
+        bs_cal = brier_score_loss(y_true_b, p_cal)
+        ax_rel.text(0.03, 0.92, f"Brier  raw={bs_raw:.3f}  cal={bs_cal:.3f}",
+                    transform=ax_rel.transAxes, fontsize=9, color="dimgrey")
+
+        ax_hist.hist(p_cal, bins=30, color=color, alpha=0.7, edgecolor="none")
+        ax_hist.axvspan(rain_thresh_0, snow_thresh_0, alpha=0.15, color="orange")
+        ax_hist.set(xlabel="Predicted p(snow), calibrated", ylabel="Count")
+        ax_hist.grid(alpha=0.2)
+
+    plt.tight_layout()
+    fig.savefig(graphics_dir / "story2_calibration.png", dpi=150, bbox_inches="tight")
+    plt.close(fig)
+
+    # ── Story 3 ───────────────────────────────────────────────────────────────
+    def _twet_profile(df_f, p_cal_f, y_true_f, bin_edges):
+        records = []
+        for lo, hi in zip(bin_edges[:-1], bin_edges[1:]):
+            mask = (df_f["temp_wet"].to_numpy() >= lo) & (df_f["temp_wet"].to_numpy() < hi)
+            if mask.sum() < 10:
+                continue
+            yt = y_true_f[mask]
+            yp = classify_phase_gaussian_band(p_cal_f[mask],
+                                              df_f["temp_wet"].to_numpy()[mask],
+                                              base_hb, extra_hb, sigma)
+            def _f1(code):
+                tp = np.sum((yt==code)&(yp==code)); fp = np.sum((yt!=code)&(yp==code))
+                fn = np.sum((yt==code)&(yp!=code))
+                p  = tp/(tp+fp) if tp+fp else 0; r = tp/(tp+fn) if tp+fn else 0
+                return 2*p*r/(p+r) if p+r else 0
+            tm = yt == MIX_CODE
+            records.append({"t_mid": (lo+hi)/2, "n": mask.sum(),
+                             "f1_snow": _f1(SNOW_CODE), "f1_rain": _f1(RAIN_CODE),
+                             "mix_capture": float(np.mean(yp[tm]==MIX_CODE)) if tm.any() else np.nan})
+        return pd.DataFrame(records)
+
+    bin_edges = np.arange(-6, 7, 1)
+    prof_val  = _twet_profile(val_full_df,  p_valf_cal,  y_val_full_phase,  bin_edges)
+    prof_test = _twet_profile(test_full_df, p_testf_cal, y_test_full_phase, bin_edges)
+
+    fig, axes = plt.subplots(1, 3, figsize=(15, 5))
+    fig.suptitle(f"{name} — Story 3: Performance vs T_wet", fontsize=12)
+    for ax, col, ylabel in zip(axes,
+            ["f1_snow","f1_rain","mix_capture"],
+            ["F1 — snow","F1 — rain","Mix capture rate"]):
+        color = PHASE_COLORS.get(ylabel.split("—")[-1].strip().replace(" ","").lower(),
+                                  "#555555")
+        for prof, split, ls in [(prof_val,"Val","--"),(prof_test,"Test","-")]:
+            if col not in prof.columns or prof.empty:
+                continue
+            ax.plot(prof["t_mid"], prof[col], ls, color=color, lw=2, label=split,
+                    marker="o", ms=4)
+        ax.axvspan(-1, 1, alpha=0.08, color="orange")
+        ax.axvline(0, color="black", lw=0.8, alpha=0.4)
+        ax.set(xlabel="T_wet (°C)", ylabel=ylabel, title=ylabel,
+               xlim=(bin_edges[0], bin_edges[-1]), ylim=(0, 1.05))
+        ax.legend(fontsize=9)
+    plt.tight_layout()
+    fig.savefig(graphics_dir / "story3_twet_performance.png", dpi=150, bbox_inches="tight")
+    plt.close(fig)
+
+    # ── Story 4 ───────────────────────────────────────────────────────────────
+    t_grid = np.linspace(-6, 6, 300)
+    hb_grid = gaussian_half_band(t_grid, base_hb, extra_hb, sigma)
+    snow_boundary = 0.5 + hb_grid
+    rain_boundary = 0.5 - hb_grid
+
+    df_combo = pd.concat([
+        val_full_df.assign(split="val"),
+        test_full_df.assign(split="test"),
+    ], ignore_index=True)
+    mix_mask = df_combo["phase_full"] == MIX_CODE
+    df_mix   = df_combo[mix_mask].copy()
+    if len(df_mix) > 0:
+        hb_obs = gaussian_half_band(df_mix["temp_wet"].to_numpy(), base_hb, extra_hb, sigma)
+        df_mix["inside_band"] = (
+            (df_mix["p_snow_cal"] > 0.5 - hb_obs) &
+            (df_mix["p_snow_cal"] < 0.5 + hb_obs)
+        )
+        capture_pct = 100 * df_mix["inside_band"].mean()
+    else:
+        capture_pct = np.nan
+
+    fig, axes = plt.subplots(1, 2, figsize=(17, 7))
+    fig.suptitle(f"{name} — Story 4: Uncertainty band placement", fontsize=12, y=1.01)
+
+    # Panel A
+    ax_a = axes[0]
+    ax_a.fill_between(t_grid, rain_boundary, snow_boundary, alpha=0.10, color="orange")
+    ax_a.plot(t_grid, snow_boundary, color="black", lw=2, ls="-",  label="Snow threshold")
+    ax_a.plot(t_grid, rain_boundary, color="black", lw=2, ls="--", label="Rain threshold")
+    if len(df_mix) > 0:
+        for flag, label, color, marker in [
+            (False, "Missed", "#cc3311", "x"),
+            (True,  "Captured", "#009988", "o"),
+        ]:
+            sub = df_mix[df_mix["inside_band"] == flag]
+            ax_a.scatter(sub["temp_wet"], sub["p_snow_cal"], c=color, marker=marker,
+                         s=40, alpha=0.65, linewidths=1.0,
+                         label=f"{label} (n={len(sub)})", zorder=3+flag)
+    ax_a.axvline(0, color="grey", lw=0.8, alpha=0.4)
+    ax_a.axhline(0.5, color="grey", lw=0.8, alpha=0.4)
+    ax_a.set(xlim=(-6,6), ylim=(-0.04,1.04),
+             xlabel="T_wet (°C)", ylabel="Calibrated p(snow)",
+             title=f"A — True-mix band capture (n={len(df_mix)}, {capture_pct:.0f}% inside)")
+    ax_a.legend(fontsize=9)
+
+    # Panel B — violin by phase across 2°C bins
+    ax_b = axes[1]
+    violin_bins = [(-6,-4),(-4,-2),(-2,0),(0,2),(2,4),(4,6)]
+    bin_labels  = [f"{lo}–{hi}" for lo,hi in violin_bins]
+    for b_idx, (lo, hi) in enumerate(violin_bins):
+        mask_bin = (df_combo["temp_wet"] >= lo) & (df_combo["temp_wet"] < hi)
+        sub_bin  = df_combo[mask_bin]
+        for p_idx, (code, cname) in enumerate(zip(
+                [SNOW_CODE, RAIN_CODE, MIX_CODE], FULL_CLASS_NAMES)):
+            vals = sub_bin.loc[sub_bin["phase_full"]==code, "p_snow_cal"].to_numpy()
+            x_pos = b_idx + (p_idx - 1) * 0.27
+            if len(vals) < 4:
+                if len(vals) > 0:
+                    ax_b.plot(x_pos, np.median(vals), "_",
+                              color=PHASE_COLORS[cname], ms=10, mew=2)
+                continue
+            parts = ax_b.violinplot(vals, positions=[x_pos], widths=0.23,
+                                     showmedians=True, showextrema=False)
+            for pc in parts["bodies"]:
+                pc.set_facecolor(PHASE_COLORS[cname]); pc.set_edgecolor("none"); pc.set_alpha(0.7)
+            parts["cmedians"].set_color("black"); parts["cmedians"].set_linewidth(1.5)
+    ax_b.axhspan(rain_boundary.min(), snow_boundary.max(), alpha=0.06, color="orange")
+    ax_b.axhline(0.5, color="grey", lw=0.8, alpha=0.4)
+    ax_b.set_xticks(range(len(violin_bins))); ax_b.set_xticklabels(bin_labels, fontsize=8)
+    ax_b.set(xlabel="T_wet bin (°C)", ylabel="Calibrated p(snow)", ylim=(-0.04,1.04),
+             title="B — p(snow) by true phase (2°C bins, val+test)")
+    legend_els = [Patch(facecolor=PHASE_COLORS[c], label=c, alpha=0.75) for c in FULL_CLASS_NAMES]
+    ax_b.legend(handles=legend_els, fontsize=9)
+    plt.tight_layout()
+    fig.savefig(graphics_dir / "story4_band_placement.png", dpi=150, bbox_inches="tight")
+    plt.close(fig)
+
+    # ── Story 5 ───────────────────────────────────────────────────────────────
+    fig, axes = plt.subplots(2, 2, figsize=(11, 9))
+    fig.suptitle(f"{name} — Story 5: Near-freezing deep-dive", fontsize=12)
+    for (df_f, y_true_f, pred_f, split, flag_col, flag_label), (r, c) in zip([
+        (val_full_df,  y_val_full_phase,  pred_val_full,  "Val",  "near_freezing_air_2C", "|T_air| ≤ 2°C"),
+        (val_full_df,  y_val_full_phase,  pred_val_full,  "Val",  "near_freezing_wet_2C", "|T_wet| ≤ 2°C"),
+        (test_full_df, y_test_full_phase, pred_test_full, "Test", "near_freezing_air_2C", "|T_air| ≤ 2°C"),
+        (test_full_df, y_test_full_phase, pred_test_full, "Test", "near_freezing_wet_2C", "|T_wet| ≤ 2°C"),
+    ], [(0,0),(0,1),(1,0),(1,1)]):
+        ax = axes[r, c]
+        # Derive the mask from temp columns since flag columns may not exist
+        if flag_col == "near_freezing_air_2C":
+            if "temp_air" in df_f.columns:
+                mask = np.abs(df_f["temp_air"].to_numpy()) <= 2.0
+            else:
+                ax.set_visible(False); continue
+        else:
+            mask = np.abs(df_f["temp_wet"].to_numpy()) <= 2.0
+        if mask.sum() < 5:
+            ax.set_visible(False); continue
+        _norm_cm(ax, y_true_f[mask], pred_f[mask],
+                 [SNOW_CODE, RAIN_CODE, MIX_CODE], FULL_CLASS_NAMES,
+                 f"{split} — {flag_label} (n={mask.sum()})")
+    plt.tight_layout()
+    fig.savefig(graphics_dir / "story5_near_freezing.png", dpi=150, bbox_inches="tight")
+    plt.close(fig)
+
+    print(f"  Stories saved to: {graphics_dir}")
 
 # =============================================================================
 # 4.  ONE-TIME DATA LOAD
@@ -604,29 +893,98 @@ def run_experiment(cfg: dict, split_df: pd.DataFrame, out_dir: Path) -> dict:
     fig.savefig(graphics_dir / "training_curve.png", dpi=150, bbox_inches="tight")
     plt.close(fig)
 
-    # ── Beta calibration ──────────────────────────────────────────────────────
-    trainval_pure = pd.concat([train_fit, val_fit]).reset_index(drop=True)
-    tw_tv         = trainval_pure["temp_wet"].values
-    p_raw_tv      = booster.predict(xgb.DMatrix(trainval_pure[FEATURES], feature_names=FEATURES))
-    y_tv          = trainval_pure[TARGET_FULL].map(BINARY_LABEL_MAP).astype(int)
+    # ── Isotonic calibration (K-fold cross-fitted, regime-stratified) ─────────
 
-    clear_mask_tv = np.abs(tw_tv) > CLEAR_PHASE_TWET_C
-    cal_clear = BetaCalibration(parameters="abm")
-    cal_clear.fit(p_raw_tv[clear_mask_tv].reshape(-1,1), y_tv.values[clear_mask_tv])
-    cal_nf = BetaCalibration(parameters="ab")
-    cal_nf.fit(p_raw_tv[~clear_mask_tv].reshape(-1,1), y_tv.values[~clear_mask_tv])
+    def _fit_isotonic(p_raw, y):
+        m = IsotonicRegression(out_of_bounds="clip")
+        m.fit(p_raw, y)
+        return m
 
-    with open(out_dir / "beta_calibration_models.pkl", "wb") as f:
-        pickle.dump({"method":"beta_calibration","clear_phase":cal_clear,
-                     "near_freezing":cal_nf,"clear_phase_twet_threshold":CLEAR_PHASE_TWET_C}, f)
+    def _kfold_isotonic(train_fit_df, val_fit_df, booster, features,
+                    target_col, twet_col, clear_twet, n_splits=10, seed=42):
+        """
+        K-fold cross-fitted isotonic calibration on the train+val pure-phase pool.
+        Cross-fitting prevents the calibration from seeing its own training data,
+        which causes the probability collapse seen without it.
+        Returns two final calibration models (clear / near-freezing) fitted on
+        the full pool — for forward application to test only.
+        """
+        pool   = pd.concat([train_fit_df, val_fit_df], ignore_index=True)
+        n      = len(pool)
+        y_all  = pool[target_col].map(BINARY_LABEL_MAP).astype(int).values
+        tw_all = pool[twet_col].values
+        p_all  = booster.predict(xgb.DMatrix(pool[features], feature_names=features))
+
+        cf_probs = np.full(n, np.nan)
+        kf = KFold(n_splits=n_splits, shuffle=True, random_state=seed)
+
+        print(f"  K-fold isotonic calibration: {n_splits} folds, n={n} train+val pure-phase rows")
+
+        for fold_idx, (rest_idx, held_idx) in enumerate(kf.split(np.arange(n))):
+            p_rest  = p_all[rest_idx];  y_rest  = y_all[rest_idx];  tw_rest = tw_all[rest_idx]
+            p_held  = p_all[held_idx];                               tw_held = tw_all[held_idx]
+
+            p_held_cal = p_held.copy()  # fallback: raw
+
+            clear_rest = np.abs(tw_rest) > clear_twet;  nf_rest = ~clear_rest
+            clear_held = np.abs(tw_held) > clear_twet;  nf_held = ~clear_held
+
+            if clear_rest.sum() >= 10 and clear_held.sum() > 0:
+                p_held_cal[clear_held] = _fit_isotonic(
+                    p_rest[clear_rest], y_rest[clear_rest]
+                ).predict(p_held[clear_held])
+
+            if nf_rest.sum() >= 10 and nf_held.sum() > 0:
+                p_held_cal[nf_held] = _fit_isotonic(
+                    p_rest[nf_rest], y_rest[nf_rest]
+                ).predict(p_held[nf_held])
+
+            cf_probs[held_idx] = p_held_cal
+
+        n_filled = int(np.sum(~np.isnan(cf_probs)))
+        print(f"  Cross-fitting complete: {n_filled}/{n} rows calibrated.")
+
+        if np.any(np.isnan(cf_probs)):
+            cf_probs[np.isnan(cf_probs)] = 0.5
+            warnings.warn("Some rows received no cross-fitted calibration — filled with 0.5.")
+
+        # ── Final models on full pool — applied to test only ─────────────────────
+        clear_all = np.abs(tw_all) > clear_twet
+        nf_all    = ~clear_all
+        final_models = {}
+
+        if clear_all.sum() >= 10:
+            final_models["clear"] = _fit_isotonic(p_all[clear_all], y_all[clear_all])
+            print(f"  Final clear-phase model:    n={clear_all.sum()} (|Twet| > {clear_twet}°C)")
+        if nf_all.sum() >= 10:
+            final_models["near_freezing"] = _fit_isotonic(p_all[nf_all], y_all[nf_all])
+            print(f"  Final near-freezing model:  n={nf_all.sum()} (|Twet| ≤ {clear_twet}°C)")
+
+        return final_models
+
+    final_cal_models = _kfold_isotonic(
+        train_fit, val_fit, booster, FEATURES,
+        target_col=TARGET_FULL, twet_col="temp_wet",
+        clear_twet=CLEAR_PHASE_TWET_C, n_splits=10, seed=RANDOM_SEED,
+    )
+
+    with open(out_dir / "isotonic_calibration_models.pkl", "wb") as f:
+        pickle.dump({"method": "isotonic_calibration",
+                    "clear_phase": final_cal_models.get("clear"),
+                    "near_freezing": final_cal_models.get("near_freezing"),
+                    "clear_phase_twet_threshold": CLEAR_PHASE_TWET_C}, f)
 
     def calibrate(p_raw, twet):
-        p_raw = np.asarray(p_raw, float); twet = np.asarray(twet, float)
-        out   = np.empty_like(p_raw)
-        nf    = np.abs(twet) <= CLEAR_PHASE_TWET_C
-        if (~nf).any(): out[~nf] = cal_clear.predict(p_raw[~nf].reshape(-1,1))
-        if nf.any():    out[nf]  = cal_nf.predict(p_raw[nf].reshape(-1,1))
-        return np.clip(out, 1e-4, 1-1e-4)
+        p_raw = np.asarray(p_raw, float)
+        twet  = np.asarray(twet,  float)
+        out   = p_raw.copy()
+        clear = np.abs(twet) > CLEAR_PHASE_TWET_C
+        nf    = ~clear
+        if "clear" in final_cal_models and clear.any():
+            out[clear] = final_cal_models["clear"].predict(p_raw[clear])
+        if "near_freezing" in final_cal_models and nf.any():
+            out[nf] = final_cal_models["near_freezing"].predict(p_raw[nf])
+        return np.clip(out, 1e-4, 1 - 1e-4)
 
     # ── Probabilities ─────────────────────────────────────────────────────────
     p_val_raw   = booster.predict(xgb.DMatrix(X_val,       feature_names=FEATURES))
@@ -787,7 +1145,9 @@ def run_experiment(cfg: dict, split_df: pd.DataFrame, out_dir: Path) -> dict:
     shap_values = explainer.shap_values(df_all_full[FEATURES])
 
     # Build shap_df
-    shap_df = df_all_full[["time","x","y","phase_full","temp_wet","temp_air","elev"]].copy()
+    meta_cols = [c for c in ["time","x","y","phase_full","temp_wet","temp_air","temp_dew","elev"]
+                if c in df_all_full.columns]
+    shap_df = df_all_full[meta_cols].copy()
     shap_df["p_snow_cal"]                   = p_all_cal
     shap_df["p_snow_raw"]                   = p_all_raw
     shap_df["split"]      = df_all_full["split"].values
@@ -995,6 +1355,34 @@ def run_experiment(cfg: dict, split_df: pd.DataFrame, out_dir: Path) -> dict:
     print(f"  SHAP top (near-freeze):  {metrics['shap_top_feature_nearfreeze']}")
     print(f"  Saved to: {out_dir}")
 
+    # ── Per-experiment story plots ──────────────────────
+    # Attach p_snow_cal to full-split DataFrames so story helper is self-contained
+    _val_full_story  = val_full.copy();  _val_full_story["p_snow_cal"]  = p_valf_cal
+    _test_full_story = test_full.copy(); _test_full_story["p_snow_cal"] = p_testf_cal
+    plot_per_experiment_stories(
+        name           = name,
+        graphics_dir   = graphics_dir,
+        y_val_fit_phase   = val_fit[TARGET_FULL].to_numpy(),
+        pred_val_bin05    = pred_val_bin05,
+        y_test_fit_phase  = test_fit[TARGET_FULL].to_numpy(),
+        pred_test_bin05   = pred_test_bin05,
+        y_val_full_phase  = y_val_full_phase,
+        pred_val_full     = pred_val_full,
+        y_test_full_phase = y_test_full_phase,
+        pred_test_full    = pred_test_full,
+        y_val_bin   = y_val_bin,
+        p_val_cal   = p_val_cal,
+        y_test_bin  = y_test_bin,
+        p_test_cal  = p_test_cal,
+        p_val_raw   = p_val_raw,
+        p_test_raw  = p_test_raw,
+        val_full_df  = _val_full_story,
+        test_full_df = _test_full_story,
+        base_hb      = BASE_HB,
+        extra_hb     = EXTRA_HB,
+        sigma        = SIGMA,
+    )
+
     return metrics
 
 # =============================================================================
@@ -1146,7 +1534,6 @@ def save_cross_experiment_plots(all_metrics: list[dict], ablation_root: Path) ->
         plt.close(fig)
 
     print(f"\nAll cross-experiment plots saved to: {ablation_root}")
-
 
 def main():
     parser = argparse.ArgumentParser(description="Ablation study runner")
