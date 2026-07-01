@@ -433,11 +433,13 @@ def plot_per_experiment_stories(
     y_val_fit_phase, pred_val_bin05, y_test_fit_phase, pred_test_bin05,
     y_val_full_phase, pred_val_full, y_test_full_phase, pred_test_full,
     y_val_bin, p_val_cal, y_test_bin, p_test_cal,
-    p_val_raw, p_test_raw,         
+    p_val_raw, p_test_raw,
     val_full_df, test_full_df,
     base_hb, extra_hb, sigma,
+    p_valf_cal, p_testf_cal,
 ):
-    def _norm_cm(ax, y_true, y_pred, labels, display_labels, title, cmap="Blues"):
+    def _norm_cm(ax, y_true, y_pred, labels, display_labels, title, cmap="Blues",
+             tick_fontsize=11, cell_fontsize=10, title_fontsize=11):
         cm = confusion_matrix(y_true, y_pred, labels=labels)
         row_sums = cm.sum(axis=1, keepdims=True)
         cm_norm = np.divide(cm.astype(float), row_sums,
@@ -445,42 +447,50 @@ def plot_per_experiment_stories(
                             where=row_sums > 0)
         n = len(labels)
         ax.imshow(cm_norm, vmin=0, vmax=1, cmap=cmap, aspect="auto")
-        ax.set_xticks(range(n)); ax.set_xticklabels(display_labels, fontsize=8)
-        ax.set_yticks(range(n)); ax.set_yticklabels(display_labels, fontsize=8)
-        ax.set_xlabel("Predicted"); ax.set_ylabel("True")
-        ax.set_title(title, fontsize=9); ax.grid(False)
+        ax.set_xticks(range(n)); ax.set_xticklabels(display_labels, fontsize=tick_fontsize)
+        ax.set_yticks(range(n)); ax.set_yticklabels(display_labels, fontsize=tick_fontsize)
+        ax.set_xlabel("Predicted", fontsize=tick_fontsize)
+        ax.set_ylabel("True", fontsize=tick_fontsize)
+        ax.set_title(title, fontsize=title_fontsize); ax.grid(False)
         for i in range(n):
             for j in range(n):
                 color = "white" if cm_norm[i, j] > 0.6 else "black"
                 ax.text(j, i, f"{cm_norm[i,j]:.0%}\n({cm[i,j]})",
-                        ha="center", va="center", fontsize=7, color=color)
+                        ha="center", va="center", fontsize=cell_fontsize, color=color)
 
-    t_wet_val  = val_full_df["temp_wet"].to_numpy()
-    t_wet_test = test_full_df["temp_wet"].to_numpy()
-    p_valf_cal  = val_full_df["p_snow_cal"].to_numpy()
-    p_testf_cal = test_full_df["p_snow_cal"].to_numpy()
+    # ── Story 1a: Binary confusion matrices ──────────────────────────────────
+    n_mix_val  = int(np.sum(y_val_full_phase  == MIX_CODE))
+    n_mix_test = int(np.sum(y_test_full_phase == MIX_CODE))
 
-    # ── Story 1 ───────────────────────────────────────────────────────────────
-    fig = plt.figure(figsize=(16, 9))
-    fig.suptitle(f"{name} — Story 1: Binary discrimination", fontsize=12, y=1.01)
+    fig, axes = plt.subplots(1, 2, figsize=(9, 4))
+    fig.suptitle(f"{name} — Story 1a: Binary confusion matrices", fontsize=12)
 
-    ax00 = fig.add_subplot(2, 4, 1)
-    ax01 = fig.add_subplot(2, 4, 2)
-    ax02 = fig.add_subplot(2, 4, 3)
-    ax03 = fig.add_subplot(2, 4, 4)
+    _norm_cm(axes[0], y_val_fit_phase,  pred_val_bin05,
+            [SNOW_CODE, RAIN_CODE], ["snow", "rain"],
+            f"Validation (n={len(y_val_fit_phase)})\n"
+            f"{n_mix_val} mix-labeled obs. excluded",
+            tick_fontsize=11, cell_fontsize=10, title_fontsize=11)
 
-    _norm_cm(ax00, y_val_fit_phase,  pred_val_bin05,
-             [SNOW_CODE, RAIN_CODE], ["snow","rain"], "Val — binary (0.5 thr)")
-    _norm_cm(ax01, y_test_fit_phase, pred_test_bin05,
-             [SNOW_CODE, RAIN_CODE], ["snow","rain"], "Test — binary (0.5 thr)")
-    _norm_cm(ax02, y_val_full_phase,  pred_val_full,
-             [SNOW_CODE, RAIN_CODE, MIX_CODE], FULL_CLASS_NAMES, "Val — 3-class (band)")
-    _norm_cm(ax03, y_test_full_phase, pred_test_full,
-             [SNOW_CODE, RAIN_CODE, MIX_CODE], FULL_CLASS_NAMES, "Test — 3-class (band)")
+    _norm_cm(axes[1], y_test_fit_phase, pred_test_bin05,
+            [SNOW_CODE, RAIN_CODE], ["snow", "rain"],
+            f"Test (n={len(y_test_fit_phase)})\n"
+            f"{n_mix_test} mix-labeled obs. excluded",
+            tick_fontsize=11, cell_fontsize=10, title_fontsize=11)
 
-    ax_roc = fig.add_subplot(2, 4, (5, 6))
-    ax_pr  = fig.add_subplot(2, 4, (7, 8))
+    plt.tight_layout()
+    fig.savefig(graphics_dir / "story1a_confusion_matrices.png", dpi=150, bbox_inches="tight")
+    plt.close(fig)
+
+    # ── Story 1b: ROC and PR curves ───────────────────────────────────────────
+    fig, axes = plt.subplots(1, 2, figsize=(11, 5))
+    fig.suptitle(f"{name} — Story 1b: ROC and precision-recall curves\n"
+                f"(pure snow/rain obs. only; mix-labeled excluded)",
+                fontsize=12)
+
+    ax_roc = axes[0]
+    ax_pr  = axes[1]
     split_colors = {"Validation": "#8338ec", "Test": "#ff006e"}
+
     for y_true_b, p_cal, split in [
         (y_val_bin,  p_val_cal,  "Validation"),
         (y_test_bin, p_test_cal, "Test"),
@@ -492,11 +502,18 @@ def plot_per_experiment_stories(
         ap  = average_precision_score(y_true_b, p_cal)
         ax_roc.plot(fpr, tpr, color=color, lw=2, label=f"{split}  AUC={auc:.3f}")
         ax_pr.plot(rec, prec,  color=color, lw=2, label=f"{split}  AP={ap:.3f}")
+
     ax_roc.plot([0,1],[0,1],"--",color="grey",lw=1,alpha=0.6)
-    ax_roc.set(xlabel="FPR", ylabel="TPR", title="ROC"); ax_roc.legend(fontsize=9)
-    ax_pr.set(xlabel="Recall", ylabel="Precision", title="PR"); ax_pr.legend(fontsize=9)
+    ax_roc.set(xlabel="False positive rate", ylabel="True positive rate",
+            title="ROC curve", xlim=(0,1), ylim=(0,1))
+    ax_roc.legend(fontsize=10); ax_roc.grid(alpha=0.25)
+
+    ax_pr.set(xlabel="Recall", ylabel="Precision",
+            title="Precision-recall curve", xlim=(0,1), ylim=(0,1))
+    ax_pr.legend(fontsize=10); ax_pr.grid(alpha=0.25)
+
     plt.tight_layout()
-    fig.savefig(graphics_dir / "story1_discrimination.png", dpi=150, bbox_inches="tight")
+    fig.savefig(graphics_dir / "story1b_roc_pr.png", dpi=150, bbox_inches="tight")
     plt.close(fig)
 
  # ── Story 2 ───────────────────────────────────────────────────────────────
@@ -552,48 +569,84 @@ def plot_per_experiment_stories(
     plt.close(fig)
 
     # ── Story 3 ───────────────────────────────────────────────────────────────
-    def _twet_profile(df_f, p_cal_f, y_true_f, bin_edges):
+    def _twet_profile_binary(df_f, p_cal_f, y_true_f, bin_edges):
+        """
+        Binary F1 profile vs T_wet.
+        f1_snow / f1_rain: computed on committed events (outside band), pure labels only.
+        abstain_rate: fraction of ALL events (any true label) placed in band.
+        mix_capture: fraction of observer-reported mix events placed in band (diagnostic only).
+        """
         records = []
         for lo, hi in zip(bin_edges[:-1], bin_edges[1:]):
             mask = (df_f["temp_wet"].to_numpy() >= lo) & (df_f["temp_wet"].to_numpy() < hi)
             if mask.sum() < 10:
                 continue
-            yt = y_true_f[mask]
-            yp = classify_phase_gaussian_band(p_cal_f[mask],
-                                              df_f["temp_wet"].to_numpy()[mask],
-                                              base_hb, extra_hb, sigma)
+            yt      = y_true_f[mask]
+            p_bin   = p_cal_f[mask]
+            tw_bin  = df_f["temp_wet"].to_numpy()[mask]
+
+            # Band prediction for all events in this bin
+            yp_band = classify_phase_gaussian_band(p_bin, tw_bin, base_hb, extra_hb, sigma)
+            committed = yp_band != MIX_CODE
+
+            # Binary F1: only committed events, only pure true labels
+            pure = np.isin(yt, [SNOW_CODE, RAIN_CODE])
+            mask_cp = committed & pure
+            yt_c = yt[mask_cp]
+            yp_c = yp_band[mask_cp]
+
             def _f1(code):
-                tp = np.sum((yt==code)&(yp==code)); fp = np.sum((yt!=code)&(yp==code))
-                fn = np.sum((yt==code)&(yp!=code))
-                p  = tp/(tp+fp) if tp+fp else 0; r = tp/(tp+fn) if tp+fn else 0
-                return 2*p*r/(p+r) if p+r else 0
+                tp = np.sum((yt_c == code) & (yp_c == code))
+                fp = np.sum((yt_c != code) & (yp_c == code))
+                fn = np.sum((yt_c == code) & (yp_c != code))
+                pr = tp / (tp + fp) if (tp + fp) else 0.0
+                rc = tp / (tp + fn) if (tp + fn) else 0.0
+                return 2 * pr * rc / (pr + rc) if (pr + rc) else 0.0
+
+            # Abstention rate over ALL events in bin (operational flag rate)
+            abstain_rate = float(np.mean(yp_band == MIX_CODE))
+
+            # Mix capture: observer-reported mix events landing in band (uncertainty diagnostic)
             tm = yt == MIX_CODE
-            records.append({"t_mid": (lo+hi)/2, "n": mask.sum(),
-                             "f1_snow": _f1(SNOW_CODE), "f1_rain": _f1(RAIN_CODE),
-                             "mix_capture": float(np.mean(yp[tm]==MIX_CODE)) if tm.any() else np.nan})
+            mix_cap = float(np.mean(yp_band[tm] == MIX_CODE)) if tm.any() else np.nan
+
+            records.append({
+                "t_mid":        (lo + hi) / 2,
+                "n":            int(mask.sum()),
+                "n_committed":  int(mask_cp.sum()),
+                "f1_snow":      _f1(SNOW_CODE),
+                "f1_rain":      _f1(RAIN_CODE),
+                "abstain_rate": abstain_rate,
+                "mix_capture":  mix_cap,
+            })
         return pd.DataFrame(records)
 
     bin_edges = np.arange(-6, 7, 1)
-    prof_val  = _twet_profile(val_full_df,  p_valf_cal,  y_val_full_phase,  bin_edges)
-    prof_test = _twet_profile(test_full_df, p_testf_cal, y_test_full_phase, bin_edges)
+    prof_val  = _twet_profile_binary(val_full_df,  p_valf_cal,  y_val_full_phase,  bin_edges)
+    prof_test = _twet_profile_binary(test_full_df, p_testf_cal, y_test_full_phase, bin_edges)
 
-    fig, axes = plt.subplots(1, 3, figsize=(15, 5))
-    fig.suptitle(f"{name} — Story 3: Performance vs T_wet", fontsize=12)
-    for ax, col, ylabel in zip(axes,
-            ["f1_snow","f1_rain","mix_capture"],
-            ["F1 — snow","F1 — rain","Mix capture rate"]):
-        color = PHASE_COLORS.get(ylabel.split("—")[-1].strip().replace(" ","").lower(),
-                                  "#555555")
-        for prof, split, ls in [(prof_val,"Val","--"),(prof_test,"Test","-")]:
+    # Four panels: F1-snow, F1-rain, abstention rate, mix capture (diagnostic)
+    fig, axes = plt.subplots(1, 4, figsize=(20, 5))
+    fig.suptitle(f"{name} — Story 3: Binary performance vs T_wet", fontsize=12)
+
+    panel_specs = [
+        ("f1_snow",      "F1 — snow (committed events)",           PHASE_COLORS["snow"]),
+        ("f1_rain",      "F1 — rain (committed events)",           PHASE_COLORS["rain"]),
+        ("abstain_rate", "Abstention rate (fraction in band)",     "darkorange"),
+        ("mix_capture",  "Observer-mix in band\n(uncertainty diagnostic)", "#888888"),
+    ]
+    for ax, (col, ylabel, color) in zip(axes, panel_specs):
+        for prof, split, ls in [(prof_val, "Val", "--"), (prof_test, "Test", "-")]:
             if col not in prof.columns or prof.empty:
                 continue
-            ax.plot(prof["t_mid"], prof[col], ls, color=color, lw=2, label=split,
-                    marker="o", ms=4)
+            ax.plot(prof["t_mid"], prof[col], ls, color=color, lw=2,
+                    label=split, marker="o", ms=4)
         ax.axvspan(-1, 1, alpha=0.08, color="orange")
         ax.axvline(0, color="black", lw=0.8, alpha=0.4)
         ax.set(xlabel="T_wet (°C)", ylabel=ylabel, title=ylabel,
-               xlim=(bin_edges[0], bin_edges[-1]), ylim=(0, 1.05))
+            xlim=(bin_edges[0], bin_edges[-1]), ylim=(0, 1.05))
         ax.legend(fontsize=9)
+
     plt.tight_layout()
     fig.savefig(graphics_dir / "story3_twet_performance.png", dpi=150, bbox_inches="tight")
     plt.close(fig)
@@ -640,68 +693,159 @@ def plot_per_experiment_stories(
     ax_a.axvline(0, color="grey", lw=0.8, alpha=0.4)
     ax_a.axhline(0.5, color="grey", lw=0.8, alpha=0.4)
     ax_a.set(xlim=(-6,6), ylim=(-0.04,1.04),
-             xlabel="T_wet (°C)", ylabel="Calibrated p(snow)",
-             title=f"A — True-mix band capture (n={len(df_mix)}, {capture_pct:.0f}% inside)")
+            xlabel="T_wet (°C)", ylabel="Calibrated p(snow)",
+            title=f"A — Observer-reported ambiguous events vs. band\n"
+                f"(n={len(df_mix)} mix-labeled obs.; {capture_pct:.0f}% fall inside band)")
     ax_a.legend(fontsize=9)
 
-    # Panel B — violin by phase across 2°C bins
-    ax_b = axes[1]
-    violin_bins = [(-6,-4),(-4,-2),(-2,0),(0,2),(2,4),(4,6)]
-    bin_labels  = [f"{lo}–{hi}" for lo,hi in violin_bins]
-    for b_idx, (lo, hi) in enumerate(violin_bins):
-        mask_bin = (df_combo["temp_wet"] >= lo) & (df_combo["temp_wet"] < hi)
-        sub_bin  = df_combo[mask_bin]
-        for p_idx, (code, cname) in enumerate(zip(
-                [SNOW_CODE, RAIN_CODE, MIX_CODE], FULL_CLASS_NAMES)):
-            vals = sub_bin.loc[sub_bin["phase_full"]==code, "p_snow_cal"].to_numpy()
-            x_pos = b_idx + (p_idx - 1) * 0.27
-            if len(vals) < 4:
-                if len(vals) > 0:
-                    ax_b.plot(x_pos, np.median(vals), "_",
-                              color=PHASE_COLORS[cname], ms=10, mew=2)
-                continue
-            parts = ax_b.violinplot(vals, positions=[x_pos], widths=0.23,
-                                     showmedians=True, showextrema=False)
-            for pc in parts["bodies"]:
-                pc.set_facecolor(PHASE_COLORS[cname]); pc.set_edgecolor("none"); pc.set_alpha(0.7)
-            parts["cmedians"].set_color("black"); parts["cmedians"].set_linewidth(1.5)
-    ax_b.axhspan(rain_boundary.min(), snow_boundary.max(), alpha=0.06, color="orange")
-    ax_b.axhline(0.5, color="grey", lw=0.8, alpha=0.4)
-    ax_b.set_xticks(range(len(violin_bins))); ax_b.set_xticklabels(bin_labels, fontsize=8)
-    ax_b.set(xlabel="T_wet bin (°C)", ylabel="Calibrated p(snow)", ylim=(-0.04,1.04),
-             title="B — p(snow) by true phase (2°C bins, val+test)")
-    legend_els = [Patch(facecolor=PHASE_COLORS[c], label=c, alpha=0.75) for c in FULL_CLASS_NAMES]
-    ax_b.legend(handles=legend_els, fontsize=9)
-    plt.tight_layout()
-    fig.savefig(graphics_dir / "story4_band_placement.png", dpi=150, bbox_inches="tight")
-    plt.close(fig)
+    # # Panel B — abstention rate by T_wet bin (operational flag diagnostic)
+    # ax_b = axes[1]
+    # violin_bins   = [(-6,-4),(-4,-2),(-2,0),(0,2),(2,4),(4,6)]
+    # bin_centers   = [(lo + hi) / 2 for lo, hi in violin_bins]
+    # bin_labels    = [f"{lo}–{hi}" for lo, hi in violin_bins]
+
+    # for df_s, split, color, ls in [
+    #     (df_combo[df_combo["split"] == "val"],  "Val",  "#8338ec", "--"),
+    #     (df_combo[df_combo["split"] == "test"], "Test", "#ff006e", "-"),
+    # ]:
+    #     abstain_rates = []
+    #     for lo, hi in violin_bins:
+    #         mask_bin = (df_s["temp_wet"] >= lo) & (df_s["temp_wet"] < hi)
+    #         if mask_bin.sum() == 0:
+    #             abstain_rates.append(np.nan)
+    #             continue
+    #         p_b  = df_s.loc[mask_bin, "p_snow_cal"].to_numpy()
+    #         tw_b = df_s.loc[mask_bin, "temp_wet"].to_numpy()
+    #         hb   = gaussian_half_band(tw_b, base_hb, extra_hb, sigma)
+    #         in_band = (p_b > 0.5 - hb) & (p_b < 0.5 + hb)
+    #         abstain_rates.append(float(np.mean(in_band)))
+    #     ax_b.plot(bin_centers, abstain_rates, ls, color=color, lw=2,
+    #             marker="o", ms=5, label=split)
+
+    # ax_b.axvspan(-1, 1, alpha=0.08, color="orange")
+    # ax_b.axvline(0, color="black", lw=0.8, alpha=0.4)
+    # ax_b.set_xticks(range(len(bin_labels)))
+    # ax_b.set_xticklabels(bin_labels, fontsize=8)
+    # ax_b.set(xlabel="T_wet bin (°C)",
+    #         ylabel="Fraction of predictions in uncertainty band",
+    #         ylim=(0, 1.0),
+    #         title="B — Abstention rate by temperature\n"
+    #             "(fraction where model declines to commit, val+test)")
+    # ax_b.legend(fontsize=9)
 
     # ── Story 5 ───────────────────────────────────────────────────────────────
-    fig, axes = plt.subplots(2, 2, figsize=(11, 9))
-    fig.suptitle(f"{name} — Story 5: Near-freezing deep-dive", fontsize=12)
-    for (df_f, y_true_f, pred_f, split, flag_col, flag_label), (r, c) in zip([
-        (val_full_df,  y_val_full_phase,  pred_val_full,  "Val",  "near_freezing_air_2C", "|T_air| ≤ 2°C"),
-        (val_full_df,  y_val_full_phase,  pred_val_full,  "Val",  "near_freezing_wet_2C", "|T_wet| ≤ 2°C"),
-        (test_full_df, y_test_full_phase, pred_test_full, "Test", "near_freezing_air_2C", "|T_air| ≤ 2°C"),
-        (test_full_df, y_test_full_phase, pred_test_full, "Test", "near_freezing_wet_2C", "|T_wet| ≤ 2°C"),
-    ], [(0,0),(0,1),(1,0),(1,1)]):
-        ax = axes[r, c]
-        # Derive the mask from temp columns since flag columns may not exist
-        if flag_col == "near_freezing_air_2C":
-            if "temp_air" in df_f.columns:
-                mask = np.abs(df_f["temp_air"].to_numpy()) <= 2.0
-            else:
-                ax.set_visible(False); continue
-        else:
-            mask = np.abs(df_f["temp_wet"].to_numpy()) <= 2.0
-        if mask.sum() < 5:
-            ax.set_visible(False); continue
-        _norm_cm(ax, y_true_f[mask], pred_f[mask],
-                 [SNOW_CODE, RAIN_CODE, MIX_CODE], FULL_CLASS_NAMES,
-                 f"{split} — {flag_label} (n={mask.sum()})")
-    plt.tight_layout()
-    fig.savefig(graphics_dir / "story5_near_freezing.png", dpi=150, bbox_inches="tight")
-    plt.close(fig)
+    # Near-freezing precision/recall profiles — T_wet and T_air
+    # Zoomed to [-4, 4] to focus on the transition zone
+    NF_BIN_EDGES = np.arange(-4, 5, 1)  # 1°C bins from -4 to +4
+
+    def _nf_profile(df_f, p_cal_f, y_true_f, bin_edges, temp_col):
+        """Same logic as _twet_profile_binary but for any temp column, no band needed —
+        pure binary at 0.5 threshold for the near-freeze story."""
+        records = []
+        for lo, hi in zip(bin_edges[:-1], bin_edges[1:]):
+            t_vals = df_f[temp_col].to_numpy()
+            mask   = (t_vals >= lo) & (t_vals < hi)
+            pure   = np.isin(y_true_f, [SNOW_CODE, RAIN_CODE])
+            m      = mask & pure
+            if m.sum() < 5:
+                continue
+            yt = y_true_f[m]
+            yp = np.where(p_cal_f[m] >= 0.5, SNOW_CODE, RAIN_CODE)
+
+            def _prf(code):
+                tp = np.sum((yt == code) & (yp == code))
+                fp = np.sum((yt != code) & (yp == code))
+                fn = np.sum((yt == code) & (yp != code))
+                pr = tp / (tp + fp) if (tp + fp) else np.nan
+                rc = tp / (tp + fn) if (tp + fn) else np.nan
+                return pr, rc
+
+            snow_pr, snow_rc = _prf(SNOW_CODE)
+            rain_pr, rain_rc = _prf(RAIN_CODE)
+            n_mix_in_bin = int(np.sum(mask & ~pure))
+
+            records.append({
+                "t_mid":      (lo + hi) / 2,
+                "n_pure":     int(m.sum()),
+                "n_mix":      n_mix_in_bin,
+                "prec_snow":  snow_pr,
+                "rec_snow":   snow_rc,
+                "prec_rain":  rain_pr,
+                "rec_rain":   rain_rc,
+            })
+        return pd.DataFrame(records)
+
+    def _plot_nf_profile(prof_val, prof_test, temp_label, out_path, name, bin_edges):
+        fig, axes = plt.subplots(1, 2, figsize=(13, 5))
+        fig.suptitle(f"{name} — Story 5: Near-freezing precision/recall vs {temp_label}\n"
+                    f"(binary 0.5 threshold, observer-reported mix excluded)",
+                    fontsize=12)
+
+        panel_specs = [
+            ("prec_snow", "rec_snow", "Snow", PHASE_COLORS["snow"]),
+            ("prec_rain", "rec_rain", "Rain", PHASE_COLORS["rain"]),
+        ]
+
+        for ax, (prec_col, rec_col, label, color) in zip(axes, panel_specs):
+            for prof, split, prec_ls, rec_ls in [
+                (prof_val,  "Val",  "--", ":"),
+                (prof_test, "Test", "-",  "-."),
+            ]:
+                if prof.empty:
+                    continue
+                valid_p = prof[prec_col].notna()
+                valid_r = prof[rec_col].notna()
+                ax.plot(prof.loc[valid_p, "t_mid"], prof.loc[valid_p, prec_col],
+                        prec_ls, color=color, lw=2, marker="o", ms=5,
+                        label=f"{split} precision")
+                ax.plot(prof.loc[valid_r, "t_mid"], prof.loc[valid_r, rec_col],
+                        rec_ls, color=color, lw=2, marker="s", ms=5,
+                        label=f"{split} recall")
+
+            # Sample count bar along bottom (secondary axis)
+            ax2 = ax.twinx()
+            if not prof_test.empty:
+                ax2.bar(prof_test["t_mid"], prof_test["n_pure"],
+                        width=0.7, color="lightgrey", alpha=0.4, zorder=0,
+                        label="n pure (test)")
+                ax2.bar(prof_test["t_mid"], prof_test["n_mix"],
+                        width=0.7, bottom=prof_test["n_pure"],
+                        color="#e377c2", alpha=0.25, zorder=0,
+                        label="n mix excluded (test)")
+            ax2.set(ylabel="Event count (test)", ylim=(0, prof_test["n_pure"].max() * 4
+                                                        if not prof_test.empty else 100))
+            ax2.yaxis.label.set_fontsize(9)
+            ax2.tick_params(labelsize=8)
+
+            ax.axvspan(-1, 1, alpha=0.08, color="orange", zorder=1)
+            ax.axvline(0, color="black", lw=0.8, alpha=0.4, zorder=1)
+            ax.set(xlabel=f"{temp_label} (°C)",
+                ylabel=f"{label} precision / recall",
+                title=f"{label}",
+                xlim=(bin_edges[0], bin_edges[-1]),
+                ylim=(0, 1.05))
+            ax.legend(fontsize=8, loc="lower left"); ax.grid(alpha=0.3)
+
+        plt.tight_layout()
+        fig.savefig(out_path, dpi=150, bbox_inches="tight")
+        plt.close(fig)
+
+    # T_wet profiles
+    nf_val_wet  = _nf_profile(val_full_df,  p_valf_cal,  y_val_full_phase,
+                            NF_BIN_EDGES, temp_col="temp_wet")
+    nf_test_wet = _nf_profile(test_full_df, p_testf_cal, y_test_full_phase,
+                            NF_BIN_EDGES, temp_col="temp_wet")
+    _plot_nf_profile(nf_val_wet, nf_test_wet, "T_wet",
+                    graphics_dir / "story5_nearfreeze_twet.png", name, NF_BIN_EDGES)
+
+    # T_air profiles
+    if "temp_air" in val_full_df.columns:
+        nf_val_air  = _nf_profile(val_full_df,  p_valf_cal,  y_val_full_phase,
+                                NF_BIN_EDGES, temp_col="temp_air")
+        nf_test_air = _nf_profile(test_full_df, p_testf_cal, y_test_full_phase,
+                                NF_BIN_EDGES, temp_col="temp_air")
+        _plot_nf_profile(nf_val_air, nf_test_air, "T_air",
+                        graphics_dir / "story5_nearfreeze_tair.png", name, NF_BIN_EDGES)
 
     print(f"  Stories saved to: {graphics_dir}")
 
@@ -1002,12 +1146,18 @@ def run_experiment(cfg: dict, split_df: pd.DataFrame, out_dir: Path) -> dict:
             mf_fit  = (np.abs(df_fit["temp_wet"].to_numpy())  <= 2.0) if regime == "nearfreeze" \
                       else (np.abs(df_fit["temp_wet"].to_numpy())  > 2.0)
             if mf_full.sum() >= 5:
-                pred_r = classify(p_cal_full[mf_full], df_full["temp_wet"].to_numpy()[mf_full])
-                metrics[f"{split_name}_{regime}_macro_f1_3class"] = _safe(
-                    f1_score, y_full[mf_full], pred_r, average="macro", zero_division=0)
+                # Binary near-freeze F1: pure labels only, 0.5 threshold
+                pure_nf = mf_full & np.isin(y_full, [SNOW_CODE, RAIN_CODE])
+                if pure_nf.sum() >= 5:
+                    pred_bin_nf = np.where(p_cal_full[pure_nf] >= 0.5, SNOW_CODE, RAIN_CODE)
+                    metrics[f"{split_name}_{regime}_macro_f1_binary"] = _safe(
+                        f1_score, y_full[pure_nf], pred_bin_nf,
+                        labels=[SNOW_CODE, RAIN_CODE], average="macro", zero_division=0)
+                # Keep mix_capture as a separate band diagnostic
                 if (y_full[mf_full] == MIX_CODE).any():
+                    pred_band_nf = classify(p_cal_full[mf_full], df_full["temp_wet"].to_numpy()[mf_full])
                     metrics[f"{split_name}_{regime}_mix_capture"] = round(
-                        float(np.mean(pred_r[y_full[mf_full] == MIX_CODE] == MIX_CODE)), 4)
+                        float(np.mean(pred_band_nf[y_full[mf_full] == MIX_CODE] == MIX_CODE)), 4)
             if mf_fit.sum() >= 5:
                 metrics[f"{split_name}_{regime}_roc_auc"] = _safe(
                     roc_auc_score, y_fit_bin[mf_fit], p_cal_fit[mf_fit])
@@ -1045,15 +1195,6 @@ def run_experiment(cfg: dict, split_df: pd.DataFrame, out_dir: Path) -> dict:
     p_all_raw = booster.predict(xgb.DMatrix(df_all_full[FEATURES], feature_names=FEATURES))
     p_all_cal = calibrate(p_all_raw, df_all_full["temp_wet"].to_numpy())
     pred_phase_all = classify(p_all_cal, df_all_full["temp_wet"].to_numpy())
-
-    # from plot_mros_loocv_conflict import make_conflict_figure
-    # make_conflict_figure(
-    #     df_all=df_all_full,
-    #     p_snow_cal=p_all_cal,
-    #     p_snow_raw=p_all_raw,
-    #     out_path=out_dir / "graphics" / "mros_loocv_conflict_diagnostic.png",
-    #     experiment_name=name,
-    # )
     
     # Stratified background sample from train split
     train_rows = df_all_full[df_all_full["split"] == "train"]
@@ -1156,7 +1297,7 @@ def run_experiment(cfg: dict, split_df: pd.DataFrame, out_dir: Path) -> dict:
         vals = phase_shap.set_index("feature").reindex(FEATURES)[col].values
         ax.bar(x + i*width, vals, width, label=col, color=color, alpha=0.85)
     ax.set_xticks(x + width); ax.set_xticklabels(FEATURES, rotation=35, ha="right")
-    ax.set(ylabel="Mean |SHAP| (probability units)",
+    ax.set(ylabel="Mean |SHAP|",
            title=f"{name} — feature importance by predicted phase")
     ax.legend(title="Predicted phase"); ax.grid(axis="y", alpha=0.3)
     fig.tight_layout()
@@ -1240,7 +1381,7 @@ def run_experiment(cfg: dict, split_df: pd.DataFrame, out_dir: Path) -> dict:
                         zorder=3, edgecolors="k", linewidths=0.5)
         plt.colorbar(sc, ax=ax, label="ECE contribution")
         ax.set(xlim=(0,1), ylim=(0,1), xlabel="Mean predicted p(snow)",
-            ylabel="Observed fraction snow", title="Reliability diagram\n(dot size = n obs, colour = ECE contribution)")
+            ylabel="Observed fraction snow", title="Reliability diagram\n(dot size = n obs, color = ECE contribution)")
         ax.grid(alpha=0.25)
 
         # Panel 2: sharpness histogram
@@ -1277,7 +1418,7 @@ def run_experiment(cfg: dict, split_df: pd.DataFrame, out_dir: Path) -> dict:
     metrics["shap_top_feature_nearfreeze"] = str(top_feats[0]) if top_feats else ""
 
     print(f"  test ROC AUC (cal):      {metrics['test_roc_auc_cal']}")
-    print(f"  test macro F1 (3-class): {metrics['test_macro_f1_3class']}")
+    print(f"  test macro F1:           {metrics['test_macro_f1_binary']}")
     print(f"  test mix capture:        {metrics['test_mix_capture']}")
     print(f"  test ECE:                {metrics['test_ece']}")
     print(f"  SHAP top (overall):      {metrics['shap_top_feature_overall']}")
@@ -1305,6 +1446,8 @@ def run_experiment(cfg: dict, split_df: pd.DataFrame, out_dir: Path) -> dict:
         p_test_cal  = p_test_cal,
         p_val_raw   = p_val_raw,
         p_test_raw  = p_test_raw,
+        p_valf_cal   = p_valf_cal, 
+        p_testf_cal  = p_testf_cal,
         val_full_df  = _val_full_story,
         test_full_df = _test_full_story,
         base_hb      = BASE_HB,
@@ -1344,15 +1487,22 @@ def save_cross_experiment_plots(all_metrics: list[dict], ablation_root: Path) ->
     Can be called after a fresh run or standalone via --replot.
     """
     comparison_cols = [
-        "name", "n_features", "status",
-        "test_roc_auc_cal", "test_ece", "test_brier_cal", "test_logloss_cal",
-        "test_macro_f1_binary", "test_macro_f1_3class", "test_balanced_acc_3class",
-        "test_mix_capture", "test_frac_pred_mix",
-        "test_nearfreeze_macro_f1_3class", "test_nearfreeze_mix_capture",
-        "test_nearfreeze_roc_auc", "test_clearphase_macro_f1_3class",
-        "val_roc_auc_cal", "val_macro_f1_3class",
-        "shap_top_feature_overall", "shap_top_feature_nearfreeze",
+    # Primary: binary performance
+    "name", "n_features", "status",
+    "test_roc_auc_cal", "test_macro_f1_binary",
+    "test_nearfreeze_roc_auc", "test_nearfreeze_macro_f1_binary",
+    "test_clearphase_macro_f1_binary",
+    # Calibration
+    "test_ece", "test_brier_cal", "test_logloss_cal",
+    # Uncertainty band diagnostics
+    "test_mix_capture", "test_frac_pred_mix", "test_nearfreeze_mix_capture",
+    # 3-class diagnostic only
+    "test_macro_f1_3class", "test_balanced_acc_3class",
+    # Validation
+    "val_roc_auc_cal", "val_macro_f1_binary",
+    "shap_top_feature_overall", "shap_top_feature_nearfreeze",
     ]
+    
     comparison_df = pd.DataFrame(all_metrics)
     present_cols  = [c for c in comparison_cols if c in comparison_df.columns]
     comparison_df[present_cols].to_csv(ablation_root / "ablation_comparison.csv", index=False)
@@ -1364,86 +1514,116 @@ def save_cross_experiment_plots(all_metrics: list[dict], ablation_root: Path) ->
         print("No successful runs found — skipping plots.")
         return
 
-    # ── Bar chart: F1 and ROC AUC ─────────────────────────────────────────────
-    ok_sorted = ok.sort_values("test_macro_f1_3class", ascending=False)
-    fig, axes = plt.subplots(1, 2, figsize=(14, max(4, len(ok)*0.45)))
+    # ── Delta plot: F1 and ROC AUC ─────────────────────────────────────────────
+    fig, axes = plt.subplots(1, 2, figsize=(12, max(4, len(ok) * 0.45)))
+    fig.suptitle("Ablation comparison — delta from baseline_full", fontsize=13)
+
+    baseline_row = ok[ok["name"] == "baseline_full"]
+
     for ax, col, title in [
-        (axes[0], "test_macro_f1_3class", "Test macro F1 (3-class)"),
-        (axes[1], "test_roc_auc_cal",     "Test ROC AUC (calibrated)"),
+        (axes[0], "test_macro_f1_binary", "Δ Test macro F1 (binary)"),
+        (axes[1], "test_roc_auc_cal",     "Δ Test ROC AUC (calibrated)"),
     ]:
-        if col not in ok_sorted.columns:
+        if col not in ok.columns or baseline_row.empty:
             continue
-        colors = ["#2dc653" if r["name"] == "baseline_full" else "#3a86ff"
-                  for _, r in ok_sorted.iterrows()]
-        ax.barh(ok_sorted["name"], ok_sorted[col], color=colors)
+        baseline_val = float(baseline_row[col].iloc[0])
+        ok_delta = ok.copy()
+        ok_delta["delta"] = ok_delta[col] - baseline_val
+        ok_delta = ok_delta.sort_values("delta", ascending=True)
+
+        colors = ["#2dc653" if r["name"] == "baseline_full" else
+                "#d62728" if r["delta"] < 0 else "#3a86ff"
+                for _, r in ok_delta.iterrows()]
+
+        ax.barh(ok_delta["name"], ok_delta["delta"], color=colors)
+        ax.axvline(0, color="black", lw=1.0)
         ax.set(xlabel=title, title=title)
-        ax.invert_yaxis(); ax.grid(axis="x", alpha=0.3)
-    fig.suptitle("Ablation comparison", fontsize=13)
-    fig.tight_layout()
+        ax.invert_yaxis()
+        ax.grid(axis="x", alpha=0.3)
+
+        # Annotate absolute values next to bars
+        for _, row in ok_delta.iterrows():
+            abs_val = row[col]
+            if abs_val is not None:
+                ax.text(row["delta"] + (0.001 if row["delta"] >= 0 else -0.001),
+                        row["name"], f"{abs_val:.3f}",
+                        va="center",
+                        ha="left" if row["delta"] >= 0 else "right",
+                        fontsize=8, color="dimgrey")
+
+    plt.tight_layout()
     fig.savefig(ablation_root / "ablation_comparison.png", dpi=150, bbox_inches="tight")
     plt.close(fig)
 
-    # ── ECE bar chart ─────────────────────────────────────────────────────────
+    # ── ECE bar chart — delta from baseline ──────────────────────────────────
     if "test_ece" in ok.columns:
-        ok_ece = ok.sort_values("test_ece")
-        fig, ax = plt.subplots(figsize=(8, max(4, len(ok)*0.45)))
-        colors  = ["#2dc653" if r["name"] == "baseline_full" else "#e07b39"
-                   for _, r in ok_ece.iterrows()]
-        ax.barh(ok_ece["name"], ok_ece["test_ece"], color=colors)
-        ax.set(xlabel="Expected Calibration Error (lower = better)",
-               title="Ablation — test ECE")
-        ax.invert_yaxis(); ax.grid(axis="x", alpha=0.3)
-        fig.tight_layout()
-        fig.savefig(ablation_root / "ablation_calibration_ece.png", dpi=150, bbox_inches="tight")
-        plt.close(fig)
+        baseline_ece = float(ok[ok["name"] == "baseline_full"]["test_ece"].iloc[0]) \
+                    if not ok[ok["name"] == "baseline_full"].empty else None
 
-    # ── Near-freeze vs clear-phase F1 scatter ─────────────────────────────────
-    nf_col = "test_nearfreeze_macro_f1_3class"
-    cp_col = "test_clearphase_macro_f1_3class"
-    if nf_col in ok.columns and cp_col in ok.columns:
-        fig, ax = plt.subplots(figsize=(8, 6))
-        scatter_ok = ok.dropna(subset=[nf_col, cp_col])
-        sc = ax.scatter(scatter_ok[cp_col], scatter_ok[nf_col],
-                        c=scatter_ok["test_roc_auc_cal"],
-                        cmap="viridis", s=80, zorder=3,
-                        vmin=scatter_ok["test_roc_auc_cal"].min(),
-                        vmax=scatter_ok["test_roc_auc_cal"].max())
-        plt.colorbar(sc, ax=ax, label="Test ROC AUC (cal)")
-        for _, row in scatter_ok.iterrows():
-            ax.annotate(row["name"], (row[cp_col], row[nf_col]),
-                        fontsize=7.5, xytext=(4, 3), textcoords="offset points")
-        ax.plot([0,1],[0,1],"--", color="grey", lw=1, alpha=0.5)
-        ax.set(xlabel="Clear-phase macro F1", ylabel="Near-freeze macro F1",
-               title="Near-freeze vs. clear-phase F1\n(diagonal = equal performance in both regimes)")
-        ax.grid(alpha=0.25); fig.tight_layout()
-        fig.savefig(ablation_root / "ablation_nearfreeze_vs_clearphase.png",
-                    dpi=150, bbox_inches="tight")
-        plt.close(fig)
+        if baseline_ece is not None:
+            ok_ece = ok.copy()
+            ok_ece["delta_ece"] = ok_ece["test_ece"] - baseline_ece
+            # Sort so largest ECE reduction (most improved) is at top
+            ok_ece = ok_ece.sort_values("delta_ece", ascending=False)
+
+            fig, ax = plt.subplots(figsize=(8, max(4, len(ok) * 0.45)))
+
+            colors = ["#2dc653" if r["name"] == "baseline_full" else
+                    "#3a86ff" if r["delta_ece"] < 0 else   # better calibration = blue
+                    "#d62728"                                # worse calibration = red
+                    for _, r in ok_ece.iterrows()]
+
+            ax.barh(ok_ece["name"], ok_ece["delta_ece"], color=colors)
+            ax.axvline(0, color="black", lw=1.0)
+            ax.set(xlabel="Δ ECE from baseline (negative = better calibration)",
+                title="Ablation — test ECE delta from baseline_full\n"
+                        "(blue = improved calibration, red = worse)")
+            ax.invert_yaxis()
+            ax.grid(axis="x", alpha=0.3)
+
+            # Annotate absolute ECE values
+            for _, row in ok_ece.iterrows():
+                ax.text(row["delta_ece"] + (0.001 if row["delta_ece"] >= 0 else -0.001),
+                        row["name"], f"{row['test_ece']:.3f}",
+                        va="center",
+                        ha="left" if row["delta_ece"] >= 0 else "right",
+                        fontsize=8, color="dimgrey")
+
+            fig.tight_layout()
+            fig.savefig(ablation_root / "ablation_calibration_ece.png",
+                        dpi=150, bbox_inches="tight")
+            plt.close(fig)
 
     # ── Mix capture vs F1 scatter ─────────────────────────────────────────────
     if "test_mix_capture" in ok.columns:
         fig, ax = plt.subplots(figsize=(8, 6))
-        scatter_ok = ok.dropna(subset=["test_mix_capture", "test_macro_f1_3class"])
-        sc = ax.scatter(scatter_ok["test_mix_capture"], scatter_ok["test_macro_f1_3class"],
-                        c=scatter_ok["test_frac_pred_mix"] if "test_frac_pred_mix" in scatter_ok.columns else "steelblue",
-                        cmap="plasma", s=80, zorder=3)
-        if "test_frac_pred_mix" in scatter_ok.columns:
-            plt.colorbar(sc, ax=ax, label="Fraction predicted as mix")
+        scatter_ok = ok.dropna(subset=["test_mix_capture", "test_macro_f1_binary"])
+        color_col  = "test_nearfreeze_roc_auc" if "test_nearfreeze_roc_auc" in scatter_ok.columns else None
+        sc = ax.scatter(
+            scatter_ok["test_mix_capture"],
+            scatter_ok["test_macro_f1_binary"],
+            c=scatter_ok[color_col] if color_col else "steelblue",
+            cmap="viridis", s=80, zorder=3,
+        )
+        if color_col:
+            plt.colorbar(sc, ax=ax, label="Near-freeze ROC AUC")
         for _, row in scatter_ok.iterrows():
-            ax.annotate(row["name"], (row["test_mix_capture"], row["test_macro_f1_3class"]),
+            ax.annotate(row["name"], (row["test_mix_capture"], row["test_macro_f1_binary"]),
                         fontsize=7.5, xytext=(4, 3), textcoords="offset points")
-        ax.set(xlabel="Mix capture rate (true mix → predicted mix)",
-               ylabel="Test macro F1 (3-class)",
-               title="Mix capture vs. overall F1 trade-off\n(colour = fraction of all predictions assigned to mix)")
+        ax.set(xlabel="Observer-mix band capture rate\n(uncertainty diagnostic)",
+            ylabel="Test macro F1 (binary)",
+            title="Abstention band capture vs. binary F1\n"
+                    "(color = near-freeze ROC AUC)")
         ax.grid(alpha=0.25); fig.tight_layout()
-        fig.savefig(ablation_root / "ablation_mix_tradeoff.png",
-                    dpi=150, bbox_inches="tight")
+        fig.savefig(ablation_root / "ablation_mix_tradeoff.png", dpi=150, bbox_inches="tight")
         plt.close(fig)
 
     # ── Parallel coordinates ──────────────────────────────────────────────────
     radar_cols = [
-        "test_roc_auc_cal", "test_macro_f1_3class",
-        "test_nearfreeze_macro_f1_3class", "test_mix_capture", "test_frac_pred_mix",
+        "test_roc_auc_cal",
+        "test_macro_f1_binary",
+        "test_nearfreeze_roc_auc",
+        "test_mix_capture",
     ]
     plot_cols = [c for c in radar_cols if c in ok.columns and ok[c].notna().any()]
     if plot_cols:
@@ -1452,14 +1632,21 @@ def save_cross_experiment_plots(all_metrics: list[dict], ablation_root: Path) ->
             col_min = ok_norm[col].min(); col_max = ok_norm[col].max()
             if col_max > col_min:
                 ok_norm[col] = (ok_norm[col] - col_min) / (col_max - col_min)
+        # Readable axis labels
+        label_map = {
+            "test_roc_auc_cal":       "ROC AUC (binary)",
+            "test_macro_f1_binary":   "Macro F1 (binary)",
+            "test_nearfreeze_roc_auc": "Near-freeze ROC AUC",
+            "test_mix_capture":       "Observer-mix band capture\n(uncertainty diagnostic)",
+        }
         fig, ax = plt.subplots(figsize=(12, 5))
         parallel_coordinates(ok_norm, "name", colormap="tab20", ax=ax, alpha=0.75)
-        ax.set_xticklabels(plot_cols, rotation=20, ha="right", fontsize=9)
-        ax.set_title("Ablation — normalised metrics (parallel coordinates)")
+        ax.set_xticklabels([label_map.get(c, c) for c in plot_cols],
+                        rotation=20, ha="right", fontsize=9)
+        ax.set_title("Ablation — normalized metrics (parallel coordinates)")
         ax.legend(fontsize=7, bbox_to_anchor=(1.01, 1), loc="upper left")
         ax.grid(axis="y", alpha=0.25); fig.tight_layout()
-        fig.savefig(ablation_root / "ablation_parallel_coords.png",
-                    dpi=150, bbox_inches="tight")
+        fig.savefig(ablation_root / "ablation_parallel_coords.png", dpi=150, bbox_inches="tight")
         plt.close(fig)
 
     print(f"\nAll cross-experiment plots saved to: {ablation_root}")
