@@ -11,3 +11,4 @@ Order of Steps
 7. resampling_IMERG_PRISM.ipynb: preprocessing and resampling for existing gridded datasets
 8. interpolate: IDW_interpolation_updated.ipynb & kriging_interpolation_updated.ipynb
 9. primary ML model: ML_XGBoost_binary_uncertainty.ipynb
+10. ablation models: ML_XGBoost_binary_uncertainty_ablation_v1.ipynb & ML_XGBoost_binary_uncertainty_ablation_v2.ipynb
