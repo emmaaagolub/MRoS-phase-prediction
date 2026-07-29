@@ -34,12 +34,21 @@ Inputs
 
 Outputs (model_artifacts/{REGION}/benchmarking_v1/bootstrap/)
 ------
-  bootstrap_benchmark_metrics_ci.csv    per-method accuracy / near-freeze acc /
-                                        biases with CIs (primary block size)
-  bootstrap_benchmark_deltas_ci.csv     model-minus-benchmark deltas with CIs
-                                        and P(delta <= 0)
-  bootstrap_ablation_deltas_ci.csv      config-minus-baseline deltas (AUC,
-                                        accuracy, near-freeze accuracy)
+  bootstrap_benchmark_metrics_ci.csv    per-method accuracy, near-freeze acc,
+                                        macro F1, near-freeze macro F1, snow /
+                                        rain recall and bias, with CIs; plus
+                                        model-only ROC AUC, near-freeze ROC AUC
+                                        and mix capture (primary block size)
+  bootstrap_benchmark_deltas_ci.csv     model-minus-benchmark deltas (accuracy,
+                                        near-freeze accuracy, macro F1,
+                                        near-freeze macro F1) with CIs and
+                                        P(delta <= 0)
+  bootstrap_ablation_metrics_ci.csv     per-config absolute metrics with CIs
+                                        (AUC, near-freeze AUC, accuracy,
+                                        near-freeze accuracy, macro F1,
+                                        near-freeze macro F1, mix capture)
+  bootstrap_ablation_deltas_ci.csv      baseline-minus-config deltas, same
+                                        seven metrics, paired within replicate
   bootstrap_sensitivity_block_size.csv  headline CIs vs. block size + iid
   graphics/fig1_accuracy_by_tair_ci.png     accuracy vs T_air with CI ribbons
   graphics/fig2_relative_improvement_ci.png delta accuracy vs T_air with ribbons
@@ -57,6 +66,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 from pathlib import Path
 
 import matplotlib
@@ -91,7 +101,11 @@ MIN_BIN_N       = 20
 
 MODEL_NAME = "xgboost_mros"
 
-DATA_DIR = Path(r"C:\Users\EmmaGolub\Desktop\MRoS_local\mros-precipitation-phase-product-prototype\outputs")
+#: Default outputs root. Override with --data-dir or the MROS_OUTPUTS env var
+#: (lets the same script run on Windows and on a Linux box without editing).
+DATA_DIR = Path(os.environ.get(
+    "MROS_OUTPUTS",
+    r"C:\Users\EmmaGolub\Desktop\MRoS_local\mros-precipitation-phase-product-prototype\outputs"))
 
 METHOD_LABEL = {
     "ta_1.0": "$T_{a}$ 1.0 °C", "ta_1.5": "$T_{a}$ 1.5 °C",
@@ -144,24 +158,43 @@ def pct_ci(samples: np.ndarray) -> tuple[float, float]:
 
 
 def fast_auc(y_true_bin: np.ndarray, scores: np.ndarray) -> float:
-    """Rank-based ROC AUC (equivalent to Mann-Whitney U). y_true_bin in {0,1}."""
+    """Rank-based ROC AUC (equivalent to Mann-Whitney U). y_true_bin in {0,1}.
+
+    Fully vectorised, including average ranks for ties. Called O(10^5) times
+    across the ablation bootstrap, so the tie handling must not loop in Python.
+    """
     n1 = int(y_true_bin.sum()); n0 = len(y_true_bin) - n1
     if n1 == 0 or n0 == 0:
         return np.nan
     order = np.argsort(scores, kind="mergesort")
+    s_sorted = scores[order]
+    # average 1-based rank within each tie group
+    _, inv, cnt = np.unique(s_sorted, return_inverse=True, return_counts=True)
+    stop = np.cumsum(cnt)
+    start = stop - cnt
+    avg_rank = (start + stop - 1) / 2.0 + 1.0
     ranks = np.empty(len(scores), float)
-    ranks[order] = np.arange(1, len(scores) + 1)
-    # average ranks for ties
-    sorted_scores = scores[order]
-    i = 0
-    while i < len(sorted_scores):
-        j = i
-        while j + 1 < len(sorted_scores) and sorted_scores[j + 1] == sorted_scores[i]:
-            j += 1
-        if j > i:
-            ranks[order[i:j + 1]] = (i + j) / 2.0 + 1.0
-        i = j + 1
+    ranks[order] = avg_rank[inv]
     return float((ranks[y_true_bin == 1].sum() - n1 * (n1 + 1) / 2.0) / (n1 * n0))
+
+
+def gaussian_half_band(temp_wet, base_half_band, extra_half_band, sigma):
+    """Wet-bulb-conditioned half-width of the uncertainty envelope.
+    Mirrors ML_XGBoost_binary_uncertainty_benchmarking.gaussian_half_band."""
+    t = np.asarray(temp_wet, float)
+    return np.clip(base_half_band + extra_half_band * np.exp(-(t ** 2) / (2.0 * sigma ** 2)),
+                   0.0, 0.5)
+
+
+def classify_phase_gaussian_band(p_snow, temp_wet, base_half_band, extra_half_band, sigma):
+    """3-class prediction with mix abstention band.
+    Mirrors ML_XGBoost_binary_uncertainty_benchmarking.classify_phase_gaussian_band."""
+    p_snow = np.asarray(p_snow, float)
+    hb = gaussian_half_band(temp_wet, base_half_band, extra_half_band, sigma)
+    pred = np.full(len(p_snow), MIX_CODE, dtype=int)
+    pred[p_snow <= 0.5 - hb] = RAIN_CODE
+    pred[p_snow >= 0.5 + hb] = SNOW_CODE
+    return pred
 
 
 # =============================================================================
@@ -184,6 +217,51 @@ def phase_bias(y_true: np.ndarray, y_pred: np.ndarray, idx: np.ndarray,
     if n_obs < min_obs:
         return np.nan
     return 100.0 * (int(np.sum(yp == code)) / n_obs - 1.0)
+
+
+def macro_f1_binary(y_true: np.ndarray, y_pred: np.ndarray, idx: np.ndarray,
+                    min_obs: int = 5) -> float:
+    """Unweighted mean of the snow and rain F1 scores.
+
+    Equivalent to sklearn.metrics.f1_score(labels=[SNOW_CODE, RAIN_CODE],
+    average='macro', zero_division=0) as used in the main pipeline.
+    """
+    if len(idx) < min_obs:
+        return np.nan
+    yt = y_true[idx]; yp = y_pred[idx]
+    total = 0.0
+    for code in (SNOW_CODE, RAIN_CODE):
+        pred_c = yp == code
+        true_c = yt == code
+        tp = float(np.count_nonzero(pred_c & true_c))
+        denom = 2.0 * tp + float(np.count_nonzero(pred_c & ~true_c)) \
+                         + float(np.count_nonzero(~pred_c & true_c))
+        total += 0.0 if denom == 0.0 else 2.0 * tp / denom
+    return total / 2.0
+
+
+def masked_macro_f1(y_true: np.ndarray, y_pred: np.ndarray, mask: np.ndarray,
+                    idx: np.ndarray, min_obs: int = 5) -> float:
+    sub = idx[mask[idx]]
+    return macro_f1_binary(y_true, y_pred, sub, min_obs=min_obs)
+
+
+def phase_recall(y_true: np.ndarray, y_pred: np.ndarray, idx: np.ndarray,
+                 code: int, min_obs: int = 10) -> float:
+    """Fraction of observations of `code` that were predicted `code`."""
+    yt = y_true[idx]
+    n_obs = int(np.count_nonzero(yt == code))
+    if n_obs < min_obs:
+        return np.nan
+    return float(np.count_nonzero((y_pred[idx] == code) & (yt == code)) / n_obs)
+
+
+def masked_auc(y_bin: np.ndarray, scores: np.ndarray, mask: np.ndarray,
+               idx: np.ndarray, min_obs: int = 10) -> float:
+    sub = idx[mask[idx]]
+    if len(sub) < min_obs:
+        return np.nan
+    return fast_auc(y_bin[sub], scores[sub])
 
 
 # =============================================================================
@@ -242,10 +320,17 @@ def run_benchmark_bootstrap(df: pd.DataFrame, methods: list[str],
     nfacc_s = {m: np.empty(n_boot) for m in all_methods}
     sbias_s = {m: np.empty(n_boot) for m in all_methods}
     rbias_s = {m: np.empty(n_boot) for m in all_methods}
+    f1_s    = {m: np.empty(n_boot) for m in all_methods}
+    nff1_s  = {m: np.empty(n_boot) for m in all_methods}
+    srec_s  = {m: np.empty(n_boot) for m in all_methods}
+    rrec_s  = {m: np.empty(n_boot) for m in all_methods}
     auc_s   = np.empty(n_boot)
+    nfauc_s = np.empty(n_boot)
     mixcap_s = np.empty(n_boot)
     dacc_s  = {m: np.empty(n_boot) for m in methods}
     dnf_s   = {m: np.empty(n_boot) for m in methods}
+    df1_s   = {m: np.empty(n_boot) for m in methods}
+    dnff1_s = {m: np.empty(n_boot) for m in methods}
     bin_acc_s = {m: np.full((n_boot, n_bins), np.nan) for m in all_methods} if collect_bins else None
 
     for b in range(n_boot):
@@ -255,10 +340,17 @@ def run_benchmark_bootstrap(df: pd.DataFrame, methods: list[str],
             nfacc_s[m][b] = masked_accuracy(correct[m], nf_mask, idx)
             sbias_s[m][b] = phase_bias(y, preds[m], idx, SNOW_CODE)
             rbias_s[m][b] = phase_bias(y, preds[m], idx, RAIN_CODE)
+            f1_s[m][b]    = macro_f1_binary(y, preds[m], idx)
+            nff1_s[m][b]  = masked_macro_f1(y, preds[m], nf_mask, idx)
+            srec_s[m][b]  = phase_recall(y, preds[m], idx, SNOW_CODE)
+            rrec_s[m][b]  = phase_recall(y, preds[m], idx, RAIN_CODE)
         for m in methods:  # paired deltas within the same replicate
-            dacc_s[m][b] = acc_s[MODEL_NAME][b] - acc_s[m][b]
-            dnf_s[m][b]  = nfacc_s[MODEL_NAME][b] - nfacc_s[m][b]
-        auc_s[b] = fast_auc(y_bin_snow[idx], p_model[idx])
+            dacc_s[m][b]  = acc_s[MODEL_NAME][b]  - acc_s[m][b]
+            dnf_s[m][b]   = nfacc_s[MODEL_NAME][b] - nfacc_s[m][b]
+            df1_s[m][b]   = f1_s[MODEL_NAME][b]   - f1_s[m][b]
+            dnff1_s[m][b] = nff1_s[MODEL_NAME][b] - nff1_s[m][b]
+        auc_s[b]   = fast_auc(y_bin_snow[idx], p_model[idx])
+        nfauc_s[b] = masked_auc(y_bin_snow, p_model, nf_mask, idx)
         if collect_bins:
             bi = bin_idx[idx]
             for m in all_methods:
@@ -274,16 +366,24 @@ def run_benchmark_bootstrap(df: pd.DataFrame, methods: list[str],
         tm = mix_is[idx2]
         mixcap_s[b] = float(np.mean(band_pred[idx2][tm] == MIX_CODE)) if tm.sum() >= 5 else np.nan
 
+    all_rows = np.arange(len(y))
     return dict(all_methods=all_methods, methods=methods,
                 acc=acc_s, nfacc=nfacc_s, sbias=sbias_s, rbias=rbias_s,
-                dacc=dacc_s, dnf=dnf_s, auc=auc_s, mixcap=mixcap_s,
+                f1=f1_s, nff1=nff1_s, srec=srec_s, rrec=rrec_s,
+                dacc=dacc_s, dnf=dnf_s, df1=df1_s, dnff1=dnff1_s,
+                auc=auc_s, nfauc=nfauc_s, mixcap=mixcap_s,
                 bin_acc=bin_acc_s, bin_mids=bin_mids, bin_valid=bin_valid,
                 point=dict(
                     acc={m: float(np.mean(correct[m])) for m in all_methods},
                     nfacc={m: float(np.mean(correct[m][nf_mask])) for m in all_methods},
-                    sbias={m: phase_bias(y, preds[m], np.arange(len(y)), SNOW_CODE) for m in all_methods},
-                    rbias={m: phase_bias(y, preds[m], np.arange(len(y)), RAIN_CODE) for m in all_methods},
+                    sbias={m: phase_bias(y, preds[m], all_rows, SNOW_CODE) for m in all_methods},
+                    rbias={m: phase_bias(y, preds[m], all_rows, RAIN_CODE) for m in all_methods},
+                    f1={m: macro_f1_binary(y, preds[m], all_rows) for m in all_methods},
+                    nff1={m: masked_macro_f1(y, preds[m], nf_mask, all_rows) for m in all_methods},
+                    srec={m: phase_recall(y, preds[m], all_rows, SNOW_CODE) for m in all_methods},
+                    rrec={m: phase_recall(y, preds[m], all_rows, RAIN_CODE) for m in all_methods},
                     auc=fast_auc(y_bin_snow, p_model),
+                    nfauc=masked_auc(y_bin_snow, p_model, nf_mask, all_rows),
                     mixcap=(float(np.mean(band_pred[mix_is] == MIX_CODE)) if mix_is.any() else np.nan),
                 ))
 
@@ -294,6 +394,10 @@ def benchmark_tables(res: dict, out_dir: Path) -> tuple[pd.DataFrame, pd.DataFra
         for metric, samp, pt in [
             ("accuracy",            res["acc"][m],   res["point"]["acc"][m]),
             ("nearfreeze_accuracy", res["nfacc"][m], res["point"]["nfacc"][m]),
+            ("macro_f1",            res["f1"][m],    res["point"]["f1"][m]),
+            ("nearfreeze_macro_f1", res["nff1"][m],  res["point"]["nff1"][m]),
+            ("snow_recall",         res["srec"][m],  res["point"]["srec"][m]),
+            ("rain_recall",         res["rrec"][m],  res["point"]["rrec"][m]),
             ("snow_bias_pct",       res["sbias"][m], res["point"]["sbias"][m]),
             ("rain_bias_pct",       res["rbias"][m], res["point"]["rbias"][m]),
         ]:
@@ -301,12 +405,15 @@ def benchmark_tables(res: dict, out_dir: Path) -> tuple[pd.DataFrame, pd.DataFra
             rows.append(dict(method=m, label=METHOD_LABEL.get(m, m), metric=metric,
                              point=round(pt, 4) if pt == pt else np.nan,
                              ci_lo=round(lo, 4), ci_hi=round(hi, 4)))
-    lo, hi = pct_ci(res["auc"])
-    rows.append(dict(method=MODEL_NAME, label=METHOD_LABEL[MODEL_NAME], metric="roc_auc",
-                     point=round(res["point"]["auc"], 4), ci_lo=round(lo, 4), ci_hi=round(hi, 4)))
-    lo, hi = pct_ci(res["mixcap"])
-    rows.append(dict(method=MODEL_NAME, label=METHOD_LABEL[MODEL_NAME], metric="mix_capture_band",
-                     point=round(res["point"]["mixcap"], 4), ci_lo=round(lo, 4), ci_hi=round(hi, 4)))
+    # model-only, probability-based metrics (benchmarks emit no probabilities)
+    for metric, samp, pt in [
+        ("roc_auc",            res["auc"],    res["point"]["auc"]),
+        ("nearfreeze_roc_auc", res["nfauc"],  res["point"]["nfauc"]),
+        ("mix_capture_band",   res["mixcap"], res["point"]["mixcap"]),
+    ]:
+        lo, hi = pct_ci(samp)
+        rows.append(dict(method=MODEL_NAME, label=METHOD_LABEL[MODEL_NAME], metric=metric,
+                         point=round(pt, 4), ci_lo=round(lo, 4), ci_hi=round(hi, 4)))
     metrics_df = pd.DataFrame(rows)
     metrics_df.to_csv(out_dir / "bootstrap_benchmark_metrics_ci.csv", index=False)
 
@@ -317,6 +424,10 @@ def benchmark_tables(res: dict, out_dir: Path) -> tuple[pd.DataFrame, pd.DataFra
              res["dacc"][m], res["point"]["acc"][MODEL_NAME] - res["point"]["acc"][m]),
             ("delta_nearfreeze_accuracy",
              res["dnf"][m], res["point"]["nfacc"][MODEL_NAME] - res["point"]["nfacc"][m]),
+            ("delta_macro_f1",
+             res["df1"][m], res["point"]["f1"][MODEL_NAME] - res["point"]["f1"][m]),
+            ("delta_nearfreeze_macro_f1",
+             res["dnff1"][m], res["point"]["nff1"][MODEL_NAME] - res["point"]["nff1"][m]),
         ]:
             lo, hi = pct_ci(samp)
             s = samp[~np.isnan(samp)]
@@ -333,12 +444,17 @@ def benchmark_tables(res: dict, out_dir: Path) -> tuple[pd.DataFrame, pd.DataFra
 # 5.  ABLATION BOOTSTRAP  (from stored shap_values_all.parquet per config)
 # =============================================================================
 
-def load_ablation_test_preds(region: str) -> dict[str, pd.DataFrame]:
+def load_ablation_test_preds(region: str) -> tuple[dict[str, pd.DataFrame], dict[str, dict]]:
+    """Return per-config test predictions and each config's fitted band parameters.
+
+    The band parameters are needed to reconstruct the 3-class (abstaining)
+    prediction per config, which in turn gives a per-config mix capture rate.
+    """
     root = DATA_DIR / f"ML_pipeline/model_artifacts/{region}/ablations_v2"
     if not root.exists():
         print(f"No ablation folder at {root} — skipping ablation CIs.")
-        return {}
-    out = {}
+        return {}, {}
+    out, bands = {}, {}
     for cfg_dir in sorted(root.iterdir()):
         pq = cfg_dir / "shap_values_all.parquet"
         if not pq.exists():
@@ -347,18 +463,73 @@ def load_ablation_test_preds(region: str) -> dict[str, pd.DataFrame]:
              ["time", "x", "y", "phase_full", "temp_wet", "p_snow_cal", "split"]])
         d = d[d["split"] == "test"].reset_index(drop=True)
         out[cfg_dir.name] = d
+        ms = cfg_dir / "metrics_summary.json"
+        if ms.exists():
+            j = json.load(open(ms))
+            if all(k in j for k in ("band_base_hb", "band_extra_hb", "band_sigma")):
+                bands[cfg_dir.name] = dict(base=float(j["band_base_hb"]),
+                                           extra=float(j["band_extra_hb"]),
+                                           sigma=float(j["band_sigma"]))
     print(f"Ablation configs with stored test predictions: {list(out)}")
+    missing = [c for c in out if c not in bands]
+    if missing:
+        print(f"  (no band parameters for {missing}; mix capture skipped for these)")
+    return out, bands
+
+
+#: absolute per-config metrics, evaluated on every replicate
+_ABL_METRICS = ["auc", "nfauc", "acc", "nfacc", "f1", "nff1", "mixcap"]
+
+#: (delta column, absolute column, output metric name) for baseline-minus-config
+_ABL_DELTAS = [
+    ("dauc",   "auc",    "delta_auc_baseline_minus_config"),
+    ("dnfauc", "nfauc",  "delta_nearfreeze_auc_baseline_minus_config"),
+    ("dacc",   "acc",    "delta_accuracy_baseline_minus_config"),
+    ("dnf",    "nfacc",  "delta_nearfreeze_acc_baseline_minus_config"),
+    ("df1",    "f1",     "delta_macro_f1_baseline_minus_config"),
+    ("dnff1",  "nff1",   "delta_nearfreeze_macro_f1_baseline_minus_config"),
+    ("dmixcap", "mixcap", "delta_mix_capture_baseline_minus_config"),
+]
+
+
+def _ablation_config_metrics(y, y_snow, p, band_pred, pure_idx, nf_idx, mix_idx) -> dict:
+    """All absolute metrics for one config on one set of row indices."""
+    ok = ~np.isnan(p[pure_idx])
+    ip = pure_idx[ok]
+    okf = ~np.isnan(p[nf_idx])
+    inf_ = nf_idx[okf]
+    pred_pure = np.where(p[ip] >= 0.5, SNOW_CODE, RAIN_CODE)
+    pred_nf = np.where(p[inf_] >= 0.5, SNOW_CODE, RAIN_CODE)
+    out = dict(
+        auc=fast_auc(y_snow[ip], p[ip]) if len(ip) >= 10 else np.nan,
+        nfauc=fast_auc(y_snow[inf_], p[inf_]) if len(inf_) >= 10 else np.nan,
+        acc=float(np.mean(pred_pure == y[ip])) if len(ip) else np.nan,
+        nfacc=float(np.mean(pred_nf == y[inf_])) if len(inf_) >= 5 else np.nan,
+        f1=macro_f1_binary(y[ip], pred_pure, np.arange(len(ip))) if len(ip) >= 5 else np.nan,
+        nff1=macro_f1_binary(y[inf_], pred_nf, np.arange(len(inf_))) if len(inf_) >= 5 else np.nan,
+    )
+    if band_pred is None or len(mix_idx) < 5:
+        out["mixcap"] = np.nan
+    else:
+        out["mixcap"] = float(np.mean(band_pred[mix_idx] == MIX_CODE))
     return out
 
 
-def run_ablation_bootstrap(cfgs: dict[str, pd.DataFrame], block_km: float | None,
+def run_ablation_bootstrap(cfgs: dict[str, pd.DataFrame], bands: dict[str, dict],
+                           block_km: float | None,
                            n_boot: int, rng: np.random.Generator,
-                           baseline: str = "baseline_full") -> pd.DataFrame:
+                           baseline: str = "baseline_full"
+                           ) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Return (absolute per-config CIs, baseline-minus-config delta CIs).
+
+    Every config is scored on the identical resampled rows within each
+    replicate, so the deltas are paired exactly as in the benchmark comparison.
+    """
     if baseline not in cfgs:
         print("baseline_full not found — skipping ablation CIs.")
-        return pd.DataFrame()
+        return pd.DataFrame(), pd.DataFrame()
 
-    # Align all configs to the baseline's test rows via space-time-phase key.
+    # Align all configs to the baseline's test rows via space-time key.
     def key(d):
         return (pd.to_datetime(d["time"]).astype("int64").astype(str) + "_" +
                 d["x"].round(1).astype(str) + "_" + d["y"].round(1).astype(str))
@@ -367,8 +538,10 @@ def run_ablation_bootstrap(cfgs: dict[str, pd.DataFrame], block_km: float | None
     base["_k"] = key(base)
     base = base.drop_duplicates("_k").reset_index(drop=True)
     y = base["phase_full"].to_numpy(int)
+    twet = base["temp_wet"].to_numpy(float)
     pure = np.isin(y, [SNOW_CODE, RAIN_CODE])
-    nf = pure & (np.abs(base["temp_wet"].to_numpy(float)) <= NEARFREEZE_TWET_C)
+    nf = pure & (np.abs(twet) <= NEARFREEZE_TWET_C)
+    is_mix = y == MIX_CODE
     y_snow = (y == SNOW_CODE).astype(int)
 
     p_cfg = {baseline: base["p_snow_cal"].to_numpy(float)}
@@ -384,46 +557,64 @@ def run_ablation_bootstrap(cfgs: dict[str, pd.DataFrame], block_km: float | None
             continue
         p_cfg[name] = merged["p_snow_cal"].to_numpy(float)
 
-    correct = {n: (np.where(p >= 0.5, SNOW_CODE, RAIN_CODE) == y) & ~np.isnan(p)
-               for n, p in p_cfg.items()}
-    clusters = build_cluster_index(make_cluster_codes(base, block_km))
-    names = [n for n in p_cfg if n != baseline]
+    # 3-class band predictions per config, for per-config mix capture
+    band_pred = {}
+    for n, p in p_cfg.items():
+        bp = bands.get(n)
+        band_pred[n] = (classify_phase_gaussian_band(p, twet, bp["base"], bp["extra"], bp["sigma"])
+                        if bp is not None else None)
 
-    samp = {n: dict(dauc=np.empty(n_boot), dacc=np.empty(n_boot), dnf=np.empty(n_boot))
-            for n in names}
+    clusters = build_cluster_index(make_cluster_codes(base, block_km))
+    names = list(p_cfg)                       # baseline first
+    others = [n for n in names if n != baseline]
+
+    samp = {n: {k: np.full(n_boot, np.nan) for k in _ABL_METRICS} for n in names}
+    dsamp = {n: {d: np.full(n_boot, np.nan) for d, _, _ in _ABL_DELTAS} for n in others}
+
     for b in range(n_boot):
         idx = bootstrap_row_indices(clusters, rng)
-        ip = idx[pure[idx]]; inf_ = idx[nf[idx]]
-        auc_b = fast_auc(y_snow[ip], p_cfg[baseline][ip])
-        acc_b = float(np.mean(correct[baseline][ip]))
-        nf_b  = float(np.mean(correct[baseline][inf_])) if len(inf_) >= 5 else np.nan
+        ip = idx[pure[idx]]; inf_ = idx[nf[idx]]; imix = idx[is_mix[idx]]
+        vals = {n: _ablation_config_metrics(y, y_snow, p_cfg[n], band_pred[n],
+                                            ip, inf_, imix) for n in names}
         for n in names:
-            ok = ~np.isnan(p_cfg[n][ip])
-            samp[n]["dauc"][b] = auc_b - fast_auc(y_snow[ip][ok], p_cfg[n][ip][ok])
-            samp[n]["dacc"][b] = acc_b - float(np.mean(correct[n][ip]))
-            okf = ~np.isnan(p_cfg[n][inf_]) if len(inf_) else np.array([], bool)
-            samp[n]["dnf"][b] = (nf_b - float(np.mean(correct[n][inf_][okf]))
-                                 if len(inf_) >= 5 and okf.sum() >= 5 else np.nan)
+            for k in _ABL_METRICS:
+                samp[n][k][b] = vals[n][k]
+        for n in others:
+            for dcol, acol, _ in _ABL_DELTAS:
+                dsamp[n][dcol][b] = vals[baseline][acol] - vals[n][acol]
 
-    rows = []
+    # point estimates on the full test set
     ip_all = np.flatnonzero(pure); inf_all = np.flatnonzero(nf)
+    imix_all = np.flatnonzero(is_mix)
+    pts = {n: _ablation_config_metrics(y, y_snow, p_cfg[n], band_pred[n],
+                                       ip_all, inf_all, imix_all) for n in names}
+
+    abs_rows = []
+    label = {"auc": "roc_auc", "nfauc": "nearfreeze_roc_auc", "acc": "accuracy",
+             "nfacc": "nearfreeze_accuracy", "f1": "macro_f1",
+             "nff1": "nearfreeze_macro_f1", "mixcap": "mix_capture_band"}
     for n in names:
-        pts = dict(
-            dauc=fast_auc(y_snow[ip_all], p_cfg[baseline][ip_all]) -
-                 fast_auc(y_snow[ip_all], p_cfg[n][ip_all]),
-            dacc=float(np.mean(correct[baseline][ip_all])) - float(np.mean(correct[n][ip_all])),
-            dnf=float(np.mean(correct[baseline][inf_all])) - float(np.mean(correct[n][inf_all])),
-        )
-        for metric, key_ in [("delta_auc_baseline_minus_config", "dauc"),
-                             ("delta_accuracy_baseline_minus_config", "dacc"),
-                             ("delta_nearfreeze_acc_baseline_minus_config", "dnf")]:
-            lo, hi = pct_ci(samp[n][key_])
-            s = samp[n][key_]; s = s[~np.isnan(s)]
-            rows.append(dict(config=n, metric=metric, point=round(pts[key_], 4),
-                             ci_lo=round(lo, 4), ci_hi=round(hi, 4),
-                             p_delta_le_0=round(float(np.mean(s <= 0)), 5),
-                             excludes_zero=bool(lo > 0 or hi < 0)))
-    return pd.DataFrame(rows)
+        for k in _ABL_METRICS:
+            lo, hi = pct_ci(samp[n][k])
+            pt = pts[n][k]
+            abs_rows.append(dict(config=n, metric=label[k],
+                                 point=round(pt, 4) if pt == pt else np.nan,
+                                 ci_lo=round(lo, 4), ci_hi=round(hi, 4)))
+    abs_df = pd.DataFrame(abs_rows)
+
+    drows = []
+    for n in others:
+        for dcol, acol, metric in _ABL_DELTAS:
+            lo, hi = pct_ci(dsamp[n][dcol])
+            s = dsamp[n][dcol]; s = s[~np.isnan(s)]
+            pt = pts[baseline][acol] - pts[n][acol]
+            drows.append(dict(config=n, metric=metric,
+                              point=round(pt, 4) if pt == pt else np.nan,
+                              ci_lo=round(lo, 4), ci_hi=round(hi, 4),
+                              p_delta_le_0=(round(float(np.mean(s <= 0)), 5)
+                                            if len(s) else np.nan),
+                              excludes_zero=bool(lo > 0 or hi < 0)))
+    return abs_df, pd.DataFrame(drows)
 
 
 # =============================================================================
@@ -519,7 +710,13 @@ def main():
     ap.add_argument("--n-boot", type=int, default=N_BOOT)
     ap.add_argument("--block-km", type=float, default=BLOCK_KM_PRIMARY)
     ap.add_argument("--seed", type=int, default=SEED)
+    ap.add_argument("--data-dir", type=str, default=None,
+                    help="outputs root (overrides MROS_OUTPUTS / the default path)")
     args = ap.parse_args()
+
+    global DATA_DIR
+    if args.data_dir:
+        DATA_DIR = Path(args.data_dir)
 
     region = args.region
     out_dir = DATA_DIR / f"ML_pipeline/model_artifacts/{region}/benchmarking_v1/bootstrap"
@@ -561,11 +758,16 @@ def main():
     sens_df.to_csv(out_dir / "bootstrap_sensitivity_block_size.csv", index=False)
     print(sens_df.to_string(index=False))
 
-    # ── Ablation deltas ───────────────────────────────────────────────────────
-    cfgs = load_ablation_test_preds(region)
+    # ── Ablation: absolute metrics and deltas ─────────────────────────────────
+    cfgs, bands = load_ablation_test_preds(region)
     if cfgs:
-        abl_df = run_ablation_bootstrap(cfgs, args.block_km, args.n_boot,
-                                        np.random.default_rng(args.seed))
+        abl_abs_df, abl_df = run_ablation_bootstrap(
+            cfgs, bands, args.block_km, args.n_boot, np.random.default_rng(args.seed))
+        if not abl_abs_df.empty:
+            abl_abs_df.to_csv(out_dir / "bootstrap_ablation_metrics_ci.csv", index=False)
+            print("\nAblation absolute metrics (95% CI), ROC AUC:")
+            print(abl_abs_df[abl_abs_df.metric == "roc_auc"]
+                  [["config", "point", "ci_lo", "ci_hi"]].to_string(index=False))
         if not abl_df.empty:
             abl_df.to_csv(out_dir / "bootstrap_ablation_deltas_ci.csv", index=False)
             print("\nAblation deltas (baseline − config, 95% CI):")
