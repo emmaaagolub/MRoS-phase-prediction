@@ -24,7 +24,7 @@ Usage:
     python produce_manuscript_figures.py --regions CA     # one region only
     python produce_manuscript_figures.py --figures shap,band  # figure subset
 
-Figure subset keys: calibration, forest, tair, twet, shap, ablation_ci, band,
+Figure subset keys: calibration, forest, tair, f1_twet, shap, ablation_ci, band,
                     ablation_comparison, tair_relimp_ci, tair_accuracy, f1_tair,
                     overall_bars, story5_tair, story5_twet
 """
@@ -620,11 +620,22 @@ def fig_ablation_comparison(region: str):
         ax.invert_yaxis()
         ax.tick_params(axis="y", labelsize=9)
         ax.grid(axis="x", alpha=0.3)
+        # Pad the x-limits so the dimgrey value labels drawn at each bar tip have
+        # room to sit inside the axes instead of running past the left spine and
+        # colliding with the y-axis config labels ("legend") of the subpanel.
+        deltas = ok_delta["delta"].to_numpy(float)
+        lo = min(0.0, float(np.nanmin(deltas)))
+        hi = max(0.0, float(np.nanmax(deltas)))
+        span = (hi - lo) or 1e-3
+        pad = 0.22 * span          # generous room for the ~5-char text labels
+        ax.set_xlim(lo - pad, hi + pad)
+        offset = 0.015 * span      # gap between bar tip and its label
         for _, row in ok_delta.iterrows():
-            ax.text(row["delta"] + (0.001 if row["delta"] >= 0 else -0.001),
+            ax.text(row["delta"] + (offset if row["delta"] >= 0 else -offset),
                     row["display_name"], f"{row[col]:.3f}",
                     va="center", ha="left" if row["delta"] >= 0 else "right",
-                    fontsize=8, color="dimgrey")
+                    fontsize=8, color="dimgrey",
+                    clip_on=False)
     safe_savefig(fig, out_dir(region) / f"{region}_ablation_comparison.png")
 
 
@@ -672,11 +683,11 @@ def _twet_profile(df_f, bin_edges, base_hb, extra_hb, sigma, min_n=10):
     return pd.DataFrame(rows)
 
 
-def fig_twet_performance(region: str):
+def fig_f1_by_tair(region: str):
     pq = ablations_dir(region) / "baseline_full" / "shap_values_all.parquet"
     meta_path = ablations_dir(region) / "baseline_full" / "metrics_summary.json"
     if not pq.exists():
-        print(f"  [twet:{region}] missing {pq}, skipping")
+        print(f"  [f1_twet:{region}] missing {pq}, skipping")
         return
     df = pd.read_parquet(pq, columns=["phase_full", "temp_wet", "p_snow_cal", "split"])
     base_hb, extra_hb, sigma = 0.2, 0.15, 2.0
@@ -703,6 +714,11 @@ def fig_twet_performance(region: str):
         ax.axvline(0, color="grey", lw=1)
         ax.set_title(title)
         ax.set_xlabel("Wet-bulb temperature (deg C)")
+        # Fix all four panels to a common 0-1 y-range so F1/abstain/mix-capture
+        # rates are visually comparable across panels (matplotlib would
+        # otherwise autoscale each panel to its own data range).
+        ax.set_ylim(0.0, 1.0)
+        ax.set_yticks(np.arange(0.0, 1.01, 0.2))
         ax.legend(fontsize=8)
         ax.grid(alpha=0.25)
 
@@ -754,7 +770,7 @@ def _temp_profile(df_f, bin_edges, base_hb, extra_hb, sigma, temp_col, min_n=10)
 
 
 def fig_f1_by_tair(region: str):
-    """T_air analogue of fig_twet_performance / {region}_f1_by_wetbulb.png:
+    """T_air analogue of fig_f1_by_tair / {region}_f1_by_wetbulb.png:
     per-phase F1 + abstain/mix-capture rate, val vs test, binned by air
     temperature instead of wet-bulb temperature. Uses TAIR_BIN_EDGES
     (TAIR_BIN_MIN=-8, TAIR_BIN_MAX=8, width=1 degC) for consistency with the
@@ -797,6 +813,9 @@ def fig_f1_by_tair(region: str):
         ax.axvline(0, color="grey", lw=1)
         ax.set_title(title)
         ax.set_xlabel("Air temperature (deg C)")
+        # Common 0-1 y-range across panels (see fig_f1_by_tair).
+        ax.set_ylim(0.0, 1.0)
+        ax.set_yticks(np.arange(0.0, 1.01, 0.2))
         ax.legend(fontsize=8)
         ax.grid(alpha=0.25)
 
@@ -946,7 +965,7 @@ def fig_mix_capture_by_wetbulb(region: str):
     """New headline figure replacing story4_band_placement.png: mix-capture
     rate (fraction of true-mix events whose calibrated p_snow falls inside
     the Gaussian uncertainty band) per T_wet bin, using the same 1 degC
-    bins as fig_twet_performance, for CA/CO from
+    bins as fig_f1_by_tair, for CA/CO from
     results_binaryXGB_withKriging_v2 test_full_uncertainty_predictions_combined.parquet.
 
     CI METHOD CAVEAT: the parquet has no station_id/cluster_id column
@@ -1169,7 +1188,7 @@ FIGURE_FUNCS = {
     "calibration": fig_calibration,
     "forest": fig_benchmark_delta_forest,
     "tair": fig_benchmark_accuracy_by_tair_ci,
-    "twet": fig_twet_performance,
+    "f1_twet": fig_f1_by_tair,
     "shap": fig_shap,
     "ablation_ci": fig_ablation_deltas_ci,
     "band": fig_mix_capture_by_wetbulb,
