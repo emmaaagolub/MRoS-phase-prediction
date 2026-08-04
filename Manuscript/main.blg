@@ -1,0 +1,51 @@
+This is BibTeX, Version 0.99e
+Capacity: max_strings=200000, hash_size=200000, hash_prime=170003
+The top-level auxiliary file: main.aux
+Reallocating 'name_of_file' (item size: 1) to 10 items.
+The style file: ametsocV6.bst
+Reallocating 'name_of_file' (item size: 1) to 11 items.
+Database file #1: references.bib
+Reallocating 'wiz_functions' (item size: 4) to 6000 items.
+Warning--missing publisher in rainorsnowtools
+You've used 32 entries,
+            3491 wiz_defined-function locations,
+            912 strings with 12764 characters,
+and the built_in function-call counts, 36818 in all, are:
+= -- 4313
+> -- 1362
+< -- 18
++ -- 800
+- -- 342
+* -- 1985
+:= -- 3754
+add.period$ -- 65
+call.type$ -- 32
+change.case$ -- 274
+chr.to.int$ -- 44
+cite$ -- 33
+duplicate$ -- 3693
+empty$ -- 1880
+format.name$ -- 410
+if$ -- 7497
+int.to.chr$ -- 1
+int.to.str$ -- 1
+missing$ -- 374
+newline$ -- 107
+num.names$ -- 128
+pop$ -- 1551
+preamble$ -- 1
+purify$ -- 239
+quote$ -- 0
+skip$ -- 2248
+stack$ -- 0
+substring$ -- 1744
+swap$ -- 3082
+text.length$ -- 1
+text.prefix$ -- 0
+top$ -- 0
+type$ -- 276
+warning$ -- 1
+while$ -- 171
+width$ -- 0
+write$ -- 391
+(There was 1 warning)

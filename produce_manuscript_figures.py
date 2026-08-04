@@ -683,7 +683,7 @@ def _twet_profile(df_f, bin_edges, base_hb, extra_hb, sigma, min_n=10):
     return pd.DataFrame(rows)
 
 
-def fig_f1_by_tair(region: str):
+def fig_twet_performance(region: str):
     pq = ablations_dir(region) / "baseline_full" / "shap_values_all.parquet"
     meta_path = ablations_dir(region) / "baseline_full" / "metrics_summary.json"
     if not pq.exists():
@@ -770,7 +770,7 @@ def _temp_profile(df_f, bin_edges, base_hb, extra_hb, sigma, temp_col, min_n=10)
 
 
 def fig_f1_by_tair(region: str):
-    """T_air analogue of fig_f1_by_tair / {region}_f1_by_wetbulb.png:
+    """T_air analogue of fig_twet_performance / {region}_f1_by_wetbulb.png:
     per-phase F1 + abstain/mix-capture rate, val vs test, binned by air
     temperature instead of wet-bulb temperature. Uses TAIR_BIN_EDGES
     (TAIR_BIN_MIN=-8, TAIR_BIN_MAX=8, width=1 degC) for consistency with the
@@ -813,7 +813,7 @@ def fig_f1_by_tair(region: str):
         ax.axvline(0, color="grey", lw=1)
         ax.set_title(title)
         ax.set_xlabel("Air temperature (deg C)")
-        # Common 0-1 y-range across panels (see fig_f1_by_tair).
+        # Common 0-1 y-range across panels (see fig_twet_performance).
         ax.set_ylim(0.0, 1.0)
         ax.set_yticks(np.arange(0.0, 1.01, 0.2))
         ax.legend(fontsize=8)
@@ -965,7 +965,7 @@ def fig_mix_capture_by_wetbulb(region: str):
     """New headline figure replacing story4_band_placement.png: mix-capture
     rate (fraction of true-mix events whose calibrated p_snow falls inside
     the Gaussian uncertainty band) per T_wet bin, using the same 1 degC
-    bins as fig_f1_by_tair, for CA/CO from
+    bins as fig_twet_performance, for CA/CO from
     results_binaryXGB_withKriging_v2 test_full_uncertainty_predictions_combined.parquet.
 
     CI METHOD CAVEAT: the parquet has no station_id/cluster_id column
@@ -1065,7 +1065,11 @@ def fig_mix_capture_by_wetbulb(region: str):
     capture_pct = 100 * df_mix["inside_band"].mean()
     ax.set_xlabel("Wet-bulb temperature (deg C)")
     ax.set_ylabel("Calibrated p(snow)")
-    ax.set_title(f"{region} — band placement, mix events (appendix); overall capture={capture_pct:.1f}%")
+    # Title no longer says "(appendix)": this panel is now a main-body figure
+    # (uncertainty band placement vs. observer-reported mix), while the
+    # per-bin capture-rate figure moved to the appendix.
+    ax.set_title(f"{region} — uncertainty band placement vs. observer-reported mix, "
+                 f"test split; overall capture={capture_pct:.1f}%")
     ax.legend(fontsize=9)
     ax.grid(alpha=0.2)
     safe_savefig(fig, out_dir(region) / f"{region}_band_placement_appendix.png")
@@ -1188,7 +1192,7 @@ FIGURE_FUNCS = {
     "calibration": fig_calibration,
     "forest": fig_benchmark_delta_forest,
     "tair": fig_benchmark_accuracy_by_tair_ci,
-    "f1_twet": fig_f1_by_tair,
+    "f1_twet": fig_twet_performance,
     "shap": fig_shap,
     "ablation_ci": fig_ablation_deltas_ci,
     "band": fig_mix_capture_by_wetbulb,
