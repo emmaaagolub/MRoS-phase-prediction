@@ -1,10 +1,10 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.28 (MiKTeX 25.12) (preloaded format=pdflatex 2026.7.23)  4 AUG 2026 00:03
+This is pdfTeX, Version 3.141592653-2.6-1.40.28 (MiKTeX 25.12) (preloaded format=pdflatex 2026.7.23)  6 AUG 2026 17:29
 entering extended mode
  restricted \write18 enabled.
  file:line:error style messages enabled.
  %&-line parsing enabled.
-**c:/Users/EmmaGolub/Desktop/MRoS_local/Manuscript/main.tex
-(c:/Users/EmmaGolub/Desktop/MRoS_local/Manuscript/main.tex
+**c:/Users/EmmaGolub/Desktop/MRoS_local/mros-precipitation-phase-product-prototype/Manuscript/main.tex
+(c:/Users/EmmaGolub/Desktop/MRoS_local/mros-precipitation-phase-product-prototype/Manuscript/main.tex
 LaTeX2e <2025-11-01>
 L3 programming layer <2025-12-24>
 (ametsocV6.1.cls
@@ -489,49 +489,49 @@ Package: setspace 2022/12/04 v6.7b set line spacing
 \thanksnum=\count321
 \savethanksnum=\count322
 )
-LaTeX Font Info:    Trying to load font information for OT1+ntxtlf on input line 95.
+LaTeX Font Info:    Trying to load font information for OT1+ntxtlf on input line 92.
  (C:\Users\EmmaGolub\AppData\Local\Programs\MiKTeX\tex/latex/newtx\ot1ntxtlf.fd
 File: ot1ntxtlf.fd 2021/05/24 v1.0 font definition file for OT1/ntx/tlf
 )
 LaTeX Font Info:    Font shape `OT1/ntxtlf/m/n' will be
-(Font)              scaled to size 9.85pt on input line 95.
+(Font)              scaled to size 9.85pt on input line 92.
  (main.aux)
 \openout1 = `main.aux'.
 
-LaTeX Font Info:    Checking defaults for OML/ntxmi/m/it on input line 95.
-LaTeX Font Info:    Trying to load font information for OML+ntxmi on input line 95.
+LaTeX Font Info:    Checking defaults for OML/ntxmi/m/it on input line 92.
+LaTeX Font Info:    Trying to load font information for OML+ntxmi on input line 92.
  (C:\Users\EmmaGolub\AppData\Local\Programs\MiKTeX\tex/latex/newtx\omlntxmi.fd
 File: omlntxmi.fd 2015/08/25 Fontinst v1.933 font definitions for OML/ntxmi.
 )
-LaTeX Font Info:    ... okay on input line 95.
-LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 95.
-LaTeX Font Info:    ... okay on input line 95.
-LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 95.
-LaTeX Font Info:    ... okay on input line 95.
-LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 95.
-LaTeX Font Info:    ... okay on input line 95.
-LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 95.
-LaTeX Font Info:    ... okay on input line 95.
-LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 95.
-LaTeX Font Info:    ... okay on input line 95.
-LaTeX Font Info:    Checking defaults for U/ntxexa/m/n on input line 95.
-LaTeX Font Info:    Trying to load font information for U+ntxexa on input line 95.
+LaTeX Font Info:    ... okay on input line 92.
+LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 92.
+LaTeX Font Info:    ... okay on input line 92.
+LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 92.
+LaTeX Font Info:    ... okay on input line 92.
+LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 92.
+LaTeX Font Info:    ... okay on input line 92.
+LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 92.
+LaTeX Font Info:    ... okay on input line 92.
+LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 92.
+LaTeX Font Info:    ... okay on input line 92.
+LaTeX Font Info:    Checking defaults for U/ntxexa/m/n on input line 92.
+LaTeX Font Info:    Trying to load font information for U+ntxexa on input line 92.
  (C:\Users\EmmaGolub\AppData\Local\Programs\MiKTeX\tex/latex/newtx\untxexa.fd
 File: untxexa.fd 2012/04/16 Fontinst v1.933 font definitions for U/ntxexa.
 )
-LaTeX Font Info:    ... okay on input line 95.
-LaTeX Font Info:    Checking defaults for LMS/ntxsy/m/n on input line 95.
-LaTeX Font Info:    Trying to load font information for LMS+ntxsy on input line 95.
+LaTeX Font Info:    ... okay on input line 92.
+LaTeX Font Info:    Checking defaults for LMS/ntxsy/m/n on input line 92.
+LaTeX Font Info:    Trying to load font information for LMS+ntxsy on input line 92.
  (C:\Users\EmmaGolub\AppData\Local\Programs\MiKTeX\tex/latex/newtx\lmsntxsy.fd
 File: lmsntxsy.fd 2016/07/02 Fontinst v1.933 font definitions for LMS/ntxsy.
 )
-LaTeX Font Info:    ... okay on input line 95.
-LaTeX Font Info:    Checking defaults for LMX/ntxexx/m/n on input line 95.
-LaTeX Font Info:    Trying to load font information for LMX+ntxexx on input line 95.
+LaTeX Font Info:    ... okay on input line 92.
+LaTeX Font Info:    Checking defaults for LMX/ntxexx/m/n on input line 92.
+LaTeX Font Info:    Trying to load font information for LMX+ntxexx on input line 92.
  (C:\Users\EmmaGolub\AppData\Local\Programs\MiKTeX\tex/latex/newtx\lmxntxexx.fd
 File: lmxntxexx.fd 2016/07/03 Fontinst v1.933 font definitions for LMX/ntxexx.
 )
-LaTeX Font Info:    ... okay on input line 95.
+LaTeX Font Info:    ... okay on input line 92.
  (C:\Users\EmmaGolub\AppData\Local\Programs\MiKTeX\tex/context/base/mkii\supp-pdf.mkii
 [Loading MPS to PDF converter (version 2006.09.02).]
 \scratchcounter=\count323
@@ -546,271 +546,269 @@ LaTeX Font Info:    ... okay on input line 95.
 \makeMPintoPDFobject=\count328
 \everyMPtoPDFconversion=\toks31
 )
-LaTeX Info: Command `\dddot' is already robust on input line 95.
-LaTeX Info: Command `\ddddot' is already robust on input line 95.
+LaTeX Info: Command `\dddot' is already robust on input line 92.
+LaTeX Info: Command `\ddddot' is already robust on input line 92.
 \c@mv@tabular=\count329
 \c@mv@boldtabular=\count330
 LaTeX Font Info:    Font shape `OT1/ntxtlf/m/n' will be
-(Font)              scaled to size 12.0pt on input line 97.
+(Font)              scaled to size 12.0pt on input line 94.
 LaTeX Font Info:    Font shape `OT1/ntxtlf/b/n' will be
-(Font)              scaled to size 12.0pt on input line 97.
+(Font)              scaled to size 12.0pt on input line 94.
 LaTeX Font Info:    Font shape `OT1/ntxtlf/m/sc' will be
-(Font)              scaled to size 9.85pt on input line 97.
-LaTeX Font Info:    Calculating math sizes for size <9.85> on input line 97.
-LaTeX Font Info:    Trying to load font information for OT1+minntx on input line 97.
+(Font)              scaled to size 9.85pt on input line 94.
+LaTeX Font Info:    Calculating math sizes for size <9.85> on input line 94.
+LaTeX Font Info:    Trying to load font information for OT1+minntx on input line 94.
  (C:\Users\EmmaGolub\AppData\Local\Programs\MiKTeX\tex/latex/newtx\ot1minntx.fd
 File: ot1minntx.fd 2023/09/09 v1.1 font definition file for OT1/minntx
 )
 LaTeX Font Info:    Font shape `OT1/minntx/m/n' will be
-(Font)              scaled to size 9.85pt on input line 97.
+(Font)              scaled to size 9.85pt on input line 94.
 LaTeX Font Info:    Font shape `OT1/minntx/m/n' will be
-(Font)              scaled to size 7.19046pt on input line 97.
+(Font)              scaled to size 7.19046pt on input line 94.
 LaTeX Font Info:    Font shape `OT1/minntx/m/n' will be
-(Font)              scaled to size 5.41753pt on input line 97.
+(Font)              scaled to size 5.41753pt on input line 94.
 LaTeX Font Info:    Font shape `OML/ntxmi/m/it' will be
-(Font)              scaled to size 9.85pt on input line 97.
+(Font)              scaled to size 9.85pt on input line 94.
 LaTeX Font Info:    Font shape `OML/ntxmi/m/it' will be
-(Font)              scaled to size 7.19046pt on input line 97.
+(Font)              scaled to size 7.19046pt on input line 94.
 LaTeX Font Info:    Font shape `OML/ntxmi/m/it' will be
-(Font)              scaled to size 5.41753pt on input line 97.
+(Font)              scaled to size 5.41753pt on input line 94.
 LaTeX Font Info:    Font shape `LMS/ntxsy/m/n' will be
-(Font)              scaled to size 9.85pt on input line 97.
+(Font)              scaled to size 9.85pt on input line 94.
 LaTeX Font Info:    Font shape `LMS/ntxsy/m/n' will be
-(Font)              scaled to size 7.19046pt on input line 97.
+(Font)              scaled to size 7.19046pt on input line 94.
 LaTeX Font Info:    Font shape `LMS/ntxsy/m/n' will be
-(Font)              scaled to size 5.41753pt on input line 97.
+(Font)              scaled to size 5.41753pt on input line 94.
 LaTeX Font Info:    Font shape `LMX/ntxexx/m/n' will be
-(Font)              scaled to size 9.85pt on input line 97.
+(Font)              scaled to size 9.85pt on input line 94.
 LaTeX Font Info:    Font shape `LMX/ntxexx/m/n' will be
-(Font)              scaled to size 7.19046pt on input line 97.
+(Font)              scaled to size 7.19046pt on input line 94.
 LaTeX Font Info:    Font shape `LMX/ntxexx/m/n' will be
-(Font)              scaled to size 5.41753pt on input line 97.
+(Font)              scaled to size 5.41753pt on input line 94.
 
 
 LaTeX Font Warning: Font shape `OT1/cmr/bx/n' in size <5.41753> not available
-(Font)              size <5> substituted on input line 97.
+(Font)              size <5> substituted on input line 94.
 
 
 LaTeX Font Warning: Font shape `OML/cmm/b/it' in size <5.41753> not available
-(Font)              size <5> substituted on input line 97.
+(Font)              size <5> substituted on input line 94.
 
 
 LaTeX Font Warning: Font shape `OMS/cmsy/b/n' in size <5.41753> not available
-(Font)              size <5> substituted on input line 97.
+(Font)              size <5> substituted on input line 94.
 
-LaTeX Font Info:    Trying to load font information for OT1+ptm on input line 97.
+LaTeX Font Info:    Trying to load font information for OT1+ptm on input line 94.
 (C:\Users\EmmaGolub\AppData\Local\Programs\MiKTeX\tex/latex/psnfss\ot1ptm.fd
 File: ot1ptm.fd 2001/06/04 font definitions for OT1/ptm.
 )
 LaTeX Font Info:    Font shape `OT1/ptm/bx/n' in size <9.85> not available
-(Font)              Font shape `OT1/ptm/b/n' tried instead on input line 97.
+(Font)              Font shape `OT1/ptm/b/n' tried instead on input line 94.
 LaTeX Font Info:    Font shape `OT1/ptm/bx/n' in size <7.19046> not available
-(Font)              Font shape `OT1/ptm/b/n' tried instead on input line 97.
+(Font)              Font shape `OT1/ptm/b/n' tried instead on input line 94.
 LaTeX Font Info:    Font shape `OT1/ptm/bx/n' in size <5.41753> not available
-(Font)              Font shape `OT1/ptm/b/n' tried instead on input line 97.
-LaTeX Font Info:    Trying to load font information for U+ntxmia on input line 97.
+(Font)              Font shape `OT1/ptm/b/n' tried instead on input line 94.
+LaTeX Font Info:    Trying to load font information for U+ntxmia on input line 94.
  (C:\Users\EmmaGolub\AppData\Local\Programs\MiKTeX\tex/latex/newtx\untxmia.fd
 File: untxmia.fd 2024/04/09 Fontinst v1.933 font definitions for U/ntxmia.
 )
 LaTeX Font Info:    Font shape `U/ntxmia/m/it' will be
-(Font)              scaled to size 9.85pt on input line 97.
+(Font)              scaled to size 9.85pt on input line 94.
 LaTeX Font Info:    Font shape `U/ntxmia/m/it' will be
-(Font)              scaled to size 7.19046pt on input line 97.
+(Font)              scaled to size 7.19046pt on input line 94.
 LaTeX Font Info:    Font shape `U/ntxmia/m/it' will be
-(Font)              scaled to size 5.41753pt on input line 97.
-LaTeX Font Info:    Trying to load font information for U+ntxsym on input line 97.
+(Font)              scaled to size 5.41753pt on input line 94.
+LaTeX Font Info:    Trying to load font information for U+ntxsym on input line 94.
  (C:\Users\EmmaGolub\AppData\Local\Programs\MiKTeX\tex/latex/newtx\untxsym.fd
 File: untxsym.fd 2023/08/16 Fontinst v1.933 font definitions for U/ntxsym.
 )
 LaTeX Font Info:    Font shape `U/ntxsym/m/n' will be
-(Font)              scaled to size 9.85pt on input line 97.
+(Font)              scaled to size 9.85pt on input line 94.
 LaTeX Font Info:    Font shape `U/ntxsym/m/n' will be
-(Font)              scaled to size 7.19046pt on input line 97.
+(Font)              scaled to size 7.19046pt on input line 94.
 LaTeX Font Info:    Font shape `U/ntxsym/m/n' will be
-(Font)              scaled to size 5.41753pt on input line 97.
-LaTeX Font Info:    Trying to load font information for U+ntxsyc on input line 97.
+(Font)              scaled to size 5.41753pt on input line 94.
+LaTeX Font Info:    Trying to load font information for U+ntxsyc on input line 94.
  (C:\Users\EmmaGolub\AppData\Local\Programs\MiKTeX\tex/latex/newtx\untxsyc.fd
 File: untxsyc.fd 2012/04/12 Fontinst v1.933 font definitions for U/ntxsyc.
 )
 LaTeX Font Info:    Font shape `U/ntxsyc/m/n' will be
-(Font)              scaled to size 9.85pt on input line 97.
+(Font)              scaled to size 9.85pt on input line 94.
 LaTeX Font Info:    Font shape `U/ntxsyc/m/n' will be
-(Font)              scaled to size 7.19046pt on input line 97.
+(Font)              scaled to size 7.19046pt on input line 94.
 LaTeX Font Info:    Font shape `U/ntxsyc/m/n' will be
-(Font)              scaled to size 5.41753pt on input line 97.
+(Font)              scaled to size 5.41753pt on input line 94.
 LaTeX Font Info:    Font shape `U/ntxexa/m/n' will be
-(Font)              scaled to size 9.85pt on input line 97.
+(Font)              scaled to size 9.85pt on input line 94.
 LaTeX Font Info:    Font shape `U/ntxexa/m/n' will be
-(Font)              scaled to size 7.19046pt on input line 97.
+(Font)              scaled to size 7.19046pt on input line 94.
 LaTeX Font Info:    Font shape `U/ntxexa/m/n' will be
-(Font)              scaled to size 5.41753pt on input line 97.
+(Font)              scaled to size 5.41753pt on input line 94.
 LaTeX Font Info:    Font shape `OT1/ntxtlf/m/sc' will be
-(Font)              scaled to size 7.19046pt on input line 97.
+(Font)              scaled to size 7.19046pt on input line 94.
 LaTeX Font Info:    Font shape `OT1/ntxtlf/m/n' will be
-(Font)              scaled to size 7.19046pt on input line 97.
+(Font)              scaled to size 7.19046pt on input line 94.
 LaTeX Font Info:    Font shape `OT1/ntxtlf/m/n' will be
-(Font)              scaled to size 8.5pt on input line 97.
+(Font)              scaled to size 8.5pt on input line 94.
 LaTeX Font Info:    Font shape `OT1/ntxtlf/m/it' will be
-(Font)              scaled to size 8.5pt on input line 97.
-LaTeX Font Info:    Calculating math sizes for size <8.5> on input line 97.
+(Font)              scaled to size 8.5pt on input line 94.
+LaTeX Font Info:    Calculating math sizes for size <8.5> on input line 94.
 LaTeX Font Info:    Font shape `OT1/minntx/m/n' will be
-(Font)              scaled to size 8.5pt on input line 97.
+(Font)              scaled to size 8.5pt on input line 94.
 LaTeX Font Info:    Font shape `OT1/minntx/m/n' will be
-(Font)              scaled to size 6.20496pt on input line 97.
+(Font)              scaled to size 6.20496pt on input line 94.
 LaTeX Font Info:    Font shape `OT1/minntx/m/n' will be
-(Font)              scaled to size 4.67502pt on input line 97.
+(Font)              scaled to size 4.67502pt on input line 94.
 LaTeX Font Info:    Font shape `OML/ntxmi/m/it' will be
-(Font)              scaled to size 8.5pt on input line 97.
+(Font)              scaled to size 8.5pt on input line 94.
 LaTeX Font Info:    Font shape `OML/ntxmi/m/it' will be
-(Font)              scaled to size 6.20496pt on input line 97.
+(Font)              scaled to size 6.20496pt on input line 94.
 LaTeX Font Info:    Font shape `OML/ntxmi/m/it' will be
-(Font)              scaled to size 4.67502pt on input line 97.
+(Font)              scaled to size 4.67502pt on input line 94.
 LaTeX Font Info:    Font shape `LMS/ntxsy/m/n' will be
-(Font)              scaled to size 8.5pt on input line 97.
+(Font)              scaled to size 8.5pt on input line 94.
 LaTeX Font Info:    Font shape `LMS/ntxsy/m/n' will be
-(Font)              scaled to size 6.20496pt on input line 97.
+(Font)              scaled to size 6.20496pt on input line 94.
 LaTeX Font Info:    Font shape `LMS/ntxsy/m/n' will be
-(Font)              scaled to size 4.67502pt on input line 97.
+(Font)              scaled to size 4.67502pt on input line 94.
 LaTeX Font Info:    Font shape `LMX/ntxexx/m/n' will be
-(Font)              scaled to size 8.5pt on input line 97.
+(Font)              scaled to size 8.5pt on input line 94.
 LaTeX Font Info:    Font shape `LMX/ntxexx/m/n' will be
-(Font)              scaled to size 6.20496pt on input line 97.
+(Font)              scaled to size 6.20496pt on input line 94.
 LaTeX Font Info:    Font shape `LMX/ntxexx/m/n' will be
-(Font)              scaled to size 4.67502pt on input line 97.
+(Font)              scaled to size 4.67502pt on input line 94.
 
 
 LaTeX Font Warning: Font shape `OT1/cmr/bx/n' in size <8.5> not available
-(Font)              size <8> substituted on input line 97.
+(Font)              size <8> substituted on input line 94.
 
 
 LaTeX Font Warning: Font shape `OML/cmm/b/it' in size <8.5> not available
-(Font)              size <8> substituted on input line 97.
+(Font)              size <8> substituted on input line 94.
 
 
 LaTeX Font Warning: Font shape `OMS/cmsy/b/n' in size <8.5> not available
-(Font)              size <8> substituted on input line 97.
+(Font)              size <8> substituted on input line 94.
 
 LaTeX Font Info:    Font shape `OT1/ptm/bx/n' in size <8.5> not available
-(Font)              Font shape `OT1/ptm/b/n' tried instead on input line 97.
+(Font)              Font shape `OT1/ptm/b/n' tried instead on input line 94.
 LaTeX Font Info:    Font shape `OT1/ptm/bx/n' in size <6.20496> not available
-(Font)              Font shape `OT1/ptm/b/n' tried instead on input line 97.
+(Font)              Font shape `OT1/ptm/b/n' tried instead on input line 94.
 LaTeX Font Info:    Font shape `OT1/ptm/bx/n' in size <4.67502> not available
-(Font)              Font shape `OT1/ptm/b/n' tried instead on input line 97.
+(Font)              Font shape `OT1/ptm/b/n' tried instead on input line 94.
 LaTeX Font Info:    Font shape `U/ntxmia/m/it' will be
-(Font)              scaled to size 8.5pt on input line 97.
+(Font)              scaled to size 8.5pt on input line 94.
 LaTeX Font Info:    Font shape `U/ntxmia/m/it' will be
-(Font)              scaled to size 6.20496pt on input line 97.
+(Font)              scaled to size 6.20496pt on input line 94.
 LaTeX Font Info:    Font shape `U/ntxmia/m/it' will be
-(Font)              scaled to size 4.67502pt on input line 97.
+(Font)              scaled to size 4.67502pt on input line 94.
 LaTeX Font Info:    Font shape `U/ntxsym/m/n' will be
-(Font)              scaled to size 8.5pt on input line 97.
+(Font)              scaled to size 8.5pt on input line 94.
 LaTeX Font Info:    Font shape `U/ntxsym/m/n' will be
-(Font)              scaled to size 6.20496pt on input line 97.
+(Font)              scaled to size 6.20496pt on input line 94.
 LaTeX Font Info:    Font shape `U/ntxsym/m/n' will be
-(Font)              scaled to size 4.67502pt on input line 97.
+(Font)              scaled to size 4.67502pt on input line 94.
 LaTeX Font Info:    Font shape `U/ntxsyc/m/n' will be
-(Font)              scaled to size 8.5pt on input line 97.
+(Font)              scaled to size 8.5pt on input line 94.
 LaTeX Font Info:    Font shape `U/ntxsyc/m/n' will be
-(Font)              scaled to size 6.20496pt on input line 97.
+(Font)              scaled to size 6.20496pt on input line 94.
 LaTeX Font Info:    Font shape `U/ntxsyc/m/n' will be
-(Font)              scaled to size 4.67502pt on input line 97.
+(Font)              scaled to size 4.67502pt on input line 94.
 LaTeX Font Info:    Font shape `U/ntxexa/m/n' will be
-(Font)              scaled to size 8.5pt on input line 97.
+(Font)              scaled to size 8.5pt on input line 94.
 LaTeX Font Info:    Font shape `U/ntxexa/m/n' will be
-(Font)              scaled to size 6.20496pt on input line 97.
+(Font)              scaled to size 6.20496pt on input line 94.
 LaTeX Font Info:    Font shape `U/ntxexa/m/n' will be
-(Font)              scaled to size 4.67502pt on input line 97.
+(Font)              scaled to size 4.67502pt on input line 94.
 LaTeX Font Info:    Font shape `OT1/ntxtlf/m/it' will be
-(Font)              scaled to size 6.20496pt on input line 97.
+(Font)              scaled to size 6.20496pt on input line 94.
 LaTeX Font Info:    Font shape `OT1/ntxtlf/m/n' will be
-(Font)              scaled to size 6.20496pt on input line 97.
-LaTeX Font Info:    Font shape `OT1/ntxtlf/b/it' will be
-(Font)              scaled to size 8.5pt on input line 97.
+(Font)              scaled to size 6.20496pt on input line 94.
 LaTeX Font Info:    Font shape `OT1/ntxtlf/m/n' will be
-(Font)              scaled to size 8.0pt on input line 97.
+(Font)              scaled to size 8.0pt on input line 94.
 LaTeX Font Info:    Font shape `OT1/minntx/m/n' will be
-(Font)              scaled to size 8.0pt on input line 97.
+(Font)              scaled to size 8.0pt on input line 94.
 LaTeX Font Info:    Font shape `OT1/minntx/m/n' will be
-(Font)              scaled to size 6.0pt on input line 97.
+(Font)              scaled to size 6.0pt on input line 94.
 LaTeX Font Info:    Font shape `OT1/minntx/m/n' will be
-(Font)              scaled to size 5.5pt on input line 97.
+(Font)              scaled to size 5.5pt on input line 94.
 LaTeX Font Info:    Font shape `OML/ntxmi/m/it' will be
-(Font)              scaled to size 8.0pt on input line 97.
+(Font)              scaled to size 8.0pt on input line 94.
 LaTeX Font Info:    Font shape `OML/ntxmi/m/it' will be
-(Font)              scaled to size 6.0pt on input line 97.
+(Font)              scaled to size 6.0pt on input line 94.
 LaTeX Font Info:    Font shape `OML/ntxmi/m/it' will be
-(Font)              scaled to size 5.5pt on input line 97.
+(Font)              scaled to size 5.5pt on input line 94.
 LaTeX Font Info:    Font shape `LMS/ntxsy/m/n' will be
-(Font)              scaled to size 8.0pt on input line 97.
+(Font)              scaled to size 8.0pt on input line 94.
 LaTeX Font Info:    Font shape `LMS/ntxsy/m/n' will be
-(Font)              scaled to size 6.0pt on input line 97.
+(Font)              scaled to size 6.0pt on input line 94.
 LaTeX Font Info:    Font shape `LMS/ntxsy/m/n' will be
-(Font)              scaled to size 5.5pt on input line 97.
+(Font)              scaled to size 5.5pt on input line 94.
 LaTeX Font Info:    Font shape `LMX/ntxexx/m/n' will be
-(Font)              scaled to size 8.0pt on input line 97.
+(Font)              scaled to size 8.0pt on input line 94.
 LaTeX Font Info:    Font shape `LMX/ntxexx/m/n' will be
-(Font)              scaled to size 6.0pt on input line 97.
+(Font)              scaled to size 6.0pt on input line 94.
 LaTeX Font Info:    Font shape `LMX/ntxexx/m/n' will be
-(Font)              scaled to size 5.5pt on input line 97.
+(Font)              scaled to size 5.5pt on input line 94.
 
 LaTeX Font Warning: Font shape `OT1/cmr/bx/n' in size <5.5> not available
-(Font)              size <5> substituted on input line 97.
+(Font)              size <5> substituted on input line 94.
 
 
 LaTeX Font Warning: Font shape `OML/cmm/b/it' in size <5.5> not available
-(Font)              size <5> substituted on input line 97.
+(Font)              size <5> substituted on input line 94.
 
 
 LaTeX Font Warning: Font shape `OMS/cmsy/b/n' in size <5.5> not available
-(Font)              size <5> substituted on input line 97.
+(Font)              size <5> substituted on input line 94.
 
 LaTeX Font Info:    Font shape `OT1/ptm/bx/n' in size <8> not available
-(Font)              Font shape `OT1/ptm/b/n' tried instead on input line 97.
+(Font)              Font shape `OT1/ptm/b/n' tried instead on input line 94.
 LaTeX Font Info:    Font shape `OT1/ptm/bx/n' in size <6> not available
-(Font)              Font shape `OT1/ptm/b/n' tried instead on input line 97.
+(Font)              Font shape `OT1/ptm/b/n' tried instead on input line 94.
 LaTeX Font Info:    Font shape `OT1/ptm/bx/n' in size <5.5> not available
-(Font)              Font shape `OT1/ptm/b/n' tried instead on input line 97.
+(Font)              Font shape `OT1/ptm/b/n' tried instead on input line 94.
 LaTeX Font Info:    Font shape `U/ntxmia/m/it' will be
-(Font)              scaled to size 8.0pt on input line 97.
+(Font)              scaled to size 8.0pt on input line 94.
 LaTeX Font Info:    Font shape `U/ntxmia/m/it' will be
-(Font)              scaled to size 6.0pt on input line 97.
+(Font)              scaled to size 6.0pt on input line 94.
 LaTeX Font Info:    Font shape `U/ntxmia/m/it' will be
-(Font)              scaled to size 5.5pt on input line 97.
+(Font)              scaled to size 5.5pt on input line 94.
 LaTeX Font Info:    Font shape `U/ntxsym/m/n' will be
-(Font)              scaled to size 8.0pt on input line 97.
+(Font)              scaled to size 8.0pt on input line 94.
 LaTeX Font Info:    Font shape `U/ntxsym/m/n' will be
-(Font)              scaled to size 6.0pt on input line 97.
+(Font)              scaled to size 6.0pt on input line 94.
 LaTeX Font Info:    Font shape `U/ntxsym/m/n' will be
-(Font)              scaled to size 5.5pt on input line 97.
+(Font)              scaled to size 5.5pt on input line 94.
 LaTeX Font Info:    Font shape `U/ntxsyc/m/n' will be
-(Font)              scaled to size 8.0pt on input line 97.
+(Font)              scaled to size 8.0pt on input line 94.
 LaTeX Font Info:    Font shape `U/ntxsyc/m/n' will be
-(Font)              scaled to size 6.0pt on input line 97.
+(Font)              scaled to size 6.0pt on input line 94.
 LaTeX Font Info:    Font shape `U/ntxsyc/m/n' will be
-(Font)              scaled to size 5.5pt on input line 97.
+(Font)              scaled to size 5.5pt on input line 94.
 LaTeX Font Info:    Font shape `U/ntxexa/m/n' will be
-(Font)              scaled to size 8.0pt on input line 97.
+(Font)              scaled to size 8.0pt on input line 94.
 LaTeX Font Info:    Font shape `U/ntxexa/m/n' will be
-(Font)              scaled to size 6.0pt on input line 97.
+(Font)              scaled to size 6.0pt on input line 94.
 LaTeX Font Info:    Font shape `U/ntxexa/m/n' will be
-(Font)              scaled to size 5.5pt on input line 97.
+(Font)              scaled to size 5.5pt on input line 94.
 LaTeX Font Info:    Font shape `OT1/ntxtlf/m/n' will be
-(Font)              scaled to size 6.0pt on input line 97.
+(Font)              scaled to size 6.0pt on input line 94.
 LaTeX Font Info:    Font shape `OT1/ntxtlf/m/it' will be
-(Font)              scaled to size 8.0pt on input line 97.
+(Font)              scaled to size 8.0pt on input line 94.
 LaTeX Font Info:    Font shape `OT1/ntxtlf/m/n' will be
-(Font)              scaled to size 9.0pt on input line 97.
+(Font)              scaled to size 9.0pt on input line 94.
 LaTeX Font Info:    Font shape `OT1/ntxtlf/m/n' will be
-(Font)              scaled to size 10.5pt on input line 103.
+(Font)              scaled to size 10.5pt on input line 100.
 LaTeX Font Info:    Font shape `OT1/ntxtlf/m/it' will be
-(Font)              scaled to size 10.5pt on input line 103.
+(Font)              scaled to size 10.5pt on input line 100.
 LaTeX Font Info:    Font shape `OT1/ntxtlf/b/n' will be
-(Font)              scaled to size 9.85pt on input line 112.
+(Font)              scaled to size 9.85pt on input line 109.
 
-Overfull \vbox (15.74136pt too high) has occurred while \output is active []
+Overfull \vbox (9.73196pt too high) has occurred while \output is active []
 
 
-Underfull \vbox (badness 1502) has occurred while \output is active []
+Underfull \vbox (badness 10000) has occurred while \output is active []
 
 
 
@@ -824,838 +822,310 @@ Package fancyhdr Warning: \headheight is too small (12.0pt):
 
 
 ]
-<figures/CA/mros_phase_diagnostics_combined_CA.png, id=10, 1003.5894pt x 879.285pt>
+<figures/CA/mros_phase_diagnostics_combined_CA.png, id=9, 1002.6258pt x 879.285pt>
 File: figures/CA/mros_phase_diagnostics_combined_CA.png Graphic file (type png)
 <use figures/CA/mros_phase_diagnostics_combined_CA.png>
-Package pdftex.def Info: figures/CA/mros_phase_diagnostics_combined_CA.png  used on input line 233.
-(pdftex.def)             Requested size: 304.12654pt x 266.45747pt.
-<figures/CO/mros_phase_diagnostics_combined_CO.png, id=12, 1003.5894pt x 879.285pt>
+Package pdftex.def Info: figures/CA/mros_phase_diagnostics_combined_CA.png  used on input line 231.
+(pdftex.def)             Requested size: 303.83452pt x 266.45747pt.
+<figures/CO/mros_phase_diagnostics_combined_CO.png, id=11, 1003.1076pt x 879.285pt>
 File: figures/CO/mros_phase_diagnostics_combined_CO.png Graphic file (type png)
 <use figures/CO/mros_phase_diagnostics_combined_CO.png>
-Package pdftex.def Info: figures/CO/mros_phase_diagnostics_combined_CO.png  used on input line 234.
-(pdftex.def)             Requested size: 304.12654pt x 266.45747pt.
+Package pdftex.def Info: figures/CO/mros_phase_diagnostics_combined_CO.png  used on input line 232.
+(pdftex.def)             Requested size: 303.98053pt x 266.45747pt.
 LaTeX Font Info:    Font shape `OT1/ntxtlf/m/sc' will be
-(Font)              scaled to size 8.0pt on input line 254.
-
-
-LaTeX Warning: Float too large for page by 2.72896pt on input line 256.
-
+(Font)              scaled to size 8.0pt on input line 246.
 LaTeX Font Info:    Font shape `OT1/ntxtlf/m/it' will be
-(Font)              scaled to size 9.85pt on input line 264.
+(Font)              scaled to size 9.85pt on input line 254.
 LaTeX Font Info:    Font shape `OT1/ntxtlf/m/sc' will be
-(Font)              scaled to size 8.5pt on input line 281.
-[2] [3 <./figures/CA/mros_phase_diagnostics_combined_CA.png> <./figures/CO/mros_phase_diagnostics_combined_CO.png>]
-LaTeX Font Info:    Trying to load font information for OT1+ntxtt on input line 282.
+(Font)              scaled to size 8.5pt on input line 272.
+ [2] [3 <./figures/CA/mros_phase_diagnostics_combined_CA.png> <./figures/CO/mros_phase_diagnostics_combined_CO.png>]
+LaTeX Font Info:    Trying to load font information for OT1+ntxtt on input line 272.
  (C:\Users\EmmaGolub\AppData\Local\Programs\MiKTeX\tex/latex/newtx\ot1ntxtt.fd
 File: ot1ntxtt.fd 2012/04/20 v3.1
 )
 LaTeX Font Info:    Font shape `OT1/ntxtt/m/n' will be
-(Font)              scaled to size 9.85pt on input line 282.
+(Font)              scaled to size 9.85pt on input line 272.
 
-Underfull \hbox (badness 10000) in paragraph at lines 282--298
+Underfull \hbox (badness 10000) in paragraph at lines 272--288
 []\OT1/minntx/m/n/9.85 Each sub-mis-sion is pro-cessed with the
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 311--319
+Underfull \hbox (badness 10000) in paragraph at lines 301--309
 []\OT1/minntx/m/n/9.85 Half-hourly GPM IMERG probability-of-liquid-
  []
 
 
-Underfull \hbox (badness 1048) in paragraph at lines 311--319
+Underfull \hbox (badness 1048) in paragraph at lines 301--309
 \OT1/minntx/m/n/9.85 phase (only rain or snow) from pas-sive mi-crowave
  []
 
-<figures/architecture.png, id=22, 3854.4pt x 1606.0pt>
-File: figures/architecture.png Graphic file (type png)
-<use figures/architecture.png>
-Package pdftex.def Info: figures/architecture.png  used on input line 386.
-(pdftex.def)             Requested size: 421.19714pt x 175.48428pt.
+<figures/workflow_architecture_v1.png, id=21, 1612.0225pt x 500.87125pt>
+File: figures/workflow_architecture_v1.png Graphic file (type png)
+<use figures/workflow_architecture_v1.png>
+Package pdftex.def Info: figures/workflow_architecture_v1.png  used on input line 374.
+(pdftex.def)             Requested size: 421.19714pt x 130.86543pt.
 [4]
-LaTeX Font Info:    Freeze math alphabet allocation in version normal.
-(Font)              Allocated math groups: 15 (local: 2) on input line 442.
-LaTeX Font Info:    Font shape `OT1/minntx/b/n' will be
-(Font)              scaled to size 9.85pt on input line 442.
-LaTeX Font Info:    Font shape `OT1/minntx/b/n' will be
-(Font)              scaled to size 7.19046pt on input line 442.
-LaTeX Font Info:    Font shape `OT1/minntx/b/n' will be
-(Font)              scaled to size 5.41753pt on input line 442.
-LaTeX Font Info:    Undo math alphabet allocation in version normal on input line 443.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 443.
-LaTeX Font Info:    Undo math alphabet allocation in version normal on input line 446.
+Underfull \vbox (badness 1742) has occurred while \output is active []
 
-Underfull \vbox (badness 10000) has occurred while \output is active []
-
-LaTeX Font Info:    Undo math alphabet allocation in version normal on input line 451.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 451.
- [5 <./figures/architecture.png>]
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 472.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 472.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 473.
-<figures/CA/quicklook_20240204T1700Z.png, id=34, 1144.7568pt x 695.9601pt>
+ [5 <./figures/workflow_architecture_v1.png>]
+<figures/CA/quicklook_20240204T1700Z.png, id=32, 1132.4709pt x 695.9601pt>
 File: figures/CA/quicklook_20240204T1700Z.png Graphic file (type png)
 <use figures/CA/quicklook_20240204T1700Z.png>
-Package pdftex.def Info: figures/CA/quicklook_20240204T1700Z.png  used on input line 496.
-(pdftex.def)             Requested size: 444.59857pt x 270.28705pt.
-<figures/CO/quicklook_20240203T1700Z.png, id=35, 1157.2836pt x 695.9601pt>
+Package pdftex.def Info: figures/CA/quicklook_20240204T1700Z.png  used on input line 468.
+(pdftex.def)             Requested size: 444.59857pt x 273.22865pt.
+<figures/CO/quicklook_20240203T1700Z.png, id=33, 1157.2836pt x 695.9601pt>
 File: figures/CO/quicklook_20240203T1700Z.png Graphic file (type png)
 <use figures/CO/quicklook_20240203T1700Z.png>
-Package pdftex.def Info: figures/CO/quicklook_20240203T1700Z.png  used on input line 497.
+Package pdftex.def Info: figures/CO/quicklook_20240203T1700Z.png  used on input line 469.
 (pdftex.def)             Requested size: 444.59857pt x 267.3667pt.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 527.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 580.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 587.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 591.
  [6] [7 <./figures/CA/quicklook_20240204T1700Z.png> <./figures/CO/quicklook_20240203T1700Z.png>]
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 629.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 633.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 634.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 635.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 637.
-LaTeX Font Info:    Nested math: keeping math alphabet allocation in version normal on input line 641.
-LaTeX Font Info:    Nested math: keeping math alphabet allocation in version normal on input line 641.
-LaTeX Font Info:    Nested math: keeping math alphabet allocation in version normal on input line 641.
 LaTeX Font Info:    Font shape `OT1/ntxtlf/m/n' will be
-(Font)              scaled to size 5.41753pt on input line 642.
-LaTeX Font Info:    Nested math: keeping math alphabet allocation in version normal on input line 642.
-LaTeX Font Info:    Nested math: keeping math alphabet allocation in version normal on input line 642.
-LaTeX Font Info:    Nested math: keeping math alphabet allocation in version normal on input line 642.
-LaTeX Font Info:    Nested math: keeping math alphabet allocation in version normal on input line 643.
-LaTeX Font Info:    Nested math: keeping math alphabet allocation in version normal on input line 643.
-LaTeX Font Info:    Nested math: keeping math alphabet allocation in version normal on input line 644.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 646.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 646.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 647.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 648.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 648.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 649.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 649.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 651.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 671.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 674.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 674.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 674.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 675.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 675.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 675.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 676.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 676.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 708.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 710.
- [8]
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 729.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 729.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 729.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 729.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 729.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 729.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 729.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 729.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 729.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 729.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 729.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 729.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 729.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 729.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 729.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 729.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 729.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 729.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 729.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 729.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 729.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 729.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 729.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 729.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 729.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 729.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 729.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 729.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 729.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 729.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 729.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 729.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 729.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 729.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 729.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 729.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 729.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 729.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 729.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 729.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 729.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 729.
-LaTeX Font Info:    Nested math: keeping math alphabet allocation in version normal on input line 740.
-LaTeX Font Info:    Nested math: keeping math alphabet allocation in version normal on input line 744.
-LaTeX Font Info:    Nested math: keeping math alphabet allocation in version normal on input line 748.
+(Font)              scaled to size 5.41753pt on input line 596.
 
-Underfull \hbox (badness 4328) in paragraph at lines 751--751
-[]\OT1/minntx/m/n/8 Precision and re-call, both
- []
-
-LaTeX Font Info:    Nested math: keeping math alphabet allocation in version normal on input line 752.
-LaTeX Font Info:    Nested math: keeping math alphabet allocation in version normal on input line 753.
-
-Underfull \hbox (badness 1668) in paragraph at lines 754--754
-[]\OT1/minntx/m/n/8 Ignores the prob-a-bil-i-ties be-hind
- []
-
-LaTeX Font Info:    Nested math: keeping math alphabet allocation in version normal on input line 757.
-
-Underfull \hbox (badness 1337) in paragraph at lines 763--763
-[]\OT1/minntx/m/n/8 Ranking: does snow score
+Underfull \hbox (badness 3884) in paragraph at lines 695--695
+[]\OT1/minntx/m/n/8 Dominated by the ma-jor-ity
  []
 
 
-Underfull \hbox (badness 1215) in paragraph at lines 768--768
-[]\OT1/minntx/m/n/8 Squared er-ror of the stated
+Underfull \hbox (badness 1292) in paragraph at lines 707--709
+[]\OT1/minntx/m/n/8 Mean of $\OML/ntxmi/m/it/8 F[]$ \OT1/minntx/m/n/8 and $\OML/ntxmi/m/it/8 F[]$\OT1/minntx/m/n/8 ,
  []
 
-LaTeX Font Info:    Nested math: keeping math alphabet allocation in version normal on input line 769.
-LaTeX Font Info:    Nested math: keeping math alphabet allocation in version normal on input line 773.
 
-Underfull \hbox (badness 10000) in paragraph at lines 778--778
-[]\OT1/minntx/m/n/8 Observer-reported mix the
+Underfull \hbox (badness 1052) in paragraph at lines 712--714
+\OT1/minntx/m/n/8 served or pre-dicted that the
  []
 
-LaTeX Font Info:    Nested math: keeping math alphabet allocation in version normal on input line 779.
-LaTeX Font Info:    Nested math: keeping math alphabet allocation in version normal on input line 783.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 786.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 818.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 818.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 818.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 819.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 819.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 820.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 822.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 861.
-[9]
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 909.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 925.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 925.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 925.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 925.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 925.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 925.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 925.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 925.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 925.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 925.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 925.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 925.
-LaTeX Font Info:    Nested math: keeping math alphabet allocation in version normal on input line 940.
-LaTeX Font Info:    Nested math: keeping math alphabet allocation in version normal on input line 940.
-LaTeX Font Info:    Nested math: keeping math alphabet allocation in version normal on input line 940.
-LaTeX Font Info:    Nested math: keeping math alphabet allocation in version normal on input line 940.
-LaTeX Font Info:    Nested math: keeping math alphabet allocation in version normal on input line 940.
-LaTeX Font Info:    Nested math: keeping math alphabet allocation in version normal on input line 940.
-LaTeX Font Info:    Nested math: keeping math alphabet allocation in version normal on input line 940.
-LaTeX Font Info:    Nested math: keeping math alphabet allocation in version normal on input line 941.
-LaTeX Font Info:    Nested math: keeping math alphabet allocation in version normal on input line 941.
-LaTeX Font Info:    Nested math: keeping math alphabet allocation in version normal on input line 941.
-LaTeX Font Info:    Nested math: keeping math alphabet allocation in version normal on input line 941.
-LaTeX Font Info:    Nested math: keeping math alphabet allocation in version normal on input line 941.
-LaTeX Font Info:    Nested math: keeping math alphabet allocation in version normal on input line 941.
-LaTeX Font Info:    Nested math: keeping math alphabet allocation in version normal on input line 941.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 943.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 951.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 951.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 951.
- [10]
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 959.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 962.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 962.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 965.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 966.
-<figures/CA/CA_f1_by_wetbulb.png, id=55, 1437.6912pt x 374.8404pt>
+
+Underfull \hbox (badness 10000) in paragraph at lines 720--720
+[]$\OT1/minntx/m/n/8 100 \LMS/ntxsy/m/n/8 ¹\OML/ntxmi/m/it/8 n[]\LMS/ntxsy/m/n/8 \OML/ntxmi/m/it/8 n[] \LMS/ntxsy/m/n/8 ^^@ \OT1/minntx/m/n/8 1\LMS/ntxsy/m/n/8 º$\OT1/minntx/m/n/8 , per
+ []
+
+
+Underfull \hbox (badness 5908) in paragraph at lines 727--728
+[]$[]\LMS/ntxsy/m/n/8 ¹\OML/ntxmi/m/it/8 p[] > p[]\LMS/ntxsy/m/n/8 º$ \OT1/minntx/m/n/8 for a ran-
+ []
+
+
+Underfull \hbox (badness 2503) in paragraph at lines 727--728
+\OT1/minntx/m/n/8 dom observed-snow $\OML/ntxmi/m/it/8 i$ \OT1/minntx/m/n/8 and
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 733--733
+[]\OT1/minntx/m/n/8 Mixes cal-i-bra-tion with
+ []
+
+[8]
+Underfull \vbox (badness 10000) has occurred while \output is active []
+
+
+Underfull \vbox (badness 10000) has occurred while \output is active []
+
+ [9]
+<figures/CA/CA_f1_by_wetbulb.png, id=52, 1437.6912pt x 374.8404pt>
 File: figures/CA/CA_f1_by_wetbulb.png Graphic file (type png)
 <use figures/CA/CA_f1_by_wetbulb.png>
-Package pdftex.def Info: figures/CA/CA_f1_by_wetbulb.png  used on input line 979.
+Package pdftex.def Info: figures/CA/CA_f1_by_wetbulb.png  used on input line 938.
 (pdftex.def)             Requested size: 444.59857pt x 115.91333pt.
-<figures/CO/CO_f1_by_wetbulb.png, id=56, 1437.6912pt x 374.8404pt>
+<figures/CO/CO_f1_by_wetbulb.png, id=53, 1437.6912pt x 374.8404pt>
 File: figures/CO/CO_f1_by_wetbulb.png Graphic file (type png)
 <use figures/CO/CO_f1_by_wetbulb.png>
-Package pdftex.def Info: figures/CO/CO_f1_by_wetbulb.png  used on input line 980.
+Package pdftex.def Info: figures/CO/CO_f1_by_wetbulb.png  used on input line 939.
 (pdftex.def)             Requested size: 444.59857pt x 115.91333pt.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 996.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 996.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 996.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 996.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 996.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 996.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 996.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 996.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 996.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 996.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 996.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 996.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 996.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 996.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 996.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 996.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 996.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 996.
- [11]
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1068.
-<figures/CA/CA_story5_nearfreeze_twet_comparison.png, id=60, 931.8012pt x 356.532pt>
+ [10] [11 <./figures/CA/CA_f1_by_wetbulb.png> <./figures/CO/CO_f1_by_wetbulb.png>]
+LaTeX Font Info:    Font shape `OT1/ntxtlf/m/n' will be
+(Font)              scaled to size 7.0pt on input line 1052.
+
+Overfull \hbox (10.42706pt too wide) in paragraph at lines 1069--1090
+ [][] 
+ []
+
+<figures/CA/CA_story5_nearfreeze_twet_comparison.png, id=62, 931.3194pt x 356.532pt>
 File: figures/CA/CA_story5_nearfreeze_twet_comparison.png Graphic file (type png)
 <use figures/CA/CA_story5_nearfreeze_twet_comparison.png>
-Package pdftex.def Info: figures/CA/CA_story5_nearfreeze_twet_comparison.png  used on input line 1075.
-(pdftex.def)             Requested size: 444.59857pt x 170.11607pt.
-<figures/CO/CO_story5_nearfreeze_twet_comparison.png, id=61, 931.8012pt x 356.532pt>
+Package pdftex.def Info: figures/CA/CA_story5_nearfreeze_twet_comparison.png  used on input line 1094.
+(pdftex.def)             Requested size: 444.59857pt x 170.20313pt.
+<figures/CO/CO_story5_nearfreeze_twet_comparison.png, id=63, 931.3194pt x 356.532pt>
 File: figures/CO/CO_story5_nearfreeze_twet_comparison.png Graphic file (type png)
 <use figures/CO/CO_story5_nearfreeze_twet_comparison.png>
-Package pdftex.def Info: figures/CO/CO_story5_nearfreeze_twet_comparison.png  used on input line 1076.
-(pdftex.def)             Requested size: 444.59857pt x 170.11607pt.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1095.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1095.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1095.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1095.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1095.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1095.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1095.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1095.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1095.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1095.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1095.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1095.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1095.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1095.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1095.
-LaTeX Font Info:    Font shape `OT1/ntxtlf/m/n' will be
-(Font)              scaled to size 7.0pt on input line 1101.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1115.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1115.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1115.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1115.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1115.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1115.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1115.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1115.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1115.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1115.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1115.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1115.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1115.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1115.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1115.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1115.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1115.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1115.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1115.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1115.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1115.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1115.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1115.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1115.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1115.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1115.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1115.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1115.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1115.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1115.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1115.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1115.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1115.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1115.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1115.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1115.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1115.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1115.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1115.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1115.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1115.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1115.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1115.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1115.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1115.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1115.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1115.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1115.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1115.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1115.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1115.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1115.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1115.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1115.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1115.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1115.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1115.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1115.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1115.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1115.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1115.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1115.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1115.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1115.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1115.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1115.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1115.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1115.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1115.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1135.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1149.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1150.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1158.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1167.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1168.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1168.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1169.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1170.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1171.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1174.
-
-Underfull \vbox (badness 5924) has occurred while \output is active []
-
- [12 <./figures/CA/CA_f1_by_wetbulb.png> <./figures/CO/CO_f1_by_wetbulb.png>]
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1184.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1187.
-
-Underfull \vbox (badness 10000) has occurred while \output is active []
-
- [13 <./figures/CA/CA_story5_nearfreeze_twet_comparison.png> <./figures/CO/CO_story5_nearfreeze_twet_comparison.png>]
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1228.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1228.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1228.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1228.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1228.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1228.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1228.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1228.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1228.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1228.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1228.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1228.
+Package pdftex.def Info: figures/CO/CO_story5_nearfreeze_twet_comparison.png  used on input line 1095.
+(pdftex.def)             Requested size: 444.59857pt x 170.20313pt.
+[12]
 LaTeX Font Info:    Font shape `OT1/ntxtlf/b/n' will be
-(Font)              scaled to size 8.0pt on input line 1234.
-LaTeX Font Info:    Nested math: keeping math alphabet allocation in version normal on input line 1235.
-LaTeX Font Info:    Nested math: keeping math alphabet allocation in version normal on input line 1236.
-LaTeX Font Info:    Nested math: keeping math alphabet allocation in version normal on input line 1237.
-LaTeX Font Info:    Nested math: keeping math alphabet allocation in version normal on input line 1238.
-LaTeX Font Info:    Nested math: keeping math alphabet allocation in version normal on input line 1240.
-LaTeX Font Info:    Nested math: keeping math alphabet allocation in version normal on input line 1242.
-LaTeX Font Info:    Nested math: keeping math alphabet allocation in version normal on input line 1243.
-LaTeX Font Info:    Nested math: keeping math alphabet allocation in version normal on input line 1246.
-LaTeX Font Info:    Nested math: keeping math alphabet allocation in version normal on input line 1247.
-LaTeX Font Info:    Nested math: keeping math alphabet allocation in version normal on input line 1248.
-LaTeX Font Info:    Nested math: keeping math alphabet allocation in version normal on input line 1249.
-LaTeX Font Info:    Nested math: keeping math alphabet allocation in version normal on input line 1250.
-LaTeX Font Info:    Nested math: keeping math alphabet allocation in version normal on input line 1252.
-LaTeX Font Info:    Nested math: keeping math alphabet allocation in version normal on input line 1254.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1256.
-<figures/CA/CA_benchmark_accuracy_by_tair_ci.png, id=73, 678.8562pt x 386.4036pt>
+(Font)              scaled to size 8.0pt on input line 1204.
+<figures/CA/CA_benchmark_accuracy_by_tair_ci.png, id=67, 678.3744pt x 389.7762pt>
 File: figures/CA/CA_benchmark_accuracy_by_tair_ci.png Graphic file (type png)
 <use figures/CA/CA_benchmark_accuracy_by_tair_ci.png>
-Package pdftex.def Info: figures/CA/CA_benchmark_accuracy_by_tair_ci.png  used on input line 1261.
-(pdftex.def)             Requested size: 229.32257pt x 130.52644pt.
-<figures/CO/CO_benchmark_accuracy_by_tair_ci.png, id=74, 678.8562pt x 386.4036pt>
+Package pdftex.def Info: figures/CA/CA_benchmark_accuracy_by_tair_ci.png  used on input line 1231.
+(pdftex.def)             Requested size: 229.32257pt x 131.76086pt.
+<figures/CO/CO_benchmark_accuracy_by_tair_ci.png, id=68, 678.3744pt x 389.7762pt>
 File: figures/CO/CO_benchmark_accuracy_by_tair_ci.png Graphic file (type png)
 <use figures/CO/CO_benchmark_accuracy_by_tair_ci.png>
-Package pdftex.def Info: figures/CO/CO_benchmark_accuracy_by_tair_ci.png  used on input line 1262.
-(pdftex.def)             Requested size: 229.32257pt x 130.52644pt.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1280.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1280.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1280.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1280.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1280.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1280.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1280.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1280.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1280.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1280.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1280.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1280.
-<figures/CA/CA_benchmark_delta_forest.png, id=75, 569.9694pt x 281.853pt>
+Package pdftex.def Info: figures/CO/CO_benchmark_accuracy_by_tair_ci.png  used on input line 1232.
+(pdftex.def)             Requested size: 229.32257pt x 131.76086pt.
+<figures/CA/CA_benchmark_delta_forest.png, id=69, 569.9694pt x 284.7438pt>
 File: figures/CA/CA_benchmark_delta_forest.png Graphic file (type png)
 <use figures/CA/CA_benchmark_delta_forest.png>
-Package pdftex.def Info: figures/CA/CA_benchmark_delta_forest.png  used on input line 1286.
-(pdftex.def)             Requested size: 229.32257pt x 113.4015pt.
-<figures/CO/CO_benchmark_delta_forest.png, id=76, 569.9694pt x 281.853pt>
+Package pdftex.def Info: figures/CA/CA_benchmark_delta_forest.png  used on input line 1257.
+(pdftex.def)             Requested size: 229.32257pt x 114.5646pt.
+<figures/CO/CO_benchmark_delta_forest.png, id=70, 569.9694pt x 284.7438pt>
 File: figures/CO/CO_benchmark_delta_forest.png Graphic file (type png)
 <use figures/CO/CO_benchmark_delta_forest.png>
-Package pdftex.def Info: figures/CO/CO_benchmark_delta_forest.png  used on input line 1287.
-(pdftex.def)             Requested size: 229.32257pt x 113.4015pt.
-<figures/CA/CA_benchmark_delta_forest_nearfreeze.png, id=77, 569.9694pt x 281.853pt>
+Package pdftex.def Info: figures/CO/CO_benchmark_delta_forest.png  used on input line 1258.
+(pdftex.def)             Requested size: 229.32257pt x 114.5646pt.
+<figures/CA/CA_benchmark_delta_forest_nearfreeze.png, id=71, 569.9694pt x 284.7438pt>
 File: figures/CA/CA_benchmark_delta_forest_nearfreeze.png Graphic file (type png)
 <use figures/CA/CA_benchmark_delta_forest_nearfreeze.png>
-Package pdftex.def Info: figures/CA/CA_benchmark_delta_forest_nearfreeze.png  used on input line 1288.
-(pdftex.def)             Requested size: 229.32257pt x 113.4015pt.
-<figures/CO/CO_benchmark_delta_forest_nearfreeze.png, id=78, 569.9694pt x 281.853pt>
+Package pdftex.def Info: figures/CA/CA_benchmark_delta_forest_nearfreeze.png  used on input line 1259.
+(pdftex.def)             Requested size: 229.32257pt x 114.5646pt.
+<figures/CO/CO_benchmark_delta_forest_nearfreeze.png, id=72, 569.9694pt x 284.7438pt>
 File: figures/CO/CO_benchmark_delta_forest_nearfreeze.png Graphic file (type png)
 <use figures/CO/CO_benchmark_delta_forest_nearfreeze.png>
-Package pdftex.def Info: figures/CO/CO_benchmark_delta_forest_nearfreeze.png  used on input line 1289.
-(pdftex.def)             Requested size: 229.32257pt x 113.4015pt.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1307.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1307.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1307.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1307.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1307.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1307.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1307.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1307.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1307.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1307.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1307.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1307.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1307.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1307.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1307.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1317.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1327.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1327.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1331.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1331.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1332.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1343.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1343.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1344.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1350.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1350.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1350.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1352.
-<figures/CA/CA_band_placement_appendix.png, id=79, 642.2394pt x 496.7358pt>
+Package pdftex.def Info: figures/CO/CO_benchmark_delta_forest_nearfreeze.png  used on input line 1260.
+(pdftex.def)             Requested size: 229.32257pt x 114.5646pt.
+ [13]
+<figures/CA/CA_band_placement_appendix.png, id=77, 641.7576pt x 498.663pt>
 File: figures/CA/CA_band_placement_appendix.png Graphic file (type png)
 <use figures/CA/CA_band_placement_appendix.png>
-Package pdftex.def Info: figures/CA/CA_band_placement_appendix.png  used on input line 1361.
-(pdftex.def)             Requested size: 336.96057pt x 260.62344pt.
-<figures/CO/CO_band_placement_appendix.png, id=80, 642.7212pt x 496.7358pt>
+Package pdftex.def Info: figures/CA/CA_band_placement_appendix.png  used on input line 1320.
+(pdftex.def)             Requested size: 336.96057pt x 261.82481pt.
+<figures/CO/CO_band_placement_appendix.png, id=78, 642.2394pt x 498.663pt>
 File: figures/CO/CO_band_placement_appendix.png Graphic file (type png)
 <use figures/CO/CO_band_placement_appendix.png>
-Package pdftex.def Info: figures/CO/CO_band_placement_appendix.png  used on input line 1362.
-(pdftex.def)             Requested size: 336.96057pt x 260.4188pt.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1382.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1382.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1382.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1382.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1382.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1382.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1382.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1382.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1382.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1382.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1382.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1382.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1382.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1382.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1382.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1382.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1382.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1382.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1391.
+Package pdftex.def Info: figures/CO/CO_band_placement_appendix.png  used on input line 1321.
+(pdftex.def)             Requested size: 336.96057pt x 261.6346pt.
 
-Underfull \vbox (badness 2057) has occurred while \output is active []
-
- [14]
 Underfull \vbox (badness 10000) has occurred while \output is active []
 
-
+ [14 <./figures/CA/CA_story5_nearfreeze_twet_comparison.png> <./figures/CO/CO_story5_nearfreeze_twet_comparison.png>]
 Underfull \vbox (badness 10000) has occurred while \output is active []
 
  [15 <./figures/CA/CA_benchmark_accuracy_by_tair_ci.png> <./figures/CO/CO_benchmark_accuracy_by_tair_ci.png>]
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1450.
-
-Underfull \vbox (badness 4479) has occurred while \output is active []
+Underfull \vbox (badness 10000) has occurred while \output is active []
 
  [16 <./figures/CA/CA_benchmark_delta_forest.png> <./figures/CO/CO_benchmark_delta_forest.png> <./figures/CA/CA_benchmark_delta_forest_nearfreeze.png> <./figures/CO/CO_benchmark_delta_forest_nearfreeze.png>] [17 <./figures/CA/CA_band_placement_appendix.png> <./figures/CO/CO_band_placement_appendix.png>]
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1530.
- [18]
-<figures/CA/CA_calibration_reliability.png, id=104, 859.5312pt x 665.8476pt>
+<figures/CA/CA_confusion_matrix_appendix.png, id=101, 405.1938pt x 349.305pt>
+File: figures/CA/CA_confusion_matrix_appendix.png Graphic file (type png)
+<use figures/CA/CA_confusion_matrix_appendix.png>
+Package pdftex.def Info: figures/CA/CA_confusion_matrix_appendix.png  used on input line 1535.
+(pdftex.def)             Requested size: 229.32257pt x 197.69347pt.
+<figures/CO/CO_confusion_matrix_appendix.png, id=102, 405.1938pt x 349.305pt>
+File: figures/CO/CO_confusion_matrix_appendix.png Graphic file (type png)
+<use figures/CO/CO_confusion_matrix_appendix.png>
+Package pdftex.def Info: figures/CO/CO_confusion_matrix_appendix.png  used on input line 1536.
+(pdftex.def)             Requested size: 229.32257pt x 197.69347pt.
+<figures/CA/CA_calibration_reliability.png, id=103, 859.0494pt x 665.8476pt>
 File: figures/CA/CA_calibration_reliability.png Graphic file (type png)
 <use figures/CA/CA_calibration_reliability.png>
-Package pdftex.def Info: figures/CA/CA_calibration_reliability.png  used on input line 1581.
-(pdftex.def)             Requested size: 229.32257pt x 177.64764pt.
-<figures/CO/CO_calibration_reliability.png, id=105, 859.5312pt x 665.8476pt>
+Package pdftex.def Info: figures/CA/CA_calibration_reliability.png  used on input line 1558.
+(pdftex.def)             Requested size: 229.32257pt x 177.73909pt.
+<figures/CO/CO_calibration_reliability.png, id=104, 859.0494pt x 665.8476pt>
 File: figures/CO/CO_calibration_reliability.png Graphic file (type png)
 <use figures/CO/CO_calibration_reliability.png>
-Package pdftex.def Info: figures/CO/CO_calibration_reliability.png  used on input line 1582.
-(pdftex.def)             Requested size: 229.32257pt x 177.64764pt.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1603.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1603.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1603.
-<figures/CA/CA_f1_by_tair.png, id=106, 1437.6912pt x 374.8404pt>
+Package pdftex.def Info: figures/CO/CO_calibration_reliability.png  used on input line 1559.
+(pdftex.def)             Requested size: 229.32257pt x 177.73909pt.
+<figures/CA/CA_f1_by_tair.png, id=105, 1437.6912pt x 374.8404pt>
 File: figures/CA/CA_f1_by_tair.png Graphic file (type png)
 <use figures/CA/CA_f1_by_tair.png>
-Package pdftex.def Info: figures/CA/CA_f1_by_tair.png  used on input line 1609.
+Package pdftex.def Info: figures/CA/CA_f1_by_tair.png  used on input line 1592.
 (pdftex.def)             Requested size: 444.59857pt x 115.91333pt.
-<figures/CO/CO_f1_by_tair.png, id=107, 1437.6912pt x 374.8404pt>
+<figures/CO/CO_f1_by_tair.png, id=106, 1437.6912pt x 374.8404pt>
 File: figures/CO/CO_f1_by_tair.png Graphic file (type png)
 <use figures/CO/CO_f1_by_tair.png>
-Package pdftex.def Info: figures/CO/CO_f1_by_tair.png  used on input line 1610.
+Package pdftex.def Info: figures/CO/CO_f1_by_tair.png  used on input line 1593.
 (pdftex.def)             Requested size: 444.59857pt x 115.91333pt.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1632.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1632.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1632.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1632.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1632.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1632.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1632.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1632.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1632.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1632.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1632.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1632.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1632.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1632.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1632.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1632.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1632.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1632.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1632.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1632.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1632.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1632.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1632.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1632.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1632.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1632.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1632.
-<figures/CA/CA_shap_mean_by_phase_appendix.png, id=108, 715.473pt x 352.6776pt>
-File: figures/CA/CA_shap_mean_by_phase_appendix.png Graphic file (type png)
-<use figures/CA/CA_shap_mean_by_phase_appendix.png>
-Package pdftex.def Info: figures/CA/CA_shap_mean_by_phase_appendix.png  used on input line 1638.
-(pdftex.def)             Requested size: 444.59857pt x 219.15294pt.
-<figures/CO/CO_shap_mean_by_phase_appendix.png, id=109, 715.473pt x 352.6776pt>
-File: figures/CO/CO_shap_mean_by_phase_appendix.png Graphic file (type png)
-<use figures/CO/CO_shap_mean_by_phase_appendix.png>
-Package pdftex.def Info: figures/CO/CO_shap_mean_by_phase_appendix.png  used on input line 1639.
-(pdftex.def)             Requested size: 444.59857pt x 219.15294pt.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1663.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1663.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1663.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1663.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1663.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1663.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1663.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1663.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1663.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1663.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1663.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1663.
-<figures/CA/CA_shap_wetbulb_heatmap.png, id=110, 691.383pt x 418.2024pt>
+<figures/CA/CA_shap_wetbulb_heatmap.png, id=107, 690.9012pt x 418.2024pt>
 File: figures/CA/CA_shap_wetbulb_heatmap.png Graphic file (type png)
 <use figures/CA/CA_shap_wetbulb_heatmap.png>
-Package pdftex.def Info: figures/CA/CA_shap_wetbulb_heatmap.png  used on input line 1669.
-(pdftex.def)             Requested size: 444.59857pt x 268.92487pt.
-<figures/CO/CO_shap_wetbulb_heatmap.png, id=111, 697.6464pt x 418.2024pt>
+Package pdftex.def Info: figures/CA/CA_shap_wetbulb_heatmap.png  used on input line 1615.
+(pdftex.def)             Requested size: 444.59857pt x 269.12268pt.
+<figures/CO/CO_shap_wetbulb_heatmap.png, id=108, 697.1646pt x 418.2024pt>
 File: figures/CO/CO_shap_wetbulb_heatmap.png Graphic file (type png)
 <use figures/CO/CO_shap_wetbulb_heatmap.png>
-Package pdftex.def Info: figures/CO/CO_shap_wetbulb_heatmap.png  used on input line 1670.
-(pdftex.def)             Requested size: 444.59857pt x 266.51913pt.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1695.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1695.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1695.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1695.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1695.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1695.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1695.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1695.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1695.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1695.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1695.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1695.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1695.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1695.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1695.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1695.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1695.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1695.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1695.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1695.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1695.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1695.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1695.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1695.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1695.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1695.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1695.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1695.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1695.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1695.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1695.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1695.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1695.
-
-
-LaTeX Warning: Float too large for page by 10.75801pt on input line 1697.
-
-<figures/CA/CA_ablation_deltas_ci.png, id=112, 1291.7058pt x 297.2706pt>
+Package pdftex.def Info: figures/CO/CO_shap_wetbulb_heatmap.png  used on input line 1616.
+(pdftex.def)             Requested size: 444.59857pt x 266.69781pt.
+<figures/CA/CA_ablation_deltas_ci.png, id=109, 1291.7058pt x 297.2706pt>
 File: figures/CA/CA_ablation_deltas_ci.png Graphic file (type png)
 <use figures/CA/CA_ablation_deltas_ci.png>
-Package pdftex.def Info: figures/CA/CA_ablation_deltas_ci.png  used on input line 1703.
+Package pdftex.def Info: figures/CA/CA_ablation_deltas_ci.png  used on input line 1636.
 (pdftex.def)             Requested size: 444.59857pt x 102.31805pt.
-<figures/CO/CO_ablation_deltas_ci.png, id=113, 1291.224pt x 297.2706pt>
+<figures/CO/CO_ablation_deltas_ci.png, id=110, 1291.224pt x 297.2706pt>
 File: figures/CO/CO_ablation_deltas_ci.png Graphic file (type png)
 <use figures/CO/CO_ablation_deltas_ci.png>
-Package pdftex.def Info: figures/CO/CO_ablation_deltas_ci.png  used on input line 1704.
+Package pdftex.def Info: figures/CO/CO_ablation_deltas_ci.png  used on input line 1637.
 (pdftex.def)             Requested size: 444.59857pt x 102.35434pt.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1727.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1727.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1727.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1727.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1727.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1727.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1727.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1727.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1727.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1727.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1727.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1727.
-<figures/CA/CA_story5_nearfreeze_tair_comparison.png, id=114, 931.8012pt x 356.532pt>
+<figures/CA/CA_story5_nearfreeze_tair_comparison.png, id=111, 931.3194pt x 356.532pt>
 File: figures/CA/CA_story5_nearfreeze_tair_comparison.png Graphic file (type png)
 <use figures/CA/CA_story5_nearfreeze_tair_comparison.png>
-Package pdftex.def Info: figures/CA/CA_story5_nearfreeze_tair_comparison.png  used on input line 1733.
-(pdftex.def)             Requested size: 444.59857pt x 170.11607pt.
-<figures/CO/CO_story5_nearfreeze_tair_comparison.png, id=115, 931.8012pt x 356.532pt>
+Package pdftex.def Info: figures/CA/CA_story5_nearfreeze_tair_comparison.png  used on input line 1660.
+(pdftex.def)             Requested size: 444.59857pt x 170.20313pt.
+<figures/CO/CO_story5_nearfreeze_tair_comparison.png, id=112, 931.3194pt x 356.532pt>
 File: figures/CO/CO_story5_nearfreeze_tair_comparison.png Graphic file (type png)
 <use figures/CO/CO_story5_nearfreeze_tair_comparison.png>
-Package pdftex.def Info: figures/CO/CO_story5_nearfreeze_tair_comparison.png  used on input line 1734.
-(pdftex.def)             Requested size: 444.59857pt x 170.11607pt.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1751.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1751.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1751.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1751.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1751.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1751.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1751.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1751.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1751.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1751.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1751.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1751.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1751.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1751.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1751.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1751.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1751.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1751.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1751.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1751.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1751.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1751.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1751.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1751.
-<figures/CA/CA_benchmark_relative_improvement_ci.png, id=116, 662.9568pt x 386.4036pt>
-File: figures/CA/CA_benchmark_relative_improvement_ci.png Graphic file (type png)
-<use figures/CA/CA_benchmark_relative_improvement_ci.png>
-Package pdftex.def Info: figures/CA/CA_benchmark_relative_improvement_ci.png  used on input line 1757.
-(pdftex.def)             Requested size: 219.96057pt x 128.20341pt.
-<figures/CO/CO_benchmark_relative_improvement_ci.png, id=117, 666.3294pt x 386.4036pt>
-File: figures/CO/CO_benchmark_relative_improvement_ci.png Graphic file (type png)
-<use figures/CO/CO_benchmark_relative_improvement_ci.png>
-Package pdftex.def Info: figures/CO/CO_benchmark_relative_improvement_ci.png  used on input line 1758.
-(pdftex.def)             Requested size: 219.96057pt x 127.55484pt.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1776.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1776.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1776.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1776.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1776.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1776.
-<figures/CA/CA_benchmark_accuracy_by_tair.png, id=118, 642.7212pt x 923.1288pt>
+Package pdftex.def Info: figures/CO/CO_story5_nearfreeze_tair_comparison.png  used on input line 1661.
+(pdftex.def)             Requested size: 444.59857pt x 170.20313pt.
+<figures/CA/CA_overall_accuracy_bars.png, id=113, 931.8012pt x 357.0138pt>
+File: figures/CA/CA_overall_accuracy_bars.png Graphic file (type png)
+<use figures/CA/CA_overall_accuracy_bars.png>
+Package pdftex.def Info: figures/CA/CA_overall_accuracy_bars.png  used on input line 1680.
+(pdftex.def)             Requested size: 397.80286pt x 152.41797pt.
+<figures/CO/CO_overall_accuracy_bars.png, id=114, 931.8012pt x 357.0138pt>
+File: figures/CO/CO_overall_accuracy_bars.png Graphic file (type png)
+<use figures/CO/CO_overall_accuracy_bars.png>
+Package pdftex.def Info: figures/CO/CO_overall_accuracy_bars.png  used on input line 1681.
+(pdftex.def)             Requested size: 397.80286pt x 152.41797pt.
+<figures/CA/CA_csi_by_tair_appendix.png, id=115, 931.3194pt x 392.1852pt>
+File: figures/CA/CA_csi_by_tair_appendix.png Graphic file (type png)
+<use figures/CA/CA_csi_by_tair_appendix.png>
+Package pdftex.def Info: figures/CA/CA_csi_by_tair_appendix.png  used on input line 1699.
+(pdftex.def)             Requested size: 444.59857pt x 187.22343pt.
+<figures/CO/CO_csi_by_tair_appendix.png, id=116, 931.3194pt x 392.1852pt>
+File: figures/CO/CO_csi_by_tair_appendix.png Graphic file (type png)
+<use figures/CO/CO_csi_by_tair_appendix.png>
+Package pdftex.def Info: figures/CO/CO_csi_by_tair_appendix.png  used on input line 1700.
+(pdftex.def)             Requested size: 444.59857pt x 187.22343pt.
+<figures/CA/CA_benchmark_accuracy_by_tair.png, id=117, 642.2394pt x 923.1288pt>
 File: figures/CA/CA_benchmark_accuracy_by_tair.png Graphic file (type png)
 <use figures/CA/CA_benchmark_accuracy_by_tair.png>
-Package pdftex.def Info: figures/CA/CA_benchmark_accuracy_by_tair.png  used on input line 1782.
-(pdftex.def)             Requested size: 219.96057pt x 315.91617pt.
-<figures/CO/CO_benchmark_accuracy_by_tair.png, id=119, 642.7212pt x 923.1288pt>
+Package pdftex.def Info: figures/CA/CA_benchmark_accuracy_by_tair.png  used on input line 1723.
+(pdftex.def)             Requested size: 219.96057pt x 316.15562pt.
+<figures/CO/CO_benchmark_accuracy_by_tair.png, id=118, 642.2394pt x 923.1288pt>
 File: figures/CO/CO_benchmark_accuracy_by_tair.png Graphic file (type png)
 <use figures/CO/CO_benchmark_accuracy_by_tair.png>
-Package pdftex.def Info: figures/CO/CO_benchmark_accuracy_by_tair.png  used on input line 1783.
-(pdftex.def)             Requested size: 219.96057pt x 315.91617pt.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1804.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1804.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1804.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1804.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1804.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1804.
-<figures/CA/CA_mix_capture_by_wetbulb.png, id=120, 642.2394pt x 388.3308pt>
+Package pdftex.def Info: figures/CO/CO_benchmark_accuracy_by_tair.png  used on input line 1724.
+(pdftex.def)             Requested size: 219.96057pt x 316.15562pt.
+<figures/CA/CA_mix_capture_by_wetbulb.png, id=119, 641.7576pt x 389.7762pt>
 File: figures/CA/CA_mix_capture_by_wetbulb.png Graphic file (type png)
 <use figures/CA/CA_mix_capture_by_wetbulb.png>
-Package pdftex.def Info: figures/CA/CA_mix_capture_by_wetbulb.png  used on input line 1811.
-(pdftex.def)             Requested size: 444.59857pt x 268.83142pt.
-<figures/CO/CO_mix_capture_by_wetbulb.png, id=121, 642.2394pt x 388.3308pt>
+Package pdftex.def Info: figures/CA/CA_mix_capture_by_wetbulb.png  used on input line 1742.
+(pdftex.def)             Requested size: 444.59857pt x 270.0283pt.
+<figures/CO/CO_mix_capture_by_wetbulb.png, id=120, 641.7576pt x 389.7762pt>
 File: figures/CO/CO_mix_capture_by_wetbulb.png Graphic file (type png)
 <use figures/CO/CO_mix_capture_by_wetbulb.png>
-Package pdftex.def Info: figures/CO/CO_mix_capture_by_wetbulb.png  used on input line 1812.
-(pdftex.def)             Requested size: 444.59857pt x 268.83142pt.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1838.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1838.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1838.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1838.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1838.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1838.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1838.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1838.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1838.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1838.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1838.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1838.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1838.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1838.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1838.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1838.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1838.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1838.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1838.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1838.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1838.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1838.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1838.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1838.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1838.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1838.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1838.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1838.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1838.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1838.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1838.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1838.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1838.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1838.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1838.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 1838.
+Package pdftex.def Info: figures/CO/CO_mix_capture_by_wetbulb.png  used on input line 1743.
+(pdftex.def)             Requested size: 444.59857pt x 270.0283pt.
+ (main.bbl [18]
+Overfull \vbox (2.48256pt too high) has occurred while \output is active []
 
-LaTeX Warning: Float too large for page by 12.97685pt on input line 1840.
 
-(main.bbl
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 15.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 20.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 26.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 30.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 35.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 43.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 49.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 54.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 61.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 70.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 78.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 84.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 97.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 104.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 111.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 117.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 122.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 136.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 141.
+Underfull \vbox (badness 10000) has occurred while \output is active []
 
+ [19 <./figures/CA/CA_confusion_matrix_appendix.png> <./figures/CO/CO_confusion_matrix_appendix.png> <./figures/CA/CA_calibration_reliability.png> <./figures/CO/CO_calibration_reliability.png>] [20 <./figures/CA/CA_f1_by_tair.png> <./figures/CO/CO_f1_by_tair.png>]
+Overfull \vbox (3.1345pt too high) has occurred while \output is active []
+
+
+Underfull \vbox (badness 10000) has occurred while \output is active []
+
+ [21 <./figures/CA/CA_shap_wetbulb_heatmap.png> <./figures/CO/CO_shap_wetbulb_heatmap.png>]
 Underfull \hbox (badness 1199) in paragraph at lines 139--142
 []\OT1/minntx/m/n/8 Lundberg, S. M., and Coau-thors, 2020: From lo-cal ex-pla-na-
  []
 
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 149.
-[19] [20 <./figures/CA/CA_calibration_reliability.png> <./figures/CO/CO_calibration_reliability.png> <./figures/CA/CA_f1_by_tair.png> <./figures/CO/CO_f1_by_tair.png>]
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 154.
+[22 <./figures/CA/CA_ablation_deltas_ci.png> <./figures/CO/CO_ablation_deltas_ci.png>]) [23
 
-Underfull \vbox (badness 10000) has occurred while \output is active []
-
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 162.
- [21 <./figures/CA/CA_shap_mean_by_phase_appendix.png> <./figures/CO/CO_shap_mean_by_phase_appendix.png>] [22 <./figures/CA/CA_shap_wetbulb_heatmap.png> <./figures/CO/CO_shap_wetbulb_heatmap.png>]
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 169.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 176.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 181.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 186.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 190.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 198.
-LaTeX Font Info:    No math alphabet change to frozen version normal on input line 206.
-) [23 <./figures/CA/CA_ablation_deltas_ci.png> <./figures/CO/CO_ablation_deltas_ci.png>] [24 <./figures/CA/CA_story5_nearfreeze_tair_comparison.png> <./figures/CO/CO_story5_nearfreeze_tair_comparison.png>] [25 <./figures/CA/CA_benchmark_relative_improvement_ci.png> <./figures/CO/CO_benchmark_relative_improvement_ci.png>] [26 <./figures/CA/CA_benchmark_accuracy_by_tair.png> <./figures/CO/CO_benchmark_accuracy_by_tair.png>] [27 <./figures/CA/CA_mix_capture_by_wetbulb.png> <./figures/CO/CO_mix_capture_by_wetbulb.png>] (main.aux)
+ <./figures/CA/CA_story5_nearfreeze_tair_comparison.png> <./figures/CO/CO_story5_nearfreeze_tair_comparison.png>] [24 <./figures/CA/CA_overall_accuracy_bars.png> <./figures/CO/CO_overall_accuracy_bars.png>] [25 <./figures/CA/CA_csi_by_tair_appendix.png> <./figures/CO/CO_csi_by_tair_appendix.png>] [26 <./figures/CA/CA_benchmark_accuracy_by_tair.png> <./figures/CO/CO_benchmark_accuracy_by_tair.png>] [27 <./figures/CA/CA_mix_capture_by_wetbulb.png> <./figures/CO/CO_mix_capture_by_wetbulb.png>] (main.aux)
  ***********
 LaTeX2e <2025-11-01>
 L3 programming layer <2020/03/25>
@@ -1667,17 +1137,17 @@ LaTeX Font Warning: Size substitutions with differences
 
  ) 
 Here is how much of TeX's memory you used:
- 9393 strings out of 467871
- 152481 string characters out of 5416440
- 592998 words of memory out of 5000000
- 38023 multiletter control sequences out of 15000+600000
- 719116 words of font info for 235 fonts, out of 8000000 for 9000
+ 9401 strings out of 467871
+ 153326 string characters out of 5416440
+ 582692 words of memory out of 5000000
+ 38037 multiletter control sequences out of 15000+600000
+ 714531 words of font info for 227 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
- 89i,14n,91p,1808b,398s stack positions out of 10000i,1000n,20000p,200000b,200000s
-<C:/Users/EmmaGolub/AppData/Local/Programs/MiKTeX/fonts/type1/public/newtx/NewTXMI.pfb><C:/Users/EmmaGolub/AppData/Local/Programs/MiKTeX/fonts/type1/public/newtx/NewTXMI5.pfb><C:/Users/EmmaGolub/AppData/Local/Programs/MiKTeX/fonts/type1/public/newtx/NewTXMI7.pfb><C:/Users/EmmaGolub/AppData/Local/Programs/MiKTeX/fonts/type1/public/newtx/txexs.pfb><C:/Users/EmmaGolub/AppData/Local/Programs/MiKTeX/fonts/type1/public/newtx/txmiaX.pfb><C:/Users/EmmaGolub/AppData/Local/Programs/MiKTeX/fonts/type1/public/newtx/txsys.pfb><C:/Users/EmmaGolub/AppData/Local/Programs/MiKTeX/fonts/type1/public/txfonts/txtt.pfb><C:/Users/EmmaGolub/AppData/Local/Programs/MiKTeX/fonts/type1/public/newtx/ztmb.pfb><C:/Users/EmmaGolub/AppData/Local/Programs/MiKTeX/fonts/type1/public/newtx/ztmbi.pfb><C:/Users/EmmaGolub/AppData/Local/Programs/MiKTeX/fonts/type1/public/newtx/ztmr.pfb><C:/Users/EmmaGolub/AppData/Local/Programs/MiKTeX/fonts/type1/public/newtx/ztmri.pfb>
-Output written on main.pdf (27 pages, 12121719 bytes).
+ 89i,14n,91p,1869b,398s stack positions out of 10000i,1000n,20000p,200000b,200000s
+<C:/Users/EmmaGolub/AppData/Local/Programs/MiKTeX/fonts/type1/public/newtx/NewTXMI.pfb><C:/Users/EmmaGolub/AppData/Local/Programs/MiKTeX/fonts/type1/public/newtx/NewTXMI5.pfb><C:/Users/EmmaGolub/AppData/Local/Programs/MiKTeX/fonts/type1/public/newtx/NewTXMI7.pfb><C:/Users/EmmaGolub/AppData/Local/Programs/MiKTeX/fonts/type1/public/newtx/txexs.pfb><C:/Users/EmmaGolub/AppData/Local/Programs/MiKTeX/fonts/type1/public/newtx/txmiaX.pfb><C:/Users/EmmaGolub/AppData/Local/Programs/MiKTeX/fonts/type1/public/newtx/txsys.pfb><C:/Users/EmmaGolub/AppData/Local/Programs/MiKTeX/fonts/type1/public/txfonts/txtt.pfb><C:/Users/EmmaGolub/AppData/Local/Programs/MiKTeX/fonts/type1/public/newtx/ztmb.pfb><C:/Users/EmmaGolub/AppData/Local/Programs/MiKTeX/fonts/type1/public/newtx/ztmr.pfb><C:/Users/EmmaGolub/AppData/Local/Programs/MiKTeX/fonts/type1/public/newtx/ztmri.pfb>
+Output written on main.pdf (27 pages, 12565622 bytes).
 PDF statistics:
  219 PDF objects out of 1000 (max. 8388607)
  0 named destinations out of 1000 (max. 500000)
- 176 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 186 words of extra memory for PDF output out of 10000 (max. 10000000)
 
