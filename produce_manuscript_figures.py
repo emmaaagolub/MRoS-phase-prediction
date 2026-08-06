@@ -26,7 +26,17 @@ Usage:
 
 Figure subset keys: calibration, forest, tair, f1_twet, shap, ablation_ci, band,
                     ablation_comparison, tair_relimp_ci, tair_accuracy, f1_tair,
-                    overall_bars, story5_tair, story5_twet
+                    overall_bars, story5_tair, story5_twet, confusion, csi
+
+Naming conventions used throughout the figures produced here:
+  - The ablation configuration containing every predictor is displayed as
+    "Full configuration", never "baseline". The on-disk folder name and the
+    saved CSV metric keys still read baseline_full / *_baseline_minus_config
+    (those are historical artifact names and must not be renamed), so the
+    translation happens only at display time via CONFIG_DISPLAY_NAME.
+  - Figure titles are short and Title Case; methodological qualifiers (bin
+    width, minimum n, CI method, split) live on axis labels or in the
+    manuscript caption rather than in the title.
 """
 
 from __future__ import annotations
@@ -117,7 +127,7 @@ METHOD_STYLE = {
 # so figure and table naming stay consistent; two configs not in that table
 # (min_core_noplp / single-variable drops) get analogous short labels.
 CONFIG_DISPLAY_NAME = {
-    "baseline_full": "Baseline (full)",
+    "baseline_full": "Full configuration",
     "no_mros_loocv": "No MRoS LOOCV",
     "no_temp_air": "No air temp.",
     "no_temp_dew": "No dew point",
@@ -247,7 +257,7 @@ def fig_calibration(region: str):
         ax_rel.axvspan(rain_thresh_0, snow_thresh_0, alpha=0.10, color="orange")
         brier_raw = brier_score_loss(y_true, p_raw)
         brier_cal = brier_score_loss(y_true, p_cal)
-        ax_rel.set_title(f"{region} {split_name}  (Brier raw={brier_raw:.3f}, cal={brier_cal:.3f})")
+        ax_rel.set_title(f"{split_name} (Brier: raw {brier_raw:.3f}, calibrated {brier_cal:.3f})")
         ax_rel.set_xlabel("Mean predicted p(snow)")
         ax_rel.set_ylabel("Observed fraction snow")
         ax_rel.legend(fontsize=8)
@@ -259,7 +269,7 @@ def fig_calibration(region: str):
         ax_hist.set_xlabel("Calibrated p(snow)")
         ax_hist.set_ylabel("Count")
 
-    fig.suptitle(f"{region} — calibration reliability ({config_label('baseline_full')})", y=1.02)
+    fig.suptitle(f"{region}: Calibration Reliability ({config_label('baseline_full')})", y=1.02)
     safe_savefig(fig, out_dir(region) / f"{region}_calibration_reliability.png")
 
 
@@ -279,9 +289,9 @@ def fig_benchmark_delta_forest(region: str):
 
     for metric, fname, title in [
         ("delta_accuracy", f"{region}_benchmark_delta_forest.png",
-         "Delta overall accuracy (model - benchmark)"),
+         "Overall Accuracy Gain Over Benchmarks"),
         ("delta_nearfreeze_accuracy", f"{region}_benchmark_delta_forest_nearfreeze.png",
-         "Delta near-freezing accuracy (model - benchmark)"),
+         "Near-Freezing Accuracy Gain Over Benchmarks"),
     ]:
         d = deltas_df[deltas_df["metric"] == metric].sort_values("point")
         if d.empty:
@@ -298,8 +308,8 @@ def fig_benchmark_delta_forest(region: str):
         ax.axvline(0, color="#d62728", ls="--", lw=1)
         ax.set_yticks(ypos)
         ax.set_yticklabels(d[label_col], fontsize=9)
-        ax.set_xlabel("Delta Accuracy (percentage points)")
-        ax.set_title(f"{region} — {title}\n(95% cluster-bootstrap CIs)")
+        ax.set_xlabel("Δ Accuracy (percentage points; 95% cluster-bootstrap CI)")
+        ax.set_title(f"{region}: {title}")
         ax.grid(axis="x", alpha=0.25)
         safe_savefig(fig, out_dir(region) / fname)
 
@@ -440,9 +450,9 @@ def fig_benchmark_accuracy_by_tair_ci(region: str):
         ax.fill_between(bm[v], lo[v], hi[v], color=color, alpha=0.18)
     ax.axvline(0, color="grey", ls="--", lw=1)
     ax.axvspan(0, 4, alpha=0.05, color="orange")
-    ax.set(xlabel="Air temperature (°C)", ylabel="Accuracy (%)", ylim=(0, 102),
-           title=f"{region} — accuracy by air temperature, 95% cluster-bootstrap CIs\n"
-                 f"({TAIR_BIN_WIDTH:g} °C bins, n≥{MIN_BIN_N})")
+    ax.set(xlabel=f"Air temperature (°C; {TAIR_BIN_WIDTH:g} °C bins, n ≥ {MIN_BIN_N})",
+           ylabel="Accuracy (%; 95% cluster-bootstrap CI)", ylim=(0, 102),
+           title=f"{region}: Accuracy by Air Temperature")
     ax.legend(fontsize=9)
     ax.grid(alpha=0.25)
     safe_savefig(fig, out_dir(region) / f"{region}_benchmark_accuracy_by_tair_ci.png")
@@ -476,11 +486,10 @@ def fig_benchmark_relative_improvement_ci(region: str):
         ax.fill_between(bm[v], lo[v], hi[v], color=color, alpha=0.18)
     ax.axhline(0, color="grey", lw=1)
     ax.axvline(0, color="grey", ls="--", lw=1)
-    ax.axvspan(0, 4, alpha=0.06, color="orange")
-    ax.set(xlabel="Air temperature (°C)", ylabel="Δ Accuracy (percentage points)",
-           title=f"{region} — {MODEL_DISPLAY_NAME} accuracy relative to benchmarks\n"
-                 f"(positive = model better; 95% cluster-bootstrap CIs; "
-                 f"shaded 0–4 °C = benchmark performance-dip zone)")
+    ax.axvspan(0, 4, alpha=0.06, color="orange", label="Benchmark performance-dip zone")
+    ax.set(xlabel="Air temperature (°C)",
+           ylabel="Δ Accuracy (percentage points; positive = model better)",
+           title=f"{region}: {MODEL_DISPLAY_NAME} Accuracy Relative to Benchmarks")
     ax.legend(fontsize=9)
     ax.grid(alpha=0.25)
     safe_savefig(fig, out_dir(region) / f"{region}_benchmark_relative_improvement_ci.png")
@@ -508,9 +517,8 @@ def fig_benchmark_accuracy_by_tair(region: str):
         ("rain_bias_pct", "Rain bias (%)", (-105, 105)),
     ]
     fig, axes = plt.subplots(3, 1, figsize=(9, 13), sharex=True)
-    fig.suptitle(f"{region} test split — benchmark PPMs vs. {MODEL_DISPLAY_NAME}\n"
-                 f"(pure rain/snow obs; {TAIR_BIN_WIDTH:g} °C air-temperature bins, "
-                 f"bins with n ≥ {MIN_BIN_N})", fontsize=12)
+    fig.suptitle(f"{region}: Benchmark PPMs vs. {MODEL_DISPLAY_NAME} by Air Temperature",
+                 fontsize=12)
 
     order = [n for n in METHOD_STYLE if n in profiles]
     for ax, (col, ylabel, ylim) in zip(axes, panel_specs):
@@ -529,7 +537,8 @@ def fig_benchmark_accuracy_by_tair(region: str):
             ax.axhline(0, color="grey", lw=0.8, alpha=0.7)
         ax.set(ylabel=ylabel, ylim=ylim)
         ax.grid(alpha=0.25)
-    axes[-1].set_xlabel("Air temperature (°C)")
+    axes[-1].set_xlabel(f"Air temperature (°C; {TAIR_BIN_WIDTH:g} °C bins, n ≥ {MIN_BIN_N}, "
+                        f"pure rain/snow obs, test split)")
     axes[0].legend(fontsize=8, ncol=2, loc="lower left", framealpha=0.9)
     safe_savefig(fig, out_dir(region) / f"{region}_benchmark_accuracy_by_tair.png")
 
@@ -559,7 +568,7 @@ def fig_overall_accuracy_bars(region: str):
     for ax, col, title in [
         (axes[0], "accuracy_pct", "Overall accuracy (%)"),
         (axes[1], "nearfreeze_accuracy_pct",
-         f"Near-freezing accuracy (%)\n(|T_wet| ≤ {NEARFREEZE_TWET_C:g} °C)"),
+         f"Near-freezing accuracy (%; |$T_w$| ≤ {NEARFREEZE_TWET_C:g} °C)"),
     ]:
         if col not in t.columns:
             continue
@@ -571,7 +580,7 @@ def fig_overall_accuracy_bars(region: str):
             ax.text(r[col] + 0.3, r["label"], f"{r[col]:.1f}", va="center", fontsize=8)
         ax.set(title=title, xlim=(0, 105))
         ax.grid(axis="x", alpha=0.25)
-    fig.suptitle(f"{region} test split — benchmark comparison (pure rain/snow obs)", fontsize=12)
+    fig.suptitle(f"{region}: Benchmark Comparison", fontsize=12)
     safe_savefig(fig, out_dir(region) / f"{region}_overall_accuracy_bars.png")
 
 
@@ -599,10 +608,10 @@ def fig_ablation_comparison(region: str):
     # CONFIG_DISPLAY_NAME) config labels on the y-axis have room and are not
     # clipped/cramped against the plot area.
     fig, axes = plt.subplots(1, 2, figsize=(14, max(4, len(ok) * 0.45)))
-    fig.suptitle(f"{region} — ablation comparison, delta from {config_label('baseline_full')}", fontsize=13)
+    fig.suptitle(f"{region}: Ablation Deltas from {config_label('baseline_full')}", fontsize=13)
     for ax, col, title in [
-        (axes[0], "test_macro_f1_binary", "Δ Test macro F1 (binary)"),
-        (axes[1], "test_roc_auc_cal", "Δ Test ROC AUC (calibrated)"),
+        (axes[0], "test_macro_f1_binary", "Δ Macro F1 (binary)"),
+        (axes[1], "test_roc_auc_cal", "Δ ROC AUC (calibrated)"),
     ]:
         if col not in ok.columns:
             continue
@@ -616,7 +625,7 @@ def fig_ablation_comparison(region: str):
                   for _, r in ok_delta.iterrows()]
         ax.barh(ok_delta["display_name"], ok_delta["delta"], color=colors)
         ax.axvline(0, color="black", lw=1.0)
-        ax.set(xlabel=title, title=title)
+        ax.set(xlabel=title)
         ax.invert_yaxis()
         ax.tick_params(axis="y", labelsize=9)
         ax.grid(axis="x", alpha=0.3)
@@ -645,7 +654,7 @@ def fig_ablation_comparison(region: str):
 
 def _twet_profile(df_f, bin_edges, base_hb, extra_hb, sigma, min_n=10):
     """Reimplementation of _twet_profile_binary from ablation_v2 script:
-    per-Twet-bin F1(snow)/F1(rain)/abstain-rate/mix-capture, restricted to
+    per-Twet-bin F1(snow)/F1(rain)/flag-rate/mix-capture, restricted to
     the baseline_full ablations_v2 config's saved test-set predictions."""
     from sklearn.metrics import f1_score
 
@@ -673,13 +682,13 @@ def _twet_profile(df_f, bin_edges, base_hb, extra_hb, sigma, min_n=10):
             y_pred_sel = band_pred[mask][sel]
             f1_snow = f1_score(y_true_sel == SNOW_CODE, y_pred_sel == SNOW_CODE, zero_division=0)
             f1_rain = f1_score(y_true_sel == RAIN_CODE, y_pred_sel == RAIN_CODE, zero_division=0)
-        abstain_rate = (~committed).mean()
+        flag_rate = (~committed).mean()
         mix_mask = phase[mask] == MIX_CODE
         mix_capture = np.nan
         if mix_mask.sum() > 0:
             mix_capture = (band_pred[mask][mix_mask] == MIX_CODE).mean()
         rows.append(dict(bin_mid=(lo + hi) / 2, n=n, f1_snow=f1_snow, f1_rain=f1_rain,
-                          abstain_rate=abstain_rate, mix_capture=mix_capture))
+                          flag_rate=flag_rate, mix_capture=mix_capture))
     return pd.DataFrame(rows)
 
 
@@ -703,7 +712,7 @@ def fig_twet_performance(region: str):
     fig, axes = plt.subplots(1, 4, figsize=(20, 5))
     panels = [("f1_snow", "F1 (snow)", PHASE_COLORS["snow"]),
               ("f1_rain", "F1 (rain)", PHASE_COLORS["rain"]),
-              ("abstain_rate", "Abstain rate", "darkorange"),
+              ("flag_rate", "Flag rate", "darkorange"),
               ("mix_capture", "Mix capture rate", PHASE_COLORS["mix"])]
     for ax, (col, title, color) in zip(axes, panels):
         if not prof_val.empty:
@@ -713,8 +722,8 @@ def fig_twet_performance(region: str):
         ax.axvspan(-1, 1, alpha=0.08, color="orange")
         ax.axvline(0, color="grey", lw=1)
         ax.set_title(title)
-        ax.set_xlabel("Wet-bulb temperature (deg C)")
-        # Fix all four panels to a common 0-1 y-range so F1/abstain/mix-capture
+        ax.set_xlabel("Wet-bulb temperature (°C)")
+        # Fix all four panels to a common 0-1 y-range so F1/flag/mix-capture
         # rates are visually comparable across panels (matplotlib would
         # otherwise autoscale each panel to its own data range).
         ax.set_ylim(0.0, 1.0)
@@ -722,7 +731,7 @@ def fig_twet_performance(region: str):
         ax.legend(fontsize=8)
         ax.grid(alpha=0.25)
 
-    fig.suptitle(f"{region} — performance by wet-bulb temperature ({config_label('baseline_full')})", y=1.03)
+    fig.suptitle(f"{region}: Performance by Wet-Bulb Temperature ({config_label('baseline_full')})", y=1.03)
     safe_savefig(fig, out_dir(region) / f"{region}_f1_by_wetbulb.png")
 
 
@@ -759,19 +768,19 @@ def _temp_profile(df_f, bin_edges, base_hb, extra_hb, sigma, temp_col, min_n=10)
             y_pred_sel = band_pred[mask][sel]
             f1_snow = f1_score(y_true_sel == SNOW_CODE, y_pred_sel == SNOW_CODE, zero_division=0)
             f1_rain = f1_score(y_true_sel == RAIN_CODE, y_pred_sel == RAIN_CODE, zero_division=0)
-        abstain_rate = (~committed).mean()
+        flag_rate = (~committed).mean()
         mix_mask = phase[mask] == MIX_CODE
         mix_capture = np.nan
         if mix_mask.sum() > 0:
             mix_capture = (band_pred[mask][mix_mask] == MIX_CODE).mean()
         rows.append(dict(bin_mid=(lo + hi) / 2, n=n, f1_snow=f1_snow, f1_rain=f1_rain,
-                          abstain_rate=abstain_rate, mix_capture=mix_capture))
+                          flag_rate=flag_rate, mix_capture=mix_capture))
     return pd.DataFrame(rows)
 
 
 def fig_f1_by_tair(region: str):
     """T_air analogue of fig_twet_performance / {region}_f1_by_wetbulb.png:
-    per-phase F1 + abstain/mix-capture rate, val vs test, binned by air
+    per-phase F1 + flag/mix-capture rate, val vs test, binned by air
     temperature instead of wet-bulb temperature. Uses TAIR_BIN_EDGES
     (TAIR_BIN_MIN=-8, TAIR_BIN_MAX=8, width=1 degC) for consistency with the
     other T_air figures in this script, rather than the wet-bulb figure's own
@@ -802,7 +811,7 @@ def fig_f1_by_tair(region: str):
     fig, axes = plt.subplots(1, 4, figsize=(20, 5))
     panels = [("f1_snow", "F1 (snow)", PHASE_COLORS["snow"]),
               ("f1_rain", "F1 (rain)", PHASE_COLORS["rain"]),
-              ("abstain_rate", "Abstain rate", "darkorange"),
+              ("flag_rate", "Flag rate", "darkorange"),
               ("mix_capture", "Mix capture rate", PHASE_COLORS["mix"])]
     for ax, (col, title, color) in zip(axes, panels):
         if not prof_val.empty:
@@ -812,14 +821,14 @@ def fig_f1_by_tair(region: str):
         ax.axvspan(-1, 1, alpha=0.08, color="orange")
         ax.axvline(0, color="grey", lw=1)
         ax.set_title(title)
-        ax.set_xlabel("Air temperature (deg C)")
+        ax.set_xlabel("Air temperature (°C)")
         # Common 0-1 y-range across panels (see fig_twet_performance).
         ax.set_ylim(0.0, 1.0)
         ax.set_yticks(np.arange(0.0, 1.01, 0.2))
         ax.legend(fontsize=8)
         ax.grid(alpha=0.25)
 
-    fig.suptitle(f"{region} — performance by air temperature ({config_label('baseline_full')})", y=1.03)
+    fig.suptitle(f"{region}: Performance by Air Temperature ({config_label('baseline_full')})", y=1.03)
     safe_savefig(fig, out_dir(region) / f"{region}_f1_by_tair.png")
 
 
@@ -842,9 +851,8 @@ def fig_shap(region: str):
             sns.heatmap(data, ax=ax, cmap="YlOrRd", vmin=0, vmax=vmax, annot=True, fmt=".3f",
                         linewidths=0.4, linecolor="#cccccc",
                         cbar_kws={"label": "Mean |SHAP| (probability units)"})
-            ax.set_title(f"{region} — {MODEL_DISPLAY_NAME} mean |SHAP| by wet-bulb bin — all observations",
-                         fontsize=11, pad=10)
-            ax.set_xlabel("Wet-bulb temperature bin (deg C)")
+            ax.set_title(f"{region}: Mean |SHAP| by Wet-Bulb Bin", fontsize=11, pad=10)
+            ax.set_xlabel("Wet-bulb temperature bin (°C)")
             ax.set_ylabel("Feature")
             near_freeze_cols = [i for i, lbl in enumerate(data.columns) if lbl in ["-2–1", "-1–0", "0–1", "1–2", "-2--1", "-1-0", "0-1", "1-2"]]
             for col_i in near_freeze_cols:
@@ -857,7 +865,7 @@ def fig_shap(region: str):
             ax.set_xticks(range(len(data.columns))); ax.set_xticklabels(data.columns, rotation=45, ha="right")
             ax.set_yticks(range(len(data.index))); ax.set_yticklabels(data.index)
             fig.colorbar(im, ax=ax, label="Mean |SHAP|")
-            ax.set_title(f"{region} — {MODEL_DISPLAY_NAME} mean |SHAP| by wet-bulb bin (fallback, no seaborn)")
+            ax.set_title(f"{region}: Mean |SHAP| by Wet-Bulb Bin")
             safe_savefig(fig, out_dir(region) / f"{region}_shap_wetbulb_heatmap.png")
     else:
         print(f"  [shap:{region}] missing {heatmap_csv}, skipping headline SHAP figure")
@@ -877,8 +885,8 @@ def fig_shap(region: str):
             ax.bar(x + i * width, vals, width, label=phase_col, color=color, alpha=0.85)
         ax.set_xticks(x + width)
         ax.set_xticklabels(FEATURE_LABELS, rotation=35, ha="right")
-        ax.set_ylabel("Mean |SHAP value| (probability units)")
-        ax.set_title(f"{region} — {MODEL_DISPLAY_NAME} feature importance by predicted phase (mean |SHAP|) [appendix]")
+        ax.set_ylabel("Mean |SHAP| (probability units)")
+        ax.set_title(f"{region}: Feature Importance by Predicted Phase")
         ax.legend(title="Predicted phase")
         ax.grid(axis="y", alpha=0.3)
         safe_savefig(fig, out_dir(region) / f"{region}_shap_mean_by_phase_appendix.png")
@@ -912,10 +920,17 @@ def fig_ablation_deltas_ci(region: str):
         return
     d = pd.read_csv(csv)
 
+    # NOTE: the metric KEYS below are the literal column values stored in
+    # bootstrap_ablation_deltas_ci.csv and must keep the on-disk
+    # "..._baseline_minus_config" spelling. Only the display strings are
+    # relabeled to "full configuration".
     metric_titles = {
-        "delta_auc_baseline_minus_config": "Delta AUROC (baseline - config)",
-        "delta_accuracy_baseline_minus_config": "Delta accuracy (baseline - config)",
-        "delta_nearfreeze_acc_baseline_minus_config": "Delta near-freezing accuracy (baseline - config)",
+        "delta_auc_baseline_minus_config":
+            "Δ AUROC (full configuration − ablation)",
+        "delta_accuracy_baseline_minus_config":
+            "Δ Accuracy (full configuration − ablation)",
+        "delta_nearfreeze_acc_baseline_minus_config":
+            "Δ Near-freezing accuracy (full configuration − ablation)",
     }
     metrics_present = [m for m in metric_titles if m in d["metric"].unique()]
     if not metrics_present:
@@ -940,12 +955,14 @@ def fig_ablation_deltas_ci(region: str):
                         markeredgecolor="black" if row["excludes_zero"] else c)
         ax.axvline(0, color="#d62728", ls="--", lw=1)
         ax.set_yticks(ypos)
-        ax.set_yticklabels(sub["config"], fontsize=9)
+        # Map raw config folder names to display labels so folder names never
+        # leak onto the y-axis (same rule as fig_ablation_comparison).
+        ax.set_yticklabels([config_label(str(c)) for c in sub["config"]], fontsize=9)
         ax.set_xlabel(metric_titles[metric])
         ax.grid(axis="x", alpha=0.25)
 
-    fig.suptitle(f"{region} — ablation deltas vs. baseline_full (95% cluster-bootstrap CIs)\n"
-                 f"bold/blue = CI excludes zero, grey = CI includes zero", y=1.02)
+    fig.suptitle(f"{region}: Ablation Deltas vs. {config_label('baseline_full')}\n"
+                 f"(95% cluster-bootstrap CIs; blue = CI excludes zero)", y=1.02)
     safe_savefig(fig, out_dir(region) / f"{region}_ablation_deltas_ci.png")
 
 
@@ -1029,10 +1046,10 @@ def fig_mix_capture_by_wetbulb(region: str):
                      ha="center", fontsize=7, color="#555555")
     ax1.axvspan(-1, 1, alpha=0.08, color="orange")
     ax1.axvline(0, color="grey", lw=1)
-    ax1.set_xlabel("Wet-bulb temperature (deg C)")
-    ax1.set_ylabel("Mix capture rate (%)")
+    ax1.set_xlabel("Wet-bulb temperature (°C)")
+    ax1.set_ylabel("Mix capture rate (%; 95% binomial CI)")
     ax1.set_ylim(0, 105)
-    ax1.set_title(f"{region} — mix-capture rate by wet-bulb bin (95% binomial CI)")
+    ax1.set_title(f"{region}: Mix Capture Rate by Wet-Bulb Bin")
     ax1.set_zorder(ax2.get_zorder() + 1)
     ax1.patch.set_visible(False)
     lines1, labels1 = ax1.get_legend_handles_labels()
@@ -1063,20 +1080,20 @@ def fig_mix_capture_by_wetbulb(region: str):
     ax.scatter(missed["temp_wet"], missed["p_snow_cal"], color="#cc3311", marker="x", s=40, alpha=0.65, label="Missed")
     ax.scatter(captured["temp_wet"], captured["p_snow_cal"], color="#009988", marker="o", s=40, alpha=0.65, label="Captured")
     capture_pct = 100 * df_mix["inside_band"].mean()
-    ax.set_xlabel("Wet-bulb temperature (deg C)")
+    ax.set_xlabel("Wet-bulb temperature (°C)")
     ax.set_ylabel("Calibrated p(snow)")
     # Title no longer says "(appendix)": this panel is now a main-body figure
     # (uncertainty band placement vs. observer-reported mix), while the
     # per-bin capture-rate figure moved to the appendix.
-    ax.set_title(f"{region} — uncertainty band placement vs. observer-reported mix, "
-                 f"test split; overall capture={capture_pct:.1f}%")
+    ax.set_title(f"{region}: Uncertainty Band Placement vs. Observed Mix\n"
+                 f"(overall capture = {capture_pct:.1f}%)")
     ax.legend(fontsize=9)
     ax.grid(alpha=0.2)
     safe_savefig(fig, out_dir(region) / f"{region}_band_placement_appendix.png")
 
 
 # ---------------------------------------------------------------------------
-# Figure 8 (NEW): story5 near-freezing comparison, baseline_full vs no_mros_loocv
+# Near-freezing comparison, baseline_full vs no_mros_loocv
 # ---------------------------------------------------------------------------
 
 def _nf_profile(df_f, bin_edges, temp_col):
@@ -1144,6 +1161,7 @@ def _fig_story5_compare(region: str, temp_col: str, fname: str):
 
     profiles = {cfg: _nf_profile(d, NF_BIN_EDGES, temp_col) for cfg, d in configs.items()}
     temp_label = "Air temperature" if temp_col == "temp_air" else "Wet-bulb temperature"
+    temp_label_title = "Air Temperature" if temp_col == "temp_air" else "Wet-Bulb Temperature"
 
     fig, axes = plt.subplots(1, 2, figsize=(13, 5))
     panel_specs = [("prec_snow", "rec_snow", "Snow", PHASE_COLORS["snow"]),
@@ -1169,11 +1187,197 @@ def _fig_story5_compare(region: str, temp_col: str, fname: str):
         ax.legend(fontsize=7.5, loc="lower left")
         ax.grid(alpha=0.3)
 
-    fig.suptitle(f"{region} — near-freezing precision/recall vs {temp_label.lower()}: "
-                 f"{config_label('baseline_full')} vs {config_label('no_mros_loocv')}\n"
-                 f"(binary 0.5 threshold, observer-reported mix excluded, test split)",
+    fig.suptitle(f"{region}: Near-Freezing Precision and Recall by {temp_label_title}\n"
+                 f"({config_label('baseline_full')} vs. {config_label('no_mros_loocv')})",
                  fontsize=12)
     safe_savefig(fig, out_dir(region) / fname)
+
+
+# ---------------------------------------------------------------------------
+# 2x2 confusion matrix, MRoS-XGB at the 0.5 threshold
+# ---------------------------------------------------------------------------
+
+def fig_confusion_matrix(region: str):
+    """Appendix figure: 2x2 confusion matrix for MRoS-XGB on the test split.
+
+    Scope, stated explicitly so the figure is not over-read:
+      - Pure-phase observations only (phase_full in {snow, rain}); observer-
+        reported mix is EXCLUDED, matching every other binary-skill figure in
+        this script. The uncertainty band is deliberately NOT applied here —
+        this is the raw 0.5-threshold decision (pred_xgboost_mros_bin05), so
+        the matrix characterizes the underlying classifier rather than the
+        band-gated product. Band behaviour is covered by
+        fig_mix_capture_by_wetbulb.
+      - Read from benchmarking_v1/benchmark_predictions_test.parquet, an
+        already-saved artifact; nothing is retrained.
+
+    Each cell is annotated with the raw count and, beneath it, the ROW-
+    normalized percentage (i.e. recall per observed class), which is the
+    conventional reading for a classification matrix. Marginal skill scores
+    (accuracy, POD/FAR per class) are printed in the panel subtitle so the
+    figure is self-contained for an appendix.
+    """
+    pq = benchmarking_dir(region) / "benchmark_predictions_test.parquet"
+    if not pq.exists():
+        print(f"  [confusion:{region}] missing {pq}, skipping")
+        return
+    df = pd.read_parquet(pq, columns=["phase_full", f"pred_{MODEL_NAME_KEY}_bin05"])
+    pure = df[df["phase_full"].isin([SNOW_CODE, RAIN_CODE])]
+    if pure.empty:
+        print(f"  [confusion:{region}] no pure-phase rows, skipping")
+        return
+
+    y_true = pure["phase_full"].to_numpy(int)
+    y_pred = pure[f"pred_{MODEL_NAME_KEY}_bin05"].to_numpy(int)
+
+    # Order rows/cols [snow, rain] to match PHASE_COLORS and the rest of the
+    # manuscript's snow-first convention.
+    codes = [SNOW_CODE, RAIN_CODE]
+    labels = ["Snow", "Rain"]
+    cm = np.array([[int(np.sum((y_true == t) & (y_pred == p))) for p in codes]
+                   for t in codes])
+    row_tot = cm.sum(axis=1, keepdims=True)
+    cm_pct = np.divide(cm, row_tot, out=np.zeros_like(cm, float), where=row_tot > 0) * 100
+
+    n = int(cm.sum())
+    accuracy = 100.0 * np.trace(cm) / n if n else np.nan
+    # Snow taken as the "event" class for POD/FAR, consistent with p(snow).
+    tp, fn = cm[0, 0], cm[0, 1]
+    fp, tn = cm[1, 0], cm[1, 1]
+    pod = 100.0 * tp / (tp + fn) if (tp + fn) else np.nan
+    far = 100.0 * fp / (tp + fp) if (tp + fp) else np.nan
+
+    fig, ax = plt.subplots(figsize=(5.6, 5.0))
+    im = ax.imshow(cm_pct, cmap="Blues", vmin=0, vmax=100)
+    for i in range(2):
+        for j in range(2):
+            # White text on dark (high-percentage) cells, dark text otherwise,
+            # so annotations stay legible at both ends of the colormap.
+            txt_color = "white" if cm_pct[i, j] > 55 else "#222222"
+            ax.text(j, i, f"{cm[i, j]:,}\n({cm_pct[i, j]:.1f}%)",
+                    ha="center", va="center", fontsize=13, color=txt_color)
+    ax.set_xticks([0, 1], labels=labels)
+    ax.set_yticks([0, 1], labels=labels)
+    ax.set_xlabel(f"Predicted phase ({MODEL_DISPLAY_NAME}, 0.5 threshold)")
+    ax.set_ylabel("Observed phase")
+    ax.set_title(f"{region}: {MODEL_DISPLAY_NAME} Confusion Matrix\n"
+                 f"(n = {n:,}; accuracy {accuracy:.1f}%, "
+                 f"snow POD {pod:.1f}%, snow FAR {far:.1f}%)", fontsize=11)
+    fig.colorbar(im, ax=ax, fraction=0.046, pad=0.04,
+                 label="Row-normalized share of observed class (%)")
+    ax.set_xticks(np.arange(-0.5, 2, 1), minor=True)
+    ax.set_yticks(np.arange(-0.5, 2, 1), minor=True)
+    ax.grid(which="minor", color="white", lw=2)
+    ax.tick_params(which="minor", length=0)
+    safe_savefig(fig, out_dir(region) / f"{region}_confusion_matrix_appendix.png")
+
+
+# ---------------------------------------------------------------------------
+# Critical Success Index (CSI) by air temperature
+# ---------------------------------------------------------------------------
+
+def _csi_from_counts(hits, misses, false_alarms):
+    """CSI = hits / (hits + misses + false alarms). Returns NaN when the
+    denominator is zero (no event observed and none forecast in the bin),
+    which is the standard convention — CSI is undefined there rather than 0."""
+    denom = hits + misses + false_alarms
+    return np.divide(hits, denom, out=np.full(np.shape(hits), np.nan, float),
+                     where=denom > 0)
+
+
+def fig_csi_by_tair(region: str):
+    """Appendix figure: Critical Success Index for snow and for rain as a
+    function of air temperature, for every benchmark PPM plus MRoS-XGB.
+
+    CSI (a.k.a. threat score) is reported alongside accuracy because accuracy
+    is inflated wherever one phase dominates a bin — at cold and warm tails
+    a trivial always-snow / always-rain rule already scores near 100%. CSI
+    penalizes both misses and false alarms for the event class and so stays
+    informative across the whole temperature range, which is the point of the
+    near-freezing analysis.
+
+    Conventions are deliberately identical to the other T_air figures so the
+    panels can be read side by side: TAIR_BIN_EDGES bins ({TAIR_BIN_WIDTH} °C
+    wide), pure snow/rain observations only, bins with fewer than MIN_BIN_N
+    pure observations dropped, and METHOD_STYLE/METHOD_LABEL for line styling.
+    MRoS-XGB uses its 0.5-threshold prediction (no uncertainty band), matching
+    fig_benchmark_accuracy_by_tair_ci.
+
+    Computed from benchmarking_v1/benchmark_predictions_test.parquet
+    (already-saved artifact; nothing retrained).
+    """
+    pq = benchmarking_dir(region) / "benchmark_predictions_test.parquet"
+    if not pq.exists():
+        print(f"  [csi:{region}] missing {pq}, skipping")
+        return
+    df = pd.read_parquet(pq)
+    pure = df[df["phase_full"].isin([SNOW_CODE, RAIN_CODE])].reset_index(drop=True)
+    if pure.empty:
+        print(f"  [csi:{region}] no pure-phase rows, skipping")
+        return
+
+    y = pure["phase_full"].to_numpy(int)
+    tair = pure["temp_air"].to_numpy(float)
+
+    methods = [c.replace("pred_", "") for c in pure.columns
+               if c.startswith("pred_") and not c.startswith(f"pred_{MODEL_NAME_KEY}")]
+    preds = {m: pure[f"pred_{m}"].to_numpy(int) for m in methods}
+    preds[MODEL_NAME_KEY] = pure[f"pred_{MODEL_NAME_KEY}_bin05"].to_numpy(int)
+    all_methods = methods + [MODEL_NAME_KEY]
+
+    edges = TAIR_BIN_EDGES
+    n_bins = len(edges) - 1
+    bin_mids = (edges[:-1] + edges[1:]) / 2.0
+    bin_idx = np.digitize(tair, edges) - 1
+    bin_valid = np.array([(bin_idx == b).sum() >= MIN_BIN_N for b in range(n_bins)])
+    if not bin_valid.any():
+        print(f"  [csi:{region}] no T_air bin reaches n >= {MIN_BIN_N}, skipping")
+        return
+
+    # csi[event_code][method] -> per-bin CSI array
+    csi = {SNOW_CODE: {}, RAIN_CODE: {}}
+    for event in (SNOW_CODE, RAIN_CODE):
+        for m in all_methods:
+            vals = np.full(n_bins, np.nan)
+            for b in range(n_bins):
+                if not bin_valid[b]:
+                    continue
+                sel = bin_idx == b
+                yt, yp = y[sel], preds[m][sel]
+                hits = int(np.sum((yt == event) & (yp == event)))
+                misses = int(np.sum((yt == event) & (yp != event)))
+                false_alarms = int(np.sum((yt != event) & (yp == event)))
+                vals[b] = _csi_from_counts(hits, misses, false_alarms)
+            csi[event][m] = vals
+
+    # Draw benchmarks first, model last, so the heavy black model line sits on
+    # top of the thinner benchmark lines rather than being buried under them.
+    order = [n for n in METHOD_STYLE if n in all_methods and n != MODEL_NAME_KEY]
+    order += [MODEL_NAME_KEY]
+
+    fig, axes = plt.subplots(1, 2, figsize=(13, 5.5), sharey=True)
+    for ax, event, event_name in [(axes[0], SNOW_CODE, "Snow"),
+                                  (axes[1], RAIN_CODE, "Rain")]:
+        for m in order:
+            vals = csi[event][m]
+            v = bin_valid & ~np.isnan(vals)
+            if not v.any():
+                continue
+            style = METHOD_STYLE.get(m, {})
+            ax.plot(bin_mids[v], vals[v], marker="o",
+                    ms=4 if m == MODEL_NAME_KEY else 3,
+                    zorder=5 if m == MODEL_NAME_KEY else 2,
+                    label=METHOD_LABEL.get(m, m), **style)
+        ax.axvline(0, color="grey", ls="--", lw=1.0, alpha=0.7)
+        ax.axvspan(0, 4, alpha=0.05, color="orange")
+        ax.set(xlabel=f"Air temperature (°C; {TAIR_BIN_WIDTH:g} °C bins, n ≥ {MIN_BIN_N})",
+               ylim=(0, 1.02), title=f"{event_name} as event class")
+        ax.grid(alpha=0.25)
+    axes[0].set_ylabel("Critical success index")
+    axes[0].legend(fontsize=8, ncol=2, loc="lower left", framealpha=0.9)
+
+    fig.suptitle(f"{region}: Critical Success Index by Air Temperature", fontsize=12)
+    safe_savefig(fig, out_dir(region) / f"{region}_csi_by_tair_appendix.png")
 
 
 def fig_story5_nearfreeze_tair(region: str):
@@ -1203,6 +1407,8 @@ FIGURE_FUNCS = {
     "overall_bars": fig_overall_accuracy_bars,
     "story5_tair": fig_story5_nearfreeze_tair,
     "story5_twet": fig_story5_nearfreeze_twet,
+    "confusion": fig_confusion_matrix,
+    "csi": fig_csi_by_tair,
 }
 
 
