@@ -26,7 +26,22 @@ Usage:
 
 Figure subset keys: calibration, forest, tair, f1_twet, shap, ablation_ci, band,
                     ablation_comparison, tair_relimp_ci, tair_accuracy, f1_tair,
-                    overall_bars, story5_tair, story5_twet, confusion, csi
+                    overall_bars, story5_tair, story5_twet, confusion, csi,
+                    phase_extent, phase_coverage, phase_elev_kde, phase_month,
+                    phase_combined
+
+The phase_* figures (formerly one combined 2x2 "MRoS Phase Distribution &
+Station Coverage" figure built inline in preprocessing_assimilation.ipynb)
+are available both as standalone PNGs (phase_extent/coverage/elev_kde/month,
+one panel each) and as the original 2x2 combined layout (phase_combined,
+panels A-D). All five share the same underlying _draw_* panel functions, so
+editing one panel's logic keeps the standalone and combined versions in
+sync. They read only the already-saved hourly station/MRoS parquets under
+outputs/assimilated/{CA,CO}/hourly_data/ and the region DEM. The one
+exception is the study-extent panel (A / phase_extent), which also needs
+live network access (US state boundary + city points + a CartoDB basemap
+tile) — it skips gracefully if that fetch fails, in both the standalone and
+combined figures.
 
 Naming conventions used throughout the figures produced here:
   - The ablation configuration containing every predictor is displayed as
@@ -42,6 +57,7 @@ Naming conventions used throughout the figures produced here:
 from __future__ import annotations
 
 import argparse
+import functools
 import json
 import warnings
 from pathlib import Path
@@ -52,12 +68,30 @@ import matplotlib
 
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+from matplotlib.patches import ConnectionPatch
 
 try:
     import seaborn as sns
     HAVE_SEABORN = True
 except ImportError:
     HAVE_SEABORN = False
+
+# Geospatial stack used only by the phase_extent / phase_coverage figures
+# (station-coverage map + DEM background). Optional: those two figures skip
+# themselves with a printed message if these aren't installed.
+try:
+    import geopandas as gpd
+    import contextily as cx
+    import rasterio as rio
+    import matplotlib.colors as mcolors
+    import matplotlib.patches as mpatches
+    import matplotlib.patheffects as pe
+    from rasterio.plot import show as rio_show
+    from matplotlib_scalebar.scalebar import ScaleBar
+    from shapely.geometry import Polygon
+    HAVE_GIS = True
+except ImportError:
+    HAVE_GIS = False
 
 warnings.filterwarnings("ignore")
 
@@ -188,6 +222,85 @@ def out_dir(region: str) -> Path:
     d = OUT_ROOT / region
     d.mkdir(parents=True, exist_ok=True)
     return d
+
+
+# ---------------------------------------------------------------------------
+# Region config + saved hourly-data readers for the MRoS phase-diagnostics
+# figures below (study extent / phase locations & station coverage / phase
+# vs elevation / phase by month). Mirrors REGION_CONFIG from
+# preprocessing_assimilation.ipynb and kriging_interpolation_updated_
+# multiregion.ipynb — kept as a local copy here (rather than importing the
+# notebook) so this script has no notebook dependency at all.
+# ---------------------------------------------------------------------------
+
+REGION_CONFIG = {
+    "CA": {
+        "label": "California: Sierra Nevada / Lake Tahoe",
+        "utm_crs": "EPSG:26911",
+        "dem_file": "CA_DEM_AOI_1km.tif",
+        "aoi_lonlat": [
+            (-119.45505750721992, 39.65343608043361),
+            (-121.27878797084242, 39.66189413918429),
+            (-119.11448133630248, 36.726935737063016),
+            (-118.49924696303225, 37.235952484988736),
+            (-119.46604383531404, 38.37304030164334),
+        ],
+    },
+    "CO": {
+        "label": "Colorado Mountains",
+        "utm_crs": "EPSG:32613",
+        "dem_file": "CO_DEM_AOI_1km.tif",
+        "aoi_lonlat": [
+            (-105.19885928678391, 40.62046076499234),
+            (-106.88927700287375, 40.555465783967925),
+            (-107.66078646416787, 38.79540171139857),
+            (-104.87856373593310, 38.77382201116306),
+        ],
+    },
+}
+
+# Colors match the original combined figure in preprocessing_assimilation.ipynb
+# (distinct from the top-level PHASE_COLORS used by the ML-benchmark figures).
+DIAG_PHASE_ORDER = ["snow", "mix", "rain"]
+DIAG_PHASE_COLORS = {"snow": "#4da6ff", "mix": "#ff69b4", "rain": "#44bb77"}
+
+
+def assimilated_dir(region: str) -> Path:
+    return REPO_ROOT / "outputs" / "assimilated" / region
+
+
+def dem_path_for(region: str) -> Path:
+    return REPO_ROOT / "Data" / "elevation" / REGION_CONFIG[region]["dem_file"]
+
+
+def load_phase_diagnostics_inputs(region: str):
+    """Read-only load of the already-saved hourly station/MRoS tables
+    (preprocessing_assimilation.ipynb outputs, cells 22-23). Does not redo
+    any timezone handling, hourly aggregation, or AOI clipping — all of
+    that already happened when these parquets were written."""
+    adir = assimilated_dir(region)
+    st_path = adir / "hourly_data" / "stations_hourly.parquet"
+    mros_path = adir / "hourly_data" / "mros_hourly.parquet"
+    for label, p in [("stations hourly parquet", st_path), ("MRoS hourly parquet", mros_path)]:
+        if not p.exists():
+            raise FileNotFoundError(f"missing {label}: {p}")
+    st_hr = pd.read_parquet(st_path)
+    mros_hr = pd.read_parquet(mros_path)
+    return st_hr, mros_hr
+
+
+@functools.lru_cache(maxsize=1)
+def _us_states_gdf():
+    """US state boundaries (Census TIGER 500k), cached once per process.
+    Network fetch — same source the original notebook cell used."""
+    return gpd.read_file("https://www2.census.gov/geo/tiger/GENZ2023/shp/cb_2023_us_state_500k.zip")
+
+
+@functools.lru_cache(maxsize=1)
+def _populated_places_gdf():
+    """Natural Earth 1:50m populated places (city labels for the
+    study-extent panel), cached once per process. Network fetch."""
+    return gpd.read_file("https://naciscdn.org/naturalearth/50m/cultural/ne_50m_populated_places.zip")
 
 
 def gaussian_half_band(temp_wet, base_half_band, extra_half_band, sigma):
@@ -1389,6 +1502,338 @@ def fig_story5_nearfreeze_twet(region: str):
 
 
 # ---------------------------------------------------------------------------
+# MRoS phase diagnostics — shared panel-drawing helpers.
+#
+# Each _draw_* function renders one panel into an ax the caller already
+# created, and returns whatever geometry the combined figure needs (e.g. for
+# the AOI-to-DEM callout lines) — or None/False if it skipped (missing deps,
+# missing saved data, or a failed network fetch). The standalone fig_*
+# wrappers below just create a single-ax figure, call the matching _draw_*,
+# and save; fig_phase_diagnostics_combined calls all four into one 2x2 grid.
+# ---------------------------------------------------------------------------
+
+def _draw_phase_extent_panel(ax, region: str):
+    """Panel A: statewide context — state boundary, major cities, AOI
+    overlay. Requires network access (state boundary shapefile, city
+    points, CartoDB basemap tile). Returns {"aoi_proj": ...} on success,
+    None if it skipped."""
+    if not HAVE_GIS:
+        print(f"  [phase_extent:{region}] missing geopandas/contextily/rasterio, skipping")
+        return None
+
+    rcfg = REGION_CONFIG[region]
+    try:
+        states = _us_states_gdf()
+        cities = _populated_places_gdf()
+    except Exception as e:
+        print(f"  [phase_extent:{region}] network fetch failed ({e}), skipping")
+        return None
+
+    state_gdf = states[states["STUSPS"] == region]
+    if state_gdf.empty:
+        print(f"  [phase_extent:{region}] no state boundary matched STUSPS=={region!r}, skipping")
+        return None
+
+    aoi_poly = Polygon(rcfg["aoi_lonlat"])
+    aoi_gdf = gpd.GeoDataFrame(geometry=[aoi_poly], crs="EPSG:4326")
+    dem_crs_str = rcfg["utm_crs"]
+
+    state_gdf_proj = state_gdf.to_crs(dem_crs_str)
+    aoi_proj = aoi_gdf.to_crs(dem_crs_str)
+
+    minx, miny, maxx, maxy = state_gdf_proj.total_bounds
+    pad = 0.05 * max(maxx - minx, maxy - miny)
+    ax.set_xlim(minx - pad, maxx + pad)
+    ax.set_ylim(miny - pad, maxy + pad)
+    ax.set_aspect("equal")
+
+    cx.add_basemap(ax, crs=dem_crs_str, source=cx.providers.CartoDB.PositronNoLabels, zorder=1)
+    state_gdf_proj.boundary.plot(ax=ax, color="black", linewidth=1.0, zorder=3)
+    aoi_proj.plot(ax=ax, facecolor="red", edgecolor="red", alpha=0.35, linewidth=1.2, zorder=3)
+
+    state_cities = gpd.sjoin(
+        cities.to_crs(dem_crs_str), state_gdf_proj[["geometry"]], predicate="within"
+    ).drop(columns="index_right")
+    state_cities = state_cities[state_cities["POP_MAX"] > 50_000]
+
+    state_cities.plot(ax=ax, markersize=10, color="dimgray", edgecolor="white", linewidth=0.4, zorder=4)
+    for _, row in state_cities.iterrows():
+        ax.annotate(row["NAME"], xy=(row.geometry.x, row.geometry.y),
+                    fontsize=6.5, color="black", xytext=(4, 3),
+                    textcoords="offset points", zorder=4,
+                    path_effects=[pe.withStroke(linewidth=2, foreground="white")])
+
+    ax.set_xticks([])
+    ax.set_yticks([])
+    for spine in ax.spines.values():
+        spine.set_edgecolor("gray")
+        spine.set_linewidth(0.6)
+
+    ax.text(0.01, 0.01, "© OpenStreetMap contributors, © CARTO",
+            transform=ax.transAxes, fontsize=5, color="dimgray",
+            ha="left", va="bottom", zorder=5)
+
+    ax.annotate("N", xy=(0.95, 0.90), xytext=(0.95, 0.78), xycoords="axes fraction",
+                arrowprops=dict(facecolor="black", width=3, headwidth=8, headlength=8),
+                ha="center", va="center", fontsize=9, fontweight="bold", zorder=5)
+
+    return {"aoi_proj": aoi_proj}
+
+
+def _draw_phase_coverage_panel(fig, ax, region: str):
+    """Panel B: grayscale DEM background (+ "Elevation (m)" colorbar) with
+    phase-colored MRoS observations and station triangles. Needs `fig` too,
+    for the colorbar. Returns {"bounds": ...} on success, None if it
+    skipped."""
+    if not HAVE_GIS:
+        print(f"  [phase_coverage:{region}] missing geopandas/contextily/rasterio, skipping")
+        return None
+
+    try:
+        st_hr, mros_hr = load_phase_diagnostics_inputs(region)
+    except FileNotFoundError as e:
+        print(f"  [phase_coverage:{region}] {e}, skipping")
+        return None
+
+    rcfg = REGION_CONFIG[region]
+    dpath = dem_path_for(region)
+    if not dpath.exists():
+        print(f"  [phase_coverage:{region}] missing DEM: {dpath}, skipping")
+        return None
+
+    aoi_poly = Polygon(rcfg["aoi_lonlat"])
+    aoi_gdf = gpd.GeoDataFrame(geometry=[aoi_poly], crs="EPSG:4326")
+
+    with rio.open(dpath) as src:
+        dem_crs_str = src.crs.to_string()
+        bounds = src.bounds
+        xticks = np.linspace(bounds.left, bounds.right, 5)
+        yticks = np.linspace(bounds.bottom, bounds.top, 5)
+
+        rio_show(src, ax=ax, cmap="Greys_r", alpha=0.75, zorder=1)
+        dem_im = ax.images[-1]  # AxesImage just added by rio_show, for the elevation colorbar below
+
+        mros_gdf = gpd.GeoDataFrame(
+            mros_hr, geometry=gpd.points_from_xy(mros_hr["lon"], mros_hr["lat"]), crs="EPSG:4326"
+        ).to_crs(dem_crs_str)
+
+        for phase in DIAG_PHASE_ORDER:
+            sub = mros_gdf[mros_gdf["phase"] == phase]
+            edge_color = mcolors.to_rgba(DIAG_PHASE_COLORS[phase], 1.0)
+            edge_color_dark = tuple(c * 0.55 for c in edge_color[:3]) + (1.0,)
+            sub.plot(ax=ax, markersize=14, color=DIAG_PHASE_COLORS[phase],
+                     edgecolor=edge_color_dark, linewidth=0.5, alpha=0.75,
+                     label=phase, zorder=3)
+
+        st_gdf = gpd.GeoDataFrame(
+            st_hr, geometry=gpd.points_from_xy(st_hr["lon"], st_hr["lat"]), crs="EPSG:4326"
+        ).to_crs(dem_crs_str)
+        aoi_dem_crs = aoi_gdf.to_crs(dem_crs_str)
+        st_gdf_aoi = gpd.sjoin(st_gdf, aoi_dem_crs, how="inner", predicate="within").drop(columns="index_right")
+
+        st_gdf_aoi.plot(ax=ax, marker="^", markersize=12, color="dimgray",
+                         linewidth=0, alpha=0.5, label="Stations", zorder=2)
+
+        ax.set_xlim(bounds.left, bounds.right)
+        ax.set_ylim(bounds.bottom, bounds.top)
+        ax.set_aspect("equal")
+        ax.set_xticks(xticks)
+        ax.set_xticklabels([f"{x/1000:.0f}" for x in xticks], fontsize=7, rotation=30, ha="right")
+        ax.set_xlabel("Easting (km)", fontsize=8)
+        ax.set_yticks(yticks)
+        ax.set_yticklabels([f"{y/1000:.0f}" for y in yticks], fontsize=7)
+        ax.set_ylabel("Northing (km)", fontsize=8)
+
+        patches = [mpatches.Patch(color=DIAG_PHASE_COLORS[p], label=p) for p in DIAG_PHASE_ORDER]
+        station_marker = plt.Line2D([0], [0], marker="^", color="none",
+                                     markerfacecolor="dimgray", markeredgewidth=0,
+                                     alpha=0.5, markersize=7, label="Stations")
+        ax.legend(handles=patches + [station_marker], loc="lower left", framealpha=0.8, fontsize=8)
+
+        # Elevation colorbar describing the grayscale DEM background
+        cbar = fig.colorbar(dem_im, ax=ax, fraction=0.045, pad=0.03, shrink=0.75)
+        cbar.set_label("Elevation (m)", fontsize=8)
+        cbar.ax.tick_params(labelsize=7)
+
+        ax.add_artist(ScaleBar(1, units="m", location="lower right",
+                                box_alpha=0.7, font_properties={"size": 7}))
+
+        ax.annotate("N", xy=(0.93, 0.93), xytext=(0.93, 0.80), xycoords="axes fraction",
+                    arrowprops=dict(facecolor="black", width=3, headwidth=8, headlength=8),
+                    ha="center", va="center", fontsize=9, fontweight="bold", zorder=5)
+
+        return {"bounds": bounds}
+
+
+def _draw_phase_elevation_kde_panel(ax, region: str) -> bool:
+    """Panel C: phase-vs-elevation KDE. Returns True on success, False if
+    it skipped (missing saved data)."""
+    from scipy.stats import gaussian_kde
+
+    try:
+        _, mros_hr = load_phase_diagnostics_inputs(region)
+    except FileNotFoundError as e:
+        print(f"  [phase_elev_kde:{region}] {e}, skipping")
+        return False
+
+    elev_all = mros_hr["elev"].dropna()
+    for phase in DIAG_PHASE_ORDER:
+        sub = mros_hr.loc[mros_hr["phase"] == phase, "elev"].dropna()
+        if len(sub) < 2:
+            continue
+        kde = gaussian_kde(sub, bw_method="scott")
+        elev_range = np.linspace(elev_all.min(), elev_all.max(), 300)
+        density = kde(elev_range)
+        ax.plot(elev_range, density, color=DIAG_PHASE_COLORS[phase],
+                linewidth=2, label=f"{phase} (n={len(sub):,})")
+        ax.fill_between(elev_range, density, alpha=0.15, color=DIAG_PHASE_COLORS[phase])
+
+    ax.set_xlabel("Elevation (m)")
+    ax.set_ylabel("Density")
+    ax.legend(framealpha=0.7)
+    ax.spines[["top", "right"]].set_visible(False)
+    return True
+
+
+def _draw_phase_by_month_panel(ax, region: str) -> bool:
+    """Panel D: monthly observation counts by phase. Returns True on
+    success, False if it skipped (missing saved data)."""
+    try:
+        _, mros_hr = load_phase_diagnostics_inputs(region)
+    except FileNotFoundError as e:
+        print(f"  [phase_month:{region}] {e}, skipping")
+        return False
+
+    tmp = mros_hr.copy()
+    tmp["month"] = pd.to_datetime(tmp["hour_utc"]).dt.to_period("M").dt.to_timestamp()
+    monthly = (tmp.groupby(["month", "phase"])
+                  .size()
+                  .unstack(fill_value=0)
+                  .reindex(columns=DIAG_PHASE_ORDER, fill_value=0)
+                  .sort_index())
+    months = monthly.index
+    x = np.arange(len(months))
+    width = 0.28
+    for i, phase in enumerate(DIAG_PHASE_ORDER):
+        ax.bar(x + i * width, monthly[phase], width=width,
+               color=DIAG_PHASE_COLORS[phase], label=phase, alpha=0.85)
+
+    step = max(1, len(months) // 12)
+    tick_idx = np.arange(0, len(months), step)
+    ax.set_xticks(x[tick_idx] + width)
+    ax.set_xticklabels([months[i].strftime("%b %Y") for i in tick_idx], rotation=45, ha="right", fontsize=8)
+    ax.set_ylabel("Observation count")
+    ax.legend(framealpha=0.7)
+    ax.spines[["top", "right"]].set_visible(False)
+    return True
+
+
+# ---------------------------------------------------------------------------
+# Figure: MRoS phase diagnostics — study extent (standalone)
+# Formerly panel A of the combined figure.
+# ---------------------------------------------------------------------------
+
+def fig_phase_study_extent(region: str):
+    rcfg = REGION_CONFIG[region]
+    fig, ax = plt.subplots(figsize=(6, 7))
+    if _draw_phase_extent_panel(ax, region) is None:
+        plt.close(fig)
+        return
+    ax.set_title(f"Study extent within {region} — {rcfg['label']}", fontsize=10)
+    safe_savefig(fig, out_dir(region) / f"{region}_phase_study_extent.png")
+
+
+# ---------------------------------------------------------------------------
+# Figure: MRoS phase diagnostics — phase locations & station coverage
+# Formerly panel B of the combined figure.
+# ---------------------------------------------------------------------------
+
+def fig_phase_locations_coverage(region: str):
+    rcfg = REGION_CONFIG[region]
+    fig, ax = plt.subplots(figsize=(7, 7))
+    if _draw_phase_coverage_panel(fig, ax, region) is None:
+        plt.close(fig)
+        return
+    ax.set_title(f"Phase locations & station coverage — {rcfg['label']}", fontsize=10)
+    safe_savefig(fig, out_dir(region) / f"{region}_phase_locations_coverage.png")
+
+
+# ---------------------------------------------------------------------------
+# Figure: MRoS phase diagnostics — phase vs elevation (KDE)
+# Formerly panel C of the combined figure.
+# ---------------------------------------------------------------------------
+
+def fig_phase_elevation_kde(region: str):
+    rcfg = REGION_CONFIG[region]
+    fig, ax = plt.subplots(figsize=(7, 5.5))
+    if not _draw_phase_elevation_kde_panel(ax, region):
+        plt.close(fig)
+        return
+    ax.set_title(f"Phase vs Elevation (KDE) — {rcfg['label']}")
+    safe_savefig(fig, out_dir(region) / f"{region}_phase_vs_elevation_kde.png")
+
+
+# ---------------------------------------------------------------------------
+# Figure: MRoS phase diagnostics — phase by month
+# Formerly panel D of the combined figure.
+# ---------------------------------------------------------------------------
+
+def fig_phase_by_month(region: str):
+    rcfg = REGION_CONFIG[region]
+    fig, ax = plt.subplots(figsize=(10, 5.5))
+    if not _draw_phase_by_month_panel(ax, region):
+        plt.close(fig)
+        return
+    ax.set_title(f"Phase by Month — {rcfg['label']}")
+    safe_savefig(fig, out_dir(region) / f"{region}_phase_by_month.png")
+
+
+# ---------------------------------------------------------------------------
+# Figure: MRoS phase diagnostics — combined (A-D)
+#
+# All four panels above in one 2x2 figure, labeled A) through D) — this is
+# the figure that used to be built inline in preprocessing_assimilation.ipynb
+# (mros_phase_diagnostics_combined_{REGION}.png), now reassembled here from
+# the same shared _draw_* panel functions the standalone figures use, so
+# editing one panel's logic keeps both the standalone and combined versions
+# in sync automatically. Includes the dashed AOI-to-DEM callout lines
+# between panels A and B (only drawn if both panels actually rendered).
+# ---------------------------------------------------------------------------
+
+def fig_phase_diagnostics_combined(region: str):
+    rcfg = REGION_CONFIG[region]
+    fig, axes = plt.subplots(2, 2, figsize=(14, 12))
+    fig.suptitle(f"MRoS Phase Distribution & Station Coverage — {rcfg['label']}",
+                 fontsize=13, fontweight="bold", y=1.01)
+    axA, axB = axes[0, 0], axes[0, 1]
+    axC, axD = axes[1, 0], axes[1, 1]
+
+    a_info = _draw_phase_extent_panel(axA, region)
+    axA.set_title(f"A) Study extent within {region}", fontsize=9)
+
+    b_info = _draw_phase_coverage_panel(fig, axB, region)
+    axB.set_title("B) Phase locations & station coverage", fontsize=9)
+
+    if a_info is not None and b_info is not None:
+        aoi_minx, aoi_miny, aoi_maxx, aoi_maxy = a_info["aoi_proj"].total_bounds
+        bounds = b_info["bounds"]
+        for (yA, yB) in [(aoi_maxy, bounds.top), (aoi_miny, bounds.bottom)]:
+            fig.add_artist(ConnectionPatch(
+                xyA=(aoi_maxx, yA), coordsA=axA.transData,
+                xyB=(bounds.left, yB), coordsB=axB.transData,
+                color="red", linewidth=0.9, linestyle="--", alpha=0.7, zorder=10,
+            ))
+
+    _draw_phase_elevation_kde_panel(axC, region)
+    axC.set_title("C) Phase vs Elevation (KDE)")
+
+    _draw_phase_by_month_panel(axD, region)
+    axD.set_title("D) Phase by Month")
+
+    safe_savefig(fig, out_dir(region) / f"mros_phase_diagnostics_combined_{region}.png")
+
+
+# ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 
@@ -1409,6 +1854,11 @@ FIGURE_FUNCS = {
     "story5_twet": fig_story5_nearfreeze_twet,
     "confusion": fig_confusion_matrix,
     "csi": fig_csi_by_tair,
+    "phase_extent": fig_phase_study_extent,
+    "phase_coverage": fig_phase_locations_coverage,
+    "phase_elev_kde": fig_phase_elevation_kde,
+    "phase_month": fig_phase_by_month,
+    "phase_combined": fig_phase_diagnostics_combined,
 }
 
 
