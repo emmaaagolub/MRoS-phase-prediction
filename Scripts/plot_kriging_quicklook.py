@@ -65,10 +65,6 @@ REGION_CONFIG = {
     },
 }
 
-# How far beyond the AOI grid to widen the map so the basemap shows
-# surrounding context (nearby towns/roads come from the tile layer itself)
-MAP_PAD_METERS = 40_000
-
 # Each phase gets its own white -> phase-color gradient, so P(snow)/P(mix)/
 # P(rain) are each read as "how much of this phase," and the color always
 # means the same phase across the figure.
@@ -197,10 +193,15 @@ def make_quicklook_figure(
     ymin, ymax = ds.y.min().item(), ds.y.max().item()
     extent = [xmin, xmax, ymin, ymax]
 
-    # widen the visible map beyond the AOI grid so nearby reference cities
-    # fall inside the frame instead of off the edge
-    view_xmin, view_xmax = xmin - MAP_PAD_METERS, xmax + MAP_PAD_METERS
-    view_ymin, view_ymax = ymin - MAP_PAD_METERS, ymax + MAP_PAD_METERS
+    # View limits match the actual kriging/AOI grid extent exactly (no
+    # padding) — this keeps the Easting/Northing axes here numerically
+    # identical to the phase-locations-coverage panel in
+    # produce_manuscript_figures.py, which also plots the DEM's native
+    # bounds with no margin. The basemap tile below will still render some
+    # area past the grid edge at low zoom, but the axis itself reflects only
+    # the true modeled domain.
+    view_xmin, view_xmax = xmin, xmax
+    view_ymin, view_ymax = ymin, ymax
 
     hillshade, hs_extent = (None, None)
     if dem_path is not None:
@@ -407,7 +408,7 @@ def make_quicklook_figure(
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--region", choices=["CA", "CO"], default="CA")
+    parser.add_argument("--region", choices=["CA", "CO"], default="CO")
     parser.add_argument("--date", default=None, help="YYYY-MM-DD; if omitted, auto-picks hour with most MRoS obs")
     parser.add_argument("--base-dir", default=".", help="Project base dir containing outputs/")
     parser.add_argument("--out", default=None, help="Output figure path (PNG)")
