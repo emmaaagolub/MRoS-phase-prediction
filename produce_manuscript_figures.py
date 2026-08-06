@@ -719,7 +719,7 @@ def fig_twet_performance(region: str):
             ax.plot(prof_val["bin_mid"], prof_val[col], "--", color=color, label="Validation")
         if not prof_test.empty:
             ax.plot(prof_test["bin_mid"], prof_test[col], "-", color=color, label="Test")
-        ax.axvspan(-1, 1, alpha=0.08, color="orange")
+        ax.axvspan(-2, 2, alpha=0.08, color="orange")
         ax.axvline(0, color="grey", lw=1)
         ax.set_title(title)
         ax.set_xlabel("Wet-bulb temperature (°C)")
@@ -818,7 +818,7 @@ def fig_f1_by_tair(region: str):
             ax.plot(prof_val["bin_mid"], prof_val[col], "--", color=color, label="Validation")
         if not prof_test.empty:
             ax.plot(prof_test["bin_mid"], prof_test[col], "-", color=color, label="Test")
-        ax.axvspan(-1, 1, alpha=0.08, color="orange")
+        ax.axvspan(-2, 2, alpha=0.08, color="orange")
         ax.axvline(0, color="grey", lw=1)
         ax.set_title(title)
         ax.set_xlabel("Air temperature (°C)")
@@ -1044,7 +1044,7 @@ def fig_mix_capture_by_wetbulb(region: str):
     for _, row in prof.iterrows():
         ax1.annotate(f"n={row['n']:.0f}", (row["bin_mid"], min(100, row["capture_rate"] * 100 + 6)),
                      ha="center", fontsize=7, color="#555555")
-    ax1.axvspan(-1, 1, alpha=0.08, color="orange")
+    ax1.axvspan(-2, 2, alpha=0.08, color="orange")
     ax1.axvline(0, color="grey", lw=1)
     ax1.set_xlabel("Wet-bulb temperature (°C)")
     ax1.set_ylabel("Mix capture rate (%; 95% binomial CI)")
@@ -1180,7 +1180,7 @@ def _fig_story5_compare(region: str, temp_col: str, fname: str):
             ax.plot(prof.loc[valid_r, "t_mid"], prof.loc[valid_r, rec_col],
                     "--", color=style_color, lw=2, marker="s", ms=5,
                     label=f"{disp} — recall")
-        ax.axvspan(-1, 1, alpha=0.08, color="orange", zorder=0)
+        ax.axvspan(-2, 2, alpha=0.08, color="orange", zorder=0)
         ax.axvline(0, color="black", lw=0.8, alpha=0.4, zorder=0)
         ax.set(xlabel=f"{temp_label} (°C)", ylabel=f"{label} precision / recall",
                title=label, xlim=(NF_BIN_EDGES[0], NF_BIN_EDGES[-1]), ylim=(0, 1.05))
