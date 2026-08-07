@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.28 (MiKTeX 25.12) (preloaded format=pdflatex 2026.7.23)  6 AUG 2026 17:29
+This is pdfTeX, Version 3.141592653-2.6-1.40.28 (MiKTeX 25.12) (preloaded format=pdflatex 2026.7.23)  7 AUG 2026 17:30
 entering extended mode
  restricted \write18 enabled.
  file:line:error style messages enabled.
@@ -803,9 +803,9 @@ LaTeX Font Info:    Font shape `OT1/ntxtlf/m/n' will be
 LaTeX Font Info:    Font shape `OT1/ntxtlf/m/it' will be
 (Font)              scaled to size 10.5pt on input line 100.
 LaTeX Font Info:    Font shape `OT1/ntxtlf/b/n' will be
-(Font)              scaled to size 9.85pt on input line 109.
+(Font)              scaled to size 9.85pt on input line 110.
 
-Overfull \vbox (9.73196pt too high) has occurred while \output is active []
+Overfull \vbox (23.24136pt too high) has occurred while \output is active []
 
 
 Underfull \vbox (badness 10000) has occurred while \output is active []
@@ -825,307 +825,322 @@ Package fancyhdr Warning: \headheight is too small (12.0pt):
 <figures/CA/mros_phase_diagnostics_combined_CA.png, id=9, 1002.6258pt x 879.285pt>
 File: figures/CA/mros_phase_diagnostics_combined_CA.png Graphic file (type png)
 <use figures/CA/mros_phase_diagnostics_combined_CA.png>
-Package pdftex.def Info: figures/CA/mros_phase_diagnostics_combined_CA.png  used on input line 231.
-(pdftex.def)             Requested size: 303.83452pt x 266.45747pt.
+Package pdftex.def Info: figures/CA/mros_phase_diagnostics_combined_CA.png  used on input line 230.
+(pdftex.def)             Requested size: 229.31398pt x 201.10428pt.
 <figures/CO/mros_phase_diagnostics_combined_CO.png, id=11, 1003.1076pt x 879.285pt>
 File: figures/CO/mros_phase_diagnostics_combined_CO.png Graphic file (type png)
 <use figures/CO/mros_phase_diagnostics_combined_CO.png>
-Package pdftex.def Info: figures/CO/mros_phase_diagnostics_combined_CO.png  used on input line 232.
-(pdftex.def)             Requested size: 303.98053pt x 266.45747pt.
+Package pdftex.def Info: figures/CO/mros_phase_diagnostics_combined_CO.png  used on input line 231.
+(pdftex.def)             Requested size: 229.31703pt x 201.01036pt.
 LaTeX Font Info:    Font shape `OT1/ntxtlf/m/sc' will be
-(Font)              scaled to size 8.0pt on input line 246.
+(Font)              scaled to size 8.0pt on input line 244.
 LaTeX Font Info:    Font shape `OT1/ntxtlf/m/it' will be
-(Font)              scaled to size 9.85pt on input line 254.
+(Font)              scaled to size 9.85pt on input line 283.
 LaTeX Font Info:    Font shape `OT1/ntxtlf/m/sc' will be
-(Font)              scaled to size 8.5pt on input line 272.
- [2] [3 <./figures/CA/mros_phase_diagnostics_combined_CA.png> <./figures/CO/mros_phase_diagnostics_combined_CO.png>]
-LaTeX Font Info:    Trying to load font information for OT1+ntxtt on input line 272.
+(Font)              scaled to size 8.5pt on input line 297.
+ [2]
+LaTeX Font Info:    Trying to load font information for OT1+ntxtt on input line 298.
  (C:\Users\EmmaGolub\AppData\Local\Programs\MiKTeX\tex/latex/newtx\ot1ntxtt.fd
 File: ot1ntxtt.fd 2012/04/20 v3.1
 )
 LaTeX Font Info:    Font shape `OT1/ntxtt/m/n' will be
-(Font)              scaled to size 9.85pt on input line 272.
+(Font)              scaled to size 9.85pt on input line 298.
 
-Underfull \hbox (badness 10000) in paragraph at lines 272--288
+Underfull \hbox (badness 10000) in paragraph at lines 298--314
 []\OT1/minntx/m/n/9.85 Each sub-mis-sion is pro-cessed with the
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 301--309
+Underfull \vbox (badness 10000) has occurred while \output is active []
+
+
+Underfull \vbox (badness 1117) has occurred while \output is active []
+
+ [3 <./figures/CA/mros_phase_diagnostics_combined_CA.png> <./figures/CO/mros_phase_diagnostics_combined_CO.png>]
+Underfull \hbox (badness 10000) in paragraph at lines 325--332
 []\OT1/minntx/m/n/9.85 Half-hourly GPM IMERG probability-of-liquid-
  []
 
-
-Underfull \hbox (badness 1048) in paragraph at lines 301--309
-\OT1/minntx/m/n/9.85 phase (only rain or snow) from pas-sive mi-crowave
- []
-
-<figures/workflow_architecture_v1.png, id=21, 1612.0225pt x 500.87125pt>
+<figures/workflow_architecture_v1.png, id=23, 1637.11626pt x 641.39626pt>
 File: figures/workflow_architecture_v1.png Graphic file (type png)
 <use figures/workflow_architecture_v1.png>
-Package pdftex.def Info: figures/workflow_architecture_v1.png  used on input line 374.
-(pdftex.def)             Requested size: 421.19714pt x 130.86543pt.
+Package pdftex.def Info: figures/workflow_architecture_v1.png  used on input line 368.
+(pdftex.def)             Requested size: 421.19714pt x 165.01701pt.
 [4]
-Underfull \vbox (badness 1742) has occurred while \output is active []
+Underfull \vbox (badness 7667) has occurred while \output is active []
 
  [5 <./figures/workflow_architecture_v1.png>]
-<figures/CA/quicklook_20240204T1700Z.png, id=32, 1132.4709pt x 695.9601pt>
-File: figures/CA/quicklook_20240204T1700Z.png Graphic file (type png)
-<use figures/CA/quicklook_20240204T1700Z.png>
-Package pdftex.def Info: figures/CA/quicklook_20240204T1700Z.png  used on input line 468.
-(pdftex.def)             Requested size: 444.59857pt x 273.22865pt.
-<figures/CO/quicklook_20240203T1700Z.png, id=33, 1157.2836pt x 695.9601pt>
-File: figures/CO/quicklook_20240203T1700Z.png Graphic file (type png)
-<use figures/CO/quicklook_20240203T1700Z.png>
-Package pdftex.def Info: figures/CO/quicklook_20240203T1700Z.png  used on input line 469.
-(pdftex.def)             Requested size: 444.59857pt x 267.3667pt.
- [6] [7 <./figures/CA/quicklook_20240204T1700Z.png> <./figures/CO/quicklook_20240203T1700Z.png>]
 LaTeX Font Info:    Font shape `OT1/ntxtlf/m/n' will be
-(Font)              scaled to size 5.41753pt on input line 596.
+(Font)              scaled to size 5.41753pt on input line 563.
 
-Underfull \hbox (badness 3884) in paragraph at lines 695--695
+Underfull \vbox (badness 10000) has occurred while \output is active []
+
+ [6]
+Underfull \hbox (badness 3884) in paragraph at lines 661--661
 []\OT1/minntx/m/n/8 Dominated by the ma-jor-ity
  []
 
 
-Underfull \hbox (badness 1292) in paragraph at lines 707--709
+Underfull \hbox (badness 1292) in paragraph at lines 673--675
 []\OT1/minntx/m/n/8 Mean of $\OML/ntxmi/m/it/8 F[]$ \OT1/minntx/m/n/8 and $\OML/ntxmi/m/it/8 F[]$\OT1/minntx/m/n/8 ,
  []
 
 
-Underfull \hbox (badness 1052) in paragraph at lines 712--714
+Underfull \hbox (badness 1052) in paragraph at lines 678--680
 \OT1/minntx/m/n/8 served or pre-dicted that the
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 720--720
+Underfull \hbox (badness 10000) in paragraph at lines 686--686
 []$\OT1/minntx/m/n/8 100 \LMS/ntxsy/m/n/8 ¹\OML/ntxmi/m/it/8 n[]\LMS/ntxsy/m/n/8 \OML/ntxmi/m/it/8 n[] \LMS/ntxsy/m/n/8 ^^@ \OT1/minntx/m/n/8 1\LMS/ntxsy/m/n/8 º$\OT1/minntx/m/n/8 , per
  []
 
 
-Underfull \hbox (badness 5908) in paragraph at lines 727--728
+Underfull \hbox (badness 5908) in paragraph at lines 693--694
 []$[]\LMS/ntxsy/m/n/8 ¹\OML/ntxmi/m/it/8 p[] > p[]\LMS/ntxsy/m/n/8 º$ \OT1/minntx/m/n/8 for a ran-
  []
 
 
-Underfull \hbox (badness 2503) in paragraph at lines 727--728
+Underfull \hbox (badness 2503) in paragraph at lines 693--694
 \OT1/minntx/m/n/8 dom observed-snow $\OML/ntxmi/m/it/8 i$ \OT1/minntx/m/n/8 and
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 733--733
+Underfull \hbox (badness 10000) in paragraph at lines 699--699
 []\OT1/minntx/m/n/8 Mixes cal-i-bra-tion with
  []
 
-[8]
-Underfull \vbox (badness 10000) has occurred while \output is active []
+[7]
+Underfull \vbox (badness 4752) has occurred while \output is active []
 
-
-Underfull \vbox (badness 10000) has occurred while \output is active []
-
- [9]
-<figures/CA/CA_f1_by_wetbulb.png, id=52, 1437.6912pt x 374.8404pt>
+ [8]
+<figures/CA/CA_f1_by_wetbulb.png, id=45, 1437.6912pt x 374.8404pt>
 File: figures/CA/CA_f1_by_wetbulb.png Graphic file (type png)
 <use figures/CA/CA_f1_by_wetbulb.png>
-Package pdftex.def Info: figures/CA/CA_f1_by_wetbulb.png  used on input line 938.
+Package pdftex.def Info: figures/CA/CA_f1_by_wetbulb.png  used on input line 904.
 (pdftex.def)             Requested size: 444.59857pt x 115.91333pt.
-<figures/CO/CO_f1_by_wetbulb.png, id=53, 1437.6912pt x 374.8404pt>
+<figures/CO/CO_f1_by_wetbulb.png, id=46, 1437.6912pt x 374.8404pt>
 File: figures/CO/CO_f1_by_wetbulb.png Graphic file (type png)
 <use figures/CO/CO_f1_by_wetbulb.png>
-Package pdftex.def Info: figures/CO/CO_f1_by_wetbulb.png  used on input line 939.
+Package pdftex.def Info: figures/CO/CO_f1_by_wetbulb.png  used on input line 905.
 (pdftex.def)             Requested size: 444.59857pt x 115.91333pt.
- [10] [11 <./figures/CA/CA_f1_by_wetbulb.png> <./figures/CO/CO_f1_by_wetbulb.png>]
-LaTeX Font Info:    Font shape `OT1/ntxtlf/m/n' will be
-(Font)              scaled to size 7.0pt on input line 1052.
 
-Overfull \hbox (10.42706pt too wide) in paragraph at lines 1069--1090
+Underfull \vbox (badness 2229) has occurred while \output is active []
+
+ [9]
+LaTeX Font Info:    Font shape `OT1/ntxtlf/m/n' will be
+(Font)              scaled to size 7.0pt on input line 976.
+
+Overfull \hbox (10.42706pt too wide) in paragraph at lines 993--1014
  [][] 
  []
 
-<figures/CA/CA_story5_nearfreeze_twet_comparison.png, id=62, 931.3194pt x 356.532pt>
+
+Underfull \vbox (badness 10000) has occurred while \output is active []
+
+
+Underfull \vbox (badness 10000) has occurred while \output is active []
+
+ [10 <./figures/CA/CA_f1_by_wetbulb.png> <./figures/CO/CO_f1_by_wetbulb.png>]
+<figures/CA/CA_story5_nearfreeze_twet_comparison.png, id=55, 931.3194pt x 356.532pt>
 File: figures/CA/CA_story5_nearfreeze_twet_comparison.png Graphic file (type png)
 <use figures/CA/CA_story5_nearfreeze_twet_comparison.png>
-Package pdftex.def Info: figures/CA/CA_story5_nearfreeze_twet_comparison.png  used on input line 1094.
+Package pdftex.def Info: figures/CA/CA_story5_nearfreeze_twet_comparison.png  used on input line 1033.
 (pdftex.def)             Requested size: 444.59857pt x 170.20313pt.
-<figures/CO/CO_story5_nearfreeze_twet_comparison.png, id=63, 931.3194pt x 356.532pt>
+<figures/CO/CO_story5_nearfreeze_twet_comparison.png, id=56, 931.3194pt x 356.532pt>
 File: figures/CO/CO_story5_nearfreeze_twet_comparison.png Graphic file (type png)
 <use figures/CO/CO_story5_nearfreeze_twet_comparison.png>
-Package pdftex.def Info: figures/CO/CO_story5_nearfreeze_twet_comparison.png  used on input line 1095.
+Package pdftex.def Info: figures/CO/CO_story5_nearfreeze_twet_comparison.png  used on input line 1034.
 (pdftex.def)             Requested size: 444.59857pt x 170.20313pt.
-[12]
 LaTeX Font Info:    Font shape `OT1/ntxtlf/b/n' will be
-(Font)              scaled to size 8.0pt on input line 1204.
-<figures/CA/CA_benchmark_accuracy_by_tair_ci.png, id=67, 678.3744pt x 389.7762pt>
+(Font)              scaled to size 8.0pt on input line 1097.
+<figures/CA/CA_benchmark_accuracy_by_tair_ci.png, id=57, 678.3744pt x 389.7762pt>
 File: figures/CA/CA_benchmark_accuracy_by_tair_ci.png Graphic file (type png)
 <use figures/CA/CA_benchmark_accuracy_by_tair_ci.png>
-Package pdftex.def Info: figures/CA/CA_benchmark_accuracy_by_tair_ci.png  used on input line 1231.
+Package pdftex.def Info: figures/CA/CA_benchmark_accuracy_by_tair_ci.png  used on input line 1124.
 (pdftex.def)             Requested size: 229.32257pt x 131.76086pt.
-<figures/CO/CO_benchmark_accuracy_by_tair_ci.png, id=68, 678.3744pt x 389.7762pt>
+<figures/CO/CO_benchmark_accuracy_by_tair_ci.png, id=58, 678.3744pt x 389.7762pt>
 File: figures/CO/CO_benchmark_accuracy_by_tair_ci.png Graphic file (type png)
 <use figures/CO/CO_benchmark_accuracy_by_tair_ci.png>
-Package pdftex.def Info: figures/CO/CO_benchmark_accuracy_by_tair_ci.png  used on input line 1232.
+Package pdftex.def Info: figures/CO/CO_benchmark_accuracy_by_tair_ci.png  used on input line 1125.
 (pdftex.def)             Requested size: 229.32257pt x 131.76086pt.
-<figures/CA/CA_benchmark_delta_forest.png, id=69, 569.9694pt x 284.7438pt>
+
+Underfull \vbox (badness 1199) has occurred while \output is active []
+
+<figures/CA/CA_benchmark_delta_forest.png, id=59, 569.9694pt x 284.7438pt>
 File: figures/CA/CA_benchmark_delta_forest.png Graphic file (type png)
 <use figures/CA/CA_benchmark_delta_forest.png>
-Package pdftex.def Info: figures/CA/CA_benchmark_delta_forest.png  used on input line 1257.
+Package pdftex.def Info: figures/CA/CA_benchmark_delta_forest.png  used on input line 1155.
 (pdftex.def)             Requested size: 229.32257pt x 114.5646pt.
-<figures/CO/CO_benchmark_delta_forest.png, id=70, 569.9694pt x 284.7438pt>
+<figures/CO/CO_benchmark_delta_forest.png, id=60, 569.9694pt x 284.7438pt>
 File: figures/CO/CO_benchmark_delta_forest.png Graphic file (type png)
 <use figures/CO/CO_benchmark_delta_forest.png>
-Package pdftex.def Info: figures/CO/CO_benchmark_delta_forest.png  used on input line 1258.
+Package pdftex.def Info: figures/CO/CO_benchmark_delta_forest.png  used on input line 1156.
 (pdftex.def)             Requested size: 229.32257pt x 114.5646pt.
-<figures/CA/CA_benchmark_delta_forest_nearfreeze.png, id=71, 569.9694pt x 284.7438pt>
+<figures/CA/CA_benchmark_delta_forest_nearfreeze.png, id=61, 569.9694pt x 284.7438pt>
 File: figures/CA/CA_benchmark_delta_forest_nearfreeze.png Graphic file (type png)
 <use figures/CA/CA_benchmark_delta_forest_nearfreeze.png>
-Package pdftex.def Info: figures/CA/CA_benchmark_delta_forest_nearfreeze.png  used on input line 1259.
+Package pdftex.def Info: figures/CA/CA_benchmark_delta_forest_nearfreeze.png  used on input line 1157.
 (pdftex.def)             Requested size: 229.32257pt x 114.5646pt.
-<figures/CO/CO_benchmark_delta_forest_nearfreeze.png, id=72, 569.9694pt x 284.7438pt>
+<figures/CO/CO_benchmark_delta_forest_nearfreeze.png, id=62, 569.9694pt x 284.7438pt>
 File: figures/CO/CO_benchmark_delta_forest_nearfreeze.png Graphic file (type png)
 <use figures/CO/CO_benchmark_delta_forest_nearfreeze.png>
-Package pdftex.def Info: figures/CO/CO_benchmark_delta_forest_nearfreeze.png  used on input line 1260.
+Package pdftex.def Info: figures/CO/CO_benchmark_delta_forest_nearfreeze.png  used on input line 1158.
 (pdftex.def)             Requested size: 229.32257pt x 114.5646pt.
- [13]
-<figures/CA/CA_band_placement_appendix.png, id=77, 641.7576pt x 498.663pt>
-File: figures/CA/CA_band_placement_appendix.png Graphic file (type png)
-<use figures/CA/CA_band_placement_appendix.png>
-Package pdftex.def Info: figures/CA/CA_band_placement_appendix.png  used on input line 1320.
-(pdftex.def)             Requested size: 336.96057pt x 261.82481pt.
-<figures/CO/CO_band_placement_appendix.png, id=78, 642.2394pt x 498.663pt>
-File: figures/CO/CO_band_placement_appendix.png Graphic file (type png)
-<use figures/CO/CO_band_placement_appendix.png>
-Package pdftex.def Info: figures/CO/CO_band_placement_appendix.png  used on input line 1321.
-(pdftex.def)             Requested size: 336.96057pt x 261.6346pt.
-
-Underfull \vbox (badness 10000) has occurred while \output is active []
-
- [14 <./figures/CA/CA_story5_nearfreeze_twet_comparison.png> <./figures/CO/CO_story5_nearfreeze_twet_comparison.png>]
-Underfull \vbox (badness 10000) has occurred while \output is active []
-
- [15 <./figures/CA/CA_benchmark_accuracy_by_tair_ci.png> <./figures/CO/CO_benchmark_accuracy_by_tair_ci.png>]
-Underfull \vbox (badness 10000) has occurred while \output is active []
-
- [16 <./figures/CA/CA_benchmark_delta_forest.png> <./figures/CO/CO_benchmark_delta_forest.png> <./figures/CA/CA_benchmark_delta_forest_nearfreeze.png> <./figures/CO/CO_benchmark_delta_forest_nearfreeze.png>] [17 <./figures/CA/CA_band_placement_appendix.png> <./figures/CO/CO_band_placement_appendix.png>]
-<figures/CA/CA_confusion_matrix_appendix.png, id=101, 405.1938pt x 349.305pt>
-File: figures/CA/CA_confusion_matrix_appendix.png Graphic file (type png)
-<use figures/CA/CA_confusion_matrix_appendix.png>
-Package pdftex.def Info: figures/CA/CA_confusion_matrix_appendix.png  used on input line 1535.
-(pdftex.def)             Requested size: 229.32257pt x 197.69347pt.
-<figures/CO/CO_confusion_matrix_appendix.png, id=102, 405.1938pt x 349.305pt>
-File: figures/CO/CO_confusion_matrix_appendix.png Graphic file (type png)
-<use figures/CO/CO_confusion_matrix_appendix.png>
-Package pdftex.def Info: figures/CO/CO_confusion_matrix_appendix.png  used on input line 1536.
-(pdftex.def)             Requested size: 229.32257pt x 197.69347pt.
-<figures/CA/CA_calibration_reliability.png, id=103, 859.0494pt x 665.8476pt>
-File: figures/CA/CA_calibration_reliability.png Graphic file (type png)
-<use figures/CA/CA_calibration_reliability.png>
-Package pdftex.def Info: figures/CA/CA_calibration_reliability.png  used on input line 1558.
-(pdftex.def)             Requested size: 229.32257pt x 177.73909pt.
-<figures/CO/CO_calibration_reliability.png, id=104, 859.0494pt x 665.8476pt>
-File: figures/CO/CO_calibration_reliability.png Graphic file (type png)
-<use figures/CO/CO_calibration_reliability.png>
-Package pdftex.def Info: figures/CO/CO_calibration_reliability.png  used on input line 1559.
-(pdftex.def)             Requested size: 229.32257pt x 177.73909pt.
-<figures/CA/CA_f1_by_tair.png, id=105, 1437.6912pt x 374.8404pt>
-File: figures/CA/CA_f1_by_tair.png Graphic file (type png)
-<use figures/CA/CA_f1_by_tair.png>
-Package pdftex.def Info: figures/CA/CA_f1_by_tair.png  used on input line 1592.
-(pdftex.def)             Requested size: 444.59857pt x 115.91333pt.
-<figures/CO/CO_f1_by_tair.png, id=106, 1437.6912pt x 374.8404pt>
-File: figures/CO/CO_f1_by_tair.png Graphic file (type png)
-<use figures/CO/CO_f1_by_tair.png>
-Package pdftex.def Info: figures/CO/CO_f1_by_tair.png  used on input line 1593.
-(pdftex.def)             Requested size: 444.59857pt x 115.91333pt.
-<figures/CA/CA_shap_wetbulb_heatmap.png, id=107, 690.9012pt x 418.2024pt>
-File: figures/CA/CA_shap_wetbulb_heatmap.png Graphic file (type png)
-<use figures/CA/CA_shap_wetbulb_heatmap.png>
-Package pdftex.def Info: figures/CA/CA_shap_wetbulb_heatmap.png  used on input line 1615.
-(pdftex.def)             Requested size: 444.59857pt x 269.12268pt.
-<figures/CO/CO_shap_wetbulb_heatmap.png, id=108, 697.1646pt x 418.2024pt>
-File: figures/CO/CO_shap_wetbulb_heatmap.png Graphic file (type png)
-<use figures/CO/CO_shap_wetbulb_heatmap.png>
-Package pdftex.def Info: figures/CO/CO_shap_wetbulb_heatmap.png  used on input line 1616.
-(pdftex.def)             Requested size: 444.59857pt x 266.69781pt.
-<figures/CA/CA_ablation_deltas_ci.png, id=109, 1291.7058pt x 297.2706pt>
-File: figures/CA/CA_ablation_deltas_ci.png Graphic file (type png)
-<use figures/CA/CA_ablation_deltas_ci.png>
-Package pdftex.def Info: figures/CA/CA_ablation_deltas_ci.png  used on input line 1636.
-(pdftex.def)             Requested size: 444.59857pt x 102.31805pt.
-<figures/CO/CO_ablation_deltas_ci.png, id=110, 1291.224pt x 297.2706pt>
-File: figures/CO/CO_ablation_deltas_ci.png Graphic file (type png)
-<use figures/CO/CO_ablation_deltas_ci.png>
-Package pdftex.def Info: figures/CO/CO_ablation_deltas_ci.png  used on input line 1637.
-(pdftex.def)             Requested size: 444.59857pt x 102.35434pt.
-<figures/CA/CA_story5_nearfreeze_tair_comparison.png, id=111, 931.3194pt x 356.532pt>
-File: figures/CA/CA_story5_nearfreeze_tair_comparison.png Graphic file (type png)
-<use figures/CA/CA_story5_nearfreeze_tair_comparison.png>
-Package pdftex.def Info: figures/CA/CA_story5_nearfreeze_tair_comparison.png  used on input line 1660.
-(pdftex.def)             Requested size: 444.59857pt x 170.20313pt.
-<figures/CO/CO_story5_nearfreeze_tair_comparison.png, id=112, 931.3194pt x 356.532pt>
-File: figures/CO/CO_story5_nearfreeze_tair_comparison.png Graphic file (type png)
-<use figures/CO/CO_story5_nearfreeze_tair_comparison.png>
-Package pdftex.def Info: figures/CO/CO_story5_nearfreeze_tair_comparison.png  used on input line 1661.
-(pdftex.def)             Requested size: 444.59857pt x 170.20313pt.
-<figures/CA/CA_overall_accuracy_bars.png, id=113, 931.8012pt x 357.0138pt>
-File: figures/CA/CA_overall_accuracy_bars.png Graphic file (type png)
-<use figures/CA/CA_overall_accuracy_bars.png>
-Package pdftex.def Info: figures/CA/CA_overall_accuracy_bars.png  used on input line 1680.
-(pdftex.def)             Requested size: 397.80286pt x 152.41797pt.
-<figures/CO/CO_overall_accuracy_bars.png, id=114, 931.8012pt x 357.0138pt>
-File: figures/CO/CO_overall_accuracy_bars.png Graphic file (type png)
-<use figures/CO/CO_overall_accuracy_bars.png>
-Package pdftex.def Info: figures/CO/CO_overall_accuracy_bars.png  used on input line 1681.
-(pdftex.def)             Requested size: 397.80286pt x 152.41797pt.
-<figures/CA/CA_csi_by_tair_appendix.png, id=115, 931.3194pt x 392.1852pt>
+ [11] [12 <./figures/CA/CA_story5_nearfreeze_twet_comparison.png> <./figures/CO/CO_story5_nearfreeze_twet_comparison.png> <./figures/CA/CA_benchmark_accuracy_by_tair_ci.png> <./figures/CO/CO_benchmark_accuracy_by_tair_ci.png>] [13 <./figures/CA/CA_benchmark_delta_forest.png> <./figures/CO/CO_benchmark_delta_forest.png> <./figures/CA/CA_benchmark_delta_forest_nearfreeze.png> <./figures/CO/CO_benchmark_delta_forest_nearfreeze.png>]
+<figures/CA/CA_csi_by_tair_appendix.png, id=81, 931.3194pt x 392.1852pt>
 File: figures/CA/CA_csi_by_tair_appendix.png Graphic file (type png)
 <use figures/CA/CA_csi_by_tair_appendix.png>
-Package pdftex.def Info: figures/CA/CA_csi_by_tair_appendix.png  used on input line 1699.
+Package pdftex.def Info: figures/CA/CA_csi_by_tair_appendix.png  used on input line 1201.
 (pdftex.def)             Requested size: 444.59857pt x 187.22343pt.
-<figures/CO/CO_csi_by_tair_appendix.png, id=116, 931.3194pt x 392.1852pt>
+<figures/CO/CO_csi_by_tair_appendix.png, id=82, 931.3194pt x 392.1852pt>
 File: figures/CO/CO_csi_by_tair_appendix.png Graphic file (type png)
 <use figures/CO/CO_csi_by_tair_appendix.png>
-Package pdftex.def Info: figures/CO/CO_csi_by_tair_appendix.png  used on input line 1700.
+Package pdftex.def Info: figures/CO/CO_csi_by_tair_appendix.png  used on input line 1202.
 (pdftex.def)             Requested size: 444.59857pt x 187.22343pt.
-<figures/CA/CA_benchmark_accuracy_by_tair.png, id=117, 642.2394pt x 923.1288pt>
-File: figures/CA/CA_benchmark_accuracy_by_tair.png Graphic file (type png)
-<use figures/CA/CA_benchmark_accuracy_by_tair.png>
-Package pdftex.def Info: figures/CA/CA_benchmark_accuracy_by_tair.png  used on input line 1723.
-(pdftex.def)             Requested size: 219.96057pt x 316.15562pt.
-<figures/CO/CO_benchmark_accuracy_by_tair.png, id=118, 642.2394pt x 923.1288pt>
-File: figures/CO/CO_benchmark_accuracy_by_tair.png Graphic file (type png)
-<use figures/CO/CO_benchmark_accuracy_by_tair.png>
-Package pdftex.def Info: figures/CO/CO_benchmark_accuracy_by_tair.png  used on input line 1724.
-(pdftex.def)             Requested size: 219.96057pt x 316.15562pt.
-<figures/CA/CA_mix_capture_by_wetbulb.png, id=119, 641.7576pt x 389.7762pt>
-File: figures/CA/CA_mix_capture_by_wetbulb.png Graphic file (type png)
-<use figures/CA/CA_mix_capture_by_wetbulb.png>
-Package pdftex.def Info: figures/CA/CA_mix_capture_by_wetbulb.png  used on input line 1742.
-(pdftex.def)             Requested size: 444.59857pt x 270.0283pt.
-<figures/CO/CO_mix_capture_by_wetbulb.png, id=120, 641.7576pt x 389.7762pt>
-File: figures/CO/CO_mix_capture_by_wetbulb.png Graphic file (type png)
-<use figures/CO/CO_mix_capture_by_wetbulb.png>
-Package pdftex.def Info: figures/CO/CO_mix_capture_by_wetbulb.png  used on input line 1743.
-(pdftex.def)             Requested size: 444.59857pt x 270.0283pt.
- (main.bbl [18]
-Overfull \vbox (2.48256pt too high) has occurred while \output is active []
+<figures/CA/CA_band_placement_appendix.png, id=83, 641.7576pt x 498.663pt>
+File: figures/CA/CA_band_placement_appendix.png Graphic file (type png)
+<use figures/CA/CA_band_placement_appendix.png>
+Package pdftex.def Info: figures/CA/CA_band_placement_appendix.png  used on input line 1286.
+(pdftex.def)             Requested size: 229.32257pt x 178.18697pt.
+<figures/CO/CO_band_placement_appendix.png, id=84, 642.2394pt x 498.663pt>
+File: figures/CO/CO_band_placement_appendix.png Graphic file (type png)
+<use figures/CO/CO_band_placement_appendix.png>
+Package pdftex.def Info: figures/CO/CO_band_placement_appendix.png  used on input line 1287.
+(pdftex.def)             Requested size: 229.32257pt x 178.05pt.
+ [14]
+Underfull \vbox (badness 1616) has occurred while \output is active []
 
 
 Underfull \vbox (badness 10000) has occurred while \output is active []
 
- [19 <./figures/CA/CA_confusion_matrix_appendix.png> <./figures/CO/CO_confusion_matrix_appendix.png> <./figures/CA/CA_calibration_reliability.png> <./figures/CO/CO_calibration_reliability.png>] [20 <./figures/CA/CA_f1_by_tair.png> <./figures/CO/CO_f1_by_tair.png>]
+ [15 <./figures/CA/CA_csi_by_tair_appendix.png> <./figures/CO/CO_csi_by_tair_appendix.png>]
+Underfull \vbox (badness 10000) has occurred while \output is active []
+
+
+Underfull \vbox (badness 1014) has occurred while \output is active []
+
+ [16 <./figures/CA/CA_band_placement_appendix.png> <./figures/CO/CO_band_placement_appendix.png>]
+<figures/CA/quicklook_20240204T1700Z.png, id=98, 1132.4709pt x 695.9601pt>
+File: figures/CA/quicklook_20240204T1700Z.png Graphic file (type png)
+<use figures/CA/quicklook_20240204T1700Z.png>
+Package pdftex.def Info: figures/CA/quicklook_20240204T1700Z.png  used on input line 1491.
+(pdftex.def)             Requested size: 444.59857pt x 273.22865pt.
+<figures/CO/quicklook_20240203T1700Z.png, id=99, 1157.2836pt x 695.9601pt>
+File: figures/CO/quicklook_20240203T1700Z.png Graphic file (type png)
+<use figures/CO/quicklook_20240203T1700Z.png>
+Package pdftex.def Info: figures/CO/quicklook_20240203T1700Z.png  used on input line 1492.
+(pdftex.def)             Requested size: 444.59857pt x 267.3667pt.
+<figures/CA/CA_confusion_matrix_appendix.png, id=100, 405.1938pt x 349.305pt>
+File: figures/CA/CA_confusion_matrix_appendix.png Graphic file (type png)
+<use figures/CA/CA_confusion_matrix_appendix.png>
+Package pdftex.def Info: figures/CA/CA_confusion_matrix_appendix.png  used on input line 1512.
+(pdftex.def)             Requested size: 229.32257pt x 197.69347pt.
+<figures/CO/CO_confusion_matrix_appendix.png, id=101, 405.1938pt x 349.305pt>
+File: figures/CO/CO_confusion_matrix_appendix.png Graphic file (type png)
+<use figures/CO/CO_confusion_matrix_appendix.png>
+Package pdftex.def Info: figures/CO/CO_confusion_matrix_appendix.png  used on input line 1513.
+(pdftex.def)             Requested size: 229.32257pt x 197.69347pt.
+<figures/CA/CA_calibration_reliability.png, id=102, 859.0494pt x 665.8476pt>
+File: figures/CA/CA_calibration_reliability.png Graphic file (type png)
+<use figures/CA/CA_calibration_reliability.png>
+Package pdftex.def Info: figures/CA/CA_calibration_reliability.png  used on input line 1535.
+(pdftex.def)             Requested size: 229.32257pt x 177.73909pt.
+<figures/CO/CO_calibration_reliability.png, id=103, 859.0494pt x 665.8476pt>
+File: figures/CO/CO_calibration_reliability.png Graphic file (type png)
+<use figures/CO/CO_calibration_reliability.png>
+Package pdftex.def Info: figures/CO/CO_calibration_reliability.png  used on input line 1536.
+(pdftex.def)             Requested size: 229.32257pt x 177.73909pt.
+<figures/CA/CA_f1_by_tair.png, id=104, 1437.6912pt x 374.8404pt>
+File: figures/CA/CA_f1_by_tair.png Graphic file (type png)
+<use figures/CA/CA_f1_by_tair.png>
+Package pdftex.def Info: figures/CA/CA_f1_by_tair.png  used on input line 1566.
+(pdftex.def)             Requested size: 444.59857pt x 115.91333pt.
+<figures/CO/CO_f1_by_tair.png, id=105, 1437.6912pt x 374.8404pt>
+File: figures/CO/CO_f1_by_tair.png Graphic file (type png)
+<use figures/CO/CO_f1_by_tair.png>
+Package pdftex.def Info: figures/CO/CO_f1_by_tair.png  used on input line 1567.
+(pdftex.def)             Requested size: 444.59857pt x 115.91333pt.
+<figures/CA/CA_shap_wetbulb_heatmap.png, id=106, 690.9012pt x 418.2024pt>
+File: figures/CA/CA_shap_wetbulb_heatmap.png Graphic file (type png)
+<use figures/CA/CA_shap_wetbulb_heatmap.png>
+Package pdftex.def Info: figures/CA/CA_shap_wetbulb_heatmap.png  used on input line 1589.
+(pdftex.def)             Requested size: 444.59857pt x 269.12268pt.
+<figures/CO/CO_shap_wetbulb_heatmap.png, id=107, 697.1646pt x 418.2024pt>
+File: figures/CO/CO_shap_wetbulb_heatmap.png Graphic file (type png)
+<use figures/CO/CO_shap_wetbulb_heatmap.png>
+Package pdftex.def Info: figures/CO/CO_shap_wetbulb_heatmap.png  used on input line 1590.
+(pdftex.def)             Requested size: 444.59857pt x 266.69781pt.
+<figures/CA/CA_ablation_deltas_ci.png, id=108, 1291.7058pt x 297.2706pt>
+File: figures/CA/CA_ablation_deltas_ci.png Graphic file (type png)
+<use figures/CA/CA_ablation_deltas_ci.png>
+Package pdftex.def Info: figures/CA/CA_ablation_deltas_ci.png  used on input line 1610.
+(pdftex.def)             Requested size: 444.59857pt x 102.31805pt.
+<figures/CO/CO_ablation_deltas_ci.png, id=109, 1291.224pt x 297.2706pt>
+File: figures/CO/CO_ablation_deltas_ci.png Graphic file (type png)
+<use figures/CO/CO_ablation_deltas_ci.png>
+Package pdftex.def Info: figures/CO/CO_ablation_deltas_ci.png  used on input line 1611.
+(pdftex.def)             Requested size: 444.59857pt x 102.35434pt.
+<figures/CA/CA_story5_nearfreeze_tair_comparison.png, id=110, 931.3194pt x 356.532pt>
+File: figures/CA/CA_story5_nearfreeze_tair_comparison.png Graphic file (type png)
+<use figures/CA/CA_story5_nearfreeze_tair_comparison.png>
+Package pdftex.def Info: figures/CA/CA_story5_nearfreeze_tair_comparison.png  used on input line 1633.
+(pdftex.def)             Requested size: 444.59857pt x 170.20313pt.
+<figures/CO/CO_story5_nearfreeze_tair_comparison.png, id=111, 931.3194pt x 356.532pt>
+File: figures/CO/CO_story5_nearfreeze_tair_comparison.png Graphic file (type png)
+<use figures/CO/CO_story5_nearfreeze_tair_comparison.png>
+Package pdftex.def Info: figures/CO/CO_story5_nearfreeze_tair_comparison.png  used on input line 1634.
+(pdftex.def)             Requested size: 444.59857pt x 170.20313pt.
+<figures/CA/CA_overall_accuracy_bars.png, id=112, 931.8012pt x 357.0138pt>
+File: figures/CA/CA_overall_accuracy_bars.png Graphic file (type png)
+<use figures/CA/CA_overall_accuracy_bars.png>
+Package pdftex.def Info: figures/CA/CA_overall_accuracy_bars.png  used on input line 1653.
+(pdftex.def)             Requested size: 397.80286pt x 152.41797pt.
+<figures/CO/CO_overall_accuracy_bars.png, id=113, 931.8012pt x 357.0138pt>
+File: figures/CO/CO_overall_accuracy_bars.png Graphic file (type png)
+<use figures/CO/CO_overall_accuracy_bars.png>
+Package pdftex.def Info: figures/CO/CO_overall_accuracy_bars.png  used on input line 1654.
+(pdftex.def)             Requested size: 397.80286pt x 152.41797pt.
+<figures/CA/CA_benchmark_accuracy_by_tair.png, id=114, 642.2394pt x 923.1288pt>
+File: figures/CA/CA_benchmark_accuracy_by_tair.png Graphic file (type png)
+<use figures/CA/CA_benchmark_accuracy_by_tair.png>
+Package pdftex.def Info: figures/CA/CA_benchmark_accuracy_by_tair.png  used on input line 1672.
+(pdftex.def)             Requested size: 219.96057pt x 316.15562pt.
+<figures/CO/CO_benchmark_accuracy_by_tair.png, id=115, 642.2394pt x 923.1288pt>
+File: figures/CO/CO_benchmark_accuracy_by_tair.png Graphic file (type png)
+<use figures/CO/CO_benchmark_accuracy_by_tair.png>
+Package pdftex.def Info: figures/CO/CO_benchmark_accuracy_by_tair.png  used on input line 1673.
+(pdftex.def)             Requested size: 219.96057pt x 316.15562pt.
+<figures/CA/CA_mix_capture_by_wetbulb.png, id=116, 641.7576pt x 389.7762pt>
+File: figures/CA/CA_mix_capture_by_wetbulb.png Graphic file (type png)
+<use figures/CA/CA_mix_capture_by_wetbulb.png>
+Package pdftex.def Info: figures/CA/CA_mix_capture_by_wetbulb.png  used on input line 1691.
+(pdftex.def)             Requested size: 444.59857pt x 270.0283pt.
+<figures/CO/CO_mix_capture_by_wetbulb.png, id=117, 641.7576pt x 389.7762pt>
+File: figures/CO/CO_mix_capture_by_wetbulb.png Graphic file (type png)
+<use figures/CO/CO_mix_capture_by_wetbulb.png>
+Package pdftex.def Info: figures/CO/CO_mix_capture_by_wetbulb.png  used on input line 1692.
+(pdftex.def)             Requested size: 444.59857pt x 270.0283pt.
+ (main.bbl [17] [18 <./figures/CA/quicklook_20240204T1700Z.png> <./figures/CO/quicklook_20240203T1700Z.png>]
+Underfull \vbox (badness 10000) has occurred while \output is active []
+
+
+Underfull \vbox (badness 10000) has occurred while \output is active []
+
+ [19 <./figures/CA/CA_confusion_matrix_appendix.png> <./figures/CO/CO_confusion_matrix_appendix.png> <./figures/CA/CA_calibration_reliability.png> <./figures/CO/CO_calibration_reliability.png>]
+Underfull \hbox (badness 1199) in paragraph at lines 139--142
+[]\OT1/minntx/m/n/8 Lundberg, S. M., and Coau-thors, 2020: From lo-cal ex-pla-na-
+ []
+
+[20 <./figures/CA/CA_f1_by_tair.png> <./figures/CO/CO_f1_by_tair.png>]
 Overfull \vbox (3.1345pt too high) has occurred while \output is active []
 
 
 Underfull \vbox (badness 10000) has occurred while \output is active []
 
- [21 <./figures/CA/CA_shap_wetbulb_heatmap.png> <./figures/CO/CO_shap_wetbulb_heatmap.png>]
-Underfull \hbox (badness 1199) in paragraph at lines 139--142
-[]\OT1/minntx/m/n/8 Lundberg, S. M., and Coau-thors, 2020: From lo-cal ex-pla-na-
- []
+ [21 <./figures/CA/CA_shap_wetbulb_heatmap.png> <./figures/CO/CO_shap_wetbulb_heatmap.png>]) [22
 
-[22 <./figures/CA/CA_ablation_deltas_ci.png> <./figures/CO/CO_ablation_deltas_ci.png>]) [23
-
- <./figures/CA/CA_story5_nearfreeze_tair_comparison.png> <./figures/CO/CO_story5_nearfreeze_tair_comparison.png>] [24 <./figures/CA/CA_overall_accuracy_bars.png> <./figures/CO/CO_overall_accuracy_bars.png>] [25 <./figures/CA/CA_csi_by_tair_appendix.png> <./figures/CO/CO_csi_by_tair_appendix.png>] [26 <./figures/CA/CA_benchmark_accuracy_by_tair.png> <./figures/CO/CO_benchmark_accuracy_by_tair.png>] [27 <./figures/CA/CA_mix_capture_by_wetbulb.png> <./figures/CO/CO_mix_capture_by_wetbulb.png>] (main.aux)
+ <./figures/CA/CA_ablation_deltas_ci.png> <./figures/CO/CO_ablation_deltas_ci.png>] [23 <./figures/CA/CA_story5_nearfreeze_tair_comparison.png> <./figures/CO/CO_story5_nearfreeze_tair_comparison.png>] [24 <./figures/CA/CA_overall_accuracy_bars.png> <./figures/CO/CO_overall_accuracy_bars.png>] [25 <./figures/CA/CA_benchmark_accuracy_by_tair.png> <./figures/CO/CO_benchmark_accuracy_by_tair.png>] [26 <./figures/CA/CA_mix_capture_by_wetbulb.png> <./figures/CO/CO_mix_capture_by_wetbulb.png>] (main.aux)
  ***********
 LaTeX2e <2025-11-01>
 L3 programming layer <2020/03/25>
@@ -1139,15 +1154,15 @@ LaTeX Font Warning: Size substitutions with differences
 Here is how much of TeX's memory you used:
  9401 strings out of 467871
  153326 string characters out of 5416440
- 582692 words of memory out of 5000000
+ 580994 words of memory out of 5000000
  38037 multiletter control sequences out of 15000+600000
  714531 words of font info for 227 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
- 89i,14n,91p,1869b,398s stack positions out of 10000i,1000n,20000p,200000b,200000s
+ 89i,16n,91p,1694b,398s stack positions out of 10000i,1000n,20000p,200000b,200000s
 <C:/Users/EmmaGolub/AppData/Local/Programs/MiKTeX/fonts/type1/public/newtx/NewTXMI.pfb><C:/Users/EmmaGolub/AppData/Local/Programs/MiKTeX/fonts/type1/public/newtx/NewTXMI5.pfb><C:/Users/EmmaGolub/AppData/Local/Programs/MiKTeX/fonts/type1/public/newtx/NewTXMI7.pfb><C:/Users/EmmaGolub/AppData/Local/Programs/MiKTeX/fonts/type1/public/newtx/txexs.pfb><C:/Users/EmmaGolub/AppData/Local/Programs/MiKTeX/fonts/type1/public/newtx/txmiaX.pfb><C:/Users/EmmaGolub/AppData/Local/Programs/MiKTeX/fonts/type1/public/newtx/txsys.pfb><C:/Users/EmmaGolub/AppData/Local/Programs/MiKTeX/fonts/type1/public/txfonts/txtt.pfb><C:/Users/EmmaGolub/AppData/Local/Programs/MiKTeX/fonts/type1/public/newtx/ztmb.pfb><C:/Users/EmmaGolub/AppData/Local/Programs/MiKTeX/fonts/type1/public/newtx/ztmr.pfb><C:/Users/EmmaGolub/AppData/Local/Programs/MiKTeX/fonts/type1/public/newtx/ztmri.pfb>
-Output written on main.pdf (27 pages, 12565622 bytes).
+Output written on main.pdf (26 pages, 12599859 bytes).
 PDF statistics:
- 219 PDF objects out of 1000 (max. 8388607)
+ 216 PDF objects out of 1000 (max. 8388607)
  0 named destinations out of 1000 (max. 500000)
  186 words of extra memory for PDF output out of 10000 (max. 10000000)
 

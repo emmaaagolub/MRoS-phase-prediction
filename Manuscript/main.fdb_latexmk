@@ -1,13 +1,13 @@
 # Fdb version 4
-["bibtex main"] 1786051087.70848 "main.aux" "main.bbl" "main" 1786051769.3255 0
+["bibtex main"] 1786138246.11472 "main.aux" "main.bbl" "main" 1786138261.35881 0
   "./ametsocV6.bst" 1784911253 36528 1129c625d2b580208fe8a42ae6fd064c ""
   "./references.bib" 1785422622 13691 2924bb4a6fe39bf5e754791d72a0588d ""
-  "main.aux" 1786051767 33958 1286472259da6a0982786f788b8eeb42 "pdflatex"
+  "main.aux" 1786138259 33041 2f56a9220ff8e5676fdbb5311fbc4c0f "pdflatex"
   (generated)
   "main.bbl"
   "main.blg"
   (rewritten before read)
-["pdflatex"] 1786051758.80414 "c:/Users/EmmaGolub/Desktop/MRoS_local/mros-precipitation-phase-product-prototype/Manuscript/main.tex" "main.pdf" "main" 1786051769.32725 0
+["pdflatex"] 1786138246.75115 "c:/Users/EmmaGolub/Desktop/MRoS_local/mros-precipitation-phase-product-prototype/Manuscript/main.tex" "main.pdf" "main" 1786138261.37226 0
   "C:/Users/EmmaGolub/AppData/Local/MiKTeX/fonts/map/pdftex/pdftex.map" 1784911639 124346 55158e4ffab625ef9c37e66c4ee22ffe ""
   "C:/Users/EmmaGolub/AppData/Local/MiKTeX/miktex/data/le/pdftex/pdflatex.fmt" 1784839122 13335423 54983bd2d8717fd97ead6905dcb4c1f7 ""
   "C:/Users/EmmaGolub/AppData/Local/Programs/MiKTeX/fonts/enc/dvips/newtx/ntx-ot1-tlf-pc.enc" 1736607166 2211 c42193888177bc8f86d55dca129a9358 ""
@@ -152,7 +152,7 @@
   "C:/Users/EmmaGolub/AppData/Local/Programs/MiKTeX/tex/latex/xpatch/xpatch.sty" 1585221260 8510 7803f78066c4f9d008405191a4b43073 ""
   "C:/Users/EmmaGolub/AppData/Local/Programs/MiKTeX/tex/latex/xstring/xstring.sty" 1693735632 123 a302f2c651a95033260db60e51527ae8 ""
   "ametsocV6.1.cls" 1784911253 34713 46ac9504b171a8ca4040fc7e3667982b ""
-  "c:/Users/EmmaGolub/Desktop/MRoS_local/mros-precipitation-phase-product-prototype/Manuscript/main.tex" 1786051284 98690 938ed2c6f45ed9280077da6395d4f9b7 ""
+  "c:/Users/EmmaGolub/Desktop/MRoS_local/mros-precipitation-phase-product-prototype/Manuscript/main.tex" 1786138238 95646 e0eb7dc7212ac5de3e68d0a24c6cb0e8 ""
   "figures/CA/CA_ablation_deltas_ci.png" 1786042860 92622 18a84440331d741dbf8236fe488084c9 ""
   "figures/CA/CA_band_placement_appendix.png" 1786047057 146899 bc0b3f4c04bd7f05af6f19309f6965f0 ""
   "figures/CA/CA_benchmark_accuracy_by_tair.png" 1786042870 399818 7220ebc1ef924c968815bd9c6350427f ""
@@ -189,10 +189,10 @@
   "figures/CO/CO_story5_nearfreeze_twet_comparison.png" 1786046846 184214 ca53dbb0b9f2a957e8863789d717754f ""
   "figures/CO/mros_phase_diagnostics_combined_CO.png" 1786050521 667627 cde86e202786228667fd5e7673bf7efe ""
   "figures/CO/quicklook_20240203T1700Z.png" 1786051686 2863521 90bf55a073f7babd3325ab7d7d81e5f9 ""
-  "figures/workflow_architecture_v1.png" 1785948816 177709 19b4a4dbb4db5d591357b0ded23d9662 ""
-  "main.aux" 1786051767 33958 1286472259da6a0982786f788b8eeb42 "pdflatex"
-  "main.bbl" 1786051088 11148 8c63ad437a00f763388101bb41c1d567 "bibtex main"
-  "main.tex" 1786051284 98690 938ed2c6f45ed9280077da6395d4f9b7 ""
+  "figures/workflow_architecture_v1.png" 1786136934 220478 55f6216a5abf765bc3b7bda401311627 ""
+  "main.aux" 1786138259 33041 2f56a9220ff8e5676fdbb5311fbc4c0f "pdflatex"
+  "main.bbl" 1786138246 11148 8c63ad437a00f763388101bb41c1d567 "bibtex main"
+  "main.tex" 1786138238 95646 e0eb7dc7212ac5de3e68d0a24c6cb0e8 ""
   (generated)
   "main.aux"
   "main.log"
