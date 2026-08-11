@@ -1,0 +1,38 @@
+# Python packages needed to run the pipeline.
+#
+# Versions are deliberately left open. To pin them to the environment that
+# produced a given set of results:
+#     pip freeze > requirements-lock.txt
+# and keep that file alongside the results.
+
+# --- core ---
+numpy
+pandas
+scipy
+pyarrow            # parquet read/write
+
+# --- gridded and geospatial data ---
+xarray
+rioxarray          # the .rio accessor used when regridding
+netCDF4            # writing the hourly predictor cubes
+rasterio
+geopandas
+shapely
+pyproj
+contextily         # basemap tiles for the station and study-extent maps
+matplotlib-scalebar
+
+# --- interpolation and modelling ---
+pykrige            # ordinary and universal kriging
+scikit-learn
+xgboost
+betacal            # beta calibration of the predicted probabilities
+shap               # per-prediction feature attribution
+
+# --- plotting ---
+matplotlib
+seaborn
+
+# --- misc ---
+pytz               # station timezone conversion
+tqdm               # progress bars during interpolation
