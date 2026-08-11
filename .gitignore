@@ -44,7 +44,9 @@ venv/
 # Specific output directories
 outputs/
 Data/
-ML_pipeline/model_artifacts/
+ML_pipeline/
+Manuscript/
+Scripts/
 
 # ------------------------------------------------------------
 # OS / editor
