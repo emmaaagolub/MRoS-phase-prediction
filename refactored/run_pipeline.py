@@ -1,50 +1,46 @@
-"""Run the whole precipitation-phase pipeline, start to finish.
+"""Run the pipeline stages in order.
 
-Every stage handles both study areas on its own, so there is nothing to edit
-between a California run and a Colorado one.
-
-Stages run in order and each depends on the ones before it:
+Every stage processes both regions, so nothing needs editing between a
+California run and a Colorado run.
 
   Preprocessing
     1  get_elevation.R          download the raw elevation models
-    2  download_station_data.R  collect weather station observations
-    3  download_imerg.R         collect satellite phase probability
-    4  download_prism.R         collect gridded daily climate data
-    5  process_dem.py           reproject and coarsen the elevation to 1 km
-    6  compile_observations.py  bring all observations onto a common hourly grid
-    7  compilation_figures      check the compiled observations
-    8  resample_gridded.py      put PRISM and IMERG on the 1 km hourly grid
+    2  download_station_data.R  download station observations
+    3  download_imerg.R         download IMERG phase probability
+    4  download_prism.R         download daily PRISM rasters
+    5  process_dem.py           reproject and resample elevation to 1 km
+    6  compile_observations.py  observations onto a common hourly grid
+    7  compilation_figures      figures from the compiled observations
+    8  resample_gridded.py      PRISM and IMERG onto the 1 km hourly grid
     9  kriging_interpolation.py interpolate observations onto the grid
 
   Model
-   10  build_dataset.py         assemble the point table the model trains on
+   10  build_dataset.py         assemble the point table for model fitting
    11  train_model.py           fit, calibrate and export the model
-   12  shap_analysis.py         attribute predictions to individual predictors
+   12  shap_analysis.py         SHAP attribution
 
   Evaluation
    13  model_evaluation.py      score the model and draw the summary figures
-   14  benchmarking.py          compare against the standard published methods
-   15  ablation.py              retrain with each predictor removed in turn
-   16  bootstrap_cis.py         confidence intervals on all of the above
+   14  benchmarking.py          compare against established methods
+   15  ablation.py              retrain with predictors removed
+   16  bootstrap_cis.py         bootstrap confidence intervals
 
   Figures
-   17  manuscript_figures.py    redraw every figure from the saved artifacts
+   17  manuscript_figures.py    redraw the figures from saved artifacts
 
 Usage
 -----
-  python run_pipeline.py                          run everything
+  python run_pipeline.py                          run every stage
   python run_pipeline.py --regions CA             one region only
   python run_pipeline.py --from process_dem       resume from a stage
   python run_pipeline.py --only compile kriging_interpolation
   python run_pipeline.py --skip-download          skip the four download stages
-  python run_pipeline.py --list                   show the stages and stop
+  python run_pipeline.py --list                   list the stages and exit
   python run_pipeline.py --dry-run                print the commands only
 
-The download stages take days and skip anything already on disk, so
---skip-download is the normal choice once the data are in place.
+The download stages skip files already present on disk.
 
-Everything the pipeline writes goes to refactored/outputs/, leaving results
-from the earlier notebook version untouched.
+All pipeline output is written under refactored/outputs/.
 """
 
 import argparse
@@ -66,8 +62,7 @@ STAGES = [
     ("download_prism", "preprocessing", "download_prism.R", True, []),
     ("process_dem", "preprocessing", "process_dem.py", False, []),
     ("compile", "preprocessing", "compile_observations.py", False, []),
-    # The two figures that only need the compiled observations are drawn here
-    # rather than waiting for the end, so problems show up early.
+    # The two figures that depend only on the compiled observations.
     ("compilation_figures", "figures", "manuscript_figures.py", False,
      ["--figures", "station_checks", "phase_combined"]),
     ("resample_gridded", "preprocessing", "resample_gridded.py", False, []),

@@ -1,7 +1,7 @@
 # Python packages needed to run the pipeline.
 #
-# Versions are deliberately left open. To pin them to the environment that
-# produced a given set of results:
+# Versions are unpinned. To pin them to the environment that produced a given
+# set of results:
 #     pip freeze > requirements-lock.txt
 # and keep that file alongside the results.
 

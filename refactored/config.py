@@ -1,7 +1,7 @@
 """Shared settings for the precipitation-phase pipeline.
 
-Everything that both regions have in common lives here, so no script needs a
-region toggle that has to be edited by hand between runs.
+Region definitions, file paths and the study period are defined here and
+imported by every stage.
 """
 
 from pathlib import Path
@@ -13,8 +13,7 @@ REPO_ROOT = PIPELINE_ROOT.parent
 # Downloaded source data is shared with the rest of the repository.
 DATA_DIR = REPO_ROOT / "Data"
 
-# Everything this pipeline produces stays inside its own folder, so a run here
-# never touches results from the earlier notebook-based version.
+# All pipeline output is written inside this folder.
 OUTPUT_DIR = PIPELINE_ROOT / "outputs"
 
 # Study period, shared by every stage.
@@ -34,7 +33,7 @@ REGIONS = {
         "utm_crs": "EPSG:26911",
         "dem_10m": "california_DEM_AOI_TNM_10m.tif",
         "dem_1km": "CA_DEM_AOI_1km.tif",
-        # Months with enough MRoS reports to be worth interpolating.
+        # Months for which MRoS surfaces are interpolated.
         "mros_active_months": (10, 11, 12, 1, 2, 3, 4, 5),
         "aoi_lonlat": [
             (-119.45505750721992, 39.65343608043361),

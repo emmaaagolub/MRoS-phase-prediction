@@ -6,9 +6,8 @@ Mountains (CO).
 
 Crowdsourced observations from the Mountain Rain or Snow project provide the
 labels. Weather stations, satellite and gridded climate data provide the
-predictors. A gradient-boosted model predicts rain versus snow, and an
-uncertainty band around the resulting probability produces a third "mix" class
-where the answer is genuinely ambiguous.
+predictors. A gradient-boosted model predicts rain versus snow, and a band
+around the resulting probability assigns a third "mix" class.
 
 ## Running it
 
@@ -33,16 +32,15 @@ python figures/manuscript_figures.py --figures shap band
 Rscript preprocessing/download_prism.R
 ```
 
-Source data is read from the repository's shared `Data/` folder. Everything the
-pipeline writes goes to `refactored/outputs/`, so a run here never disturbs
-results produced by the earlier notebook version.
+Source data is read from the repository's shared `Data/` folder. All pipeline
+output is written to `refactored/outputs/`.
 
 ## Layout
 
 ```
 refactored/
   config.py            region definitions, paths and the study period
-  run_pipeline.py      runs every stage in order
+  run_pipeline.py      runs the stages in order
   requirements.txt
 
   preprocessing/
@@ -51,22 +49,22 @@ refactored/
     download_station_data.R   HADS, LCD and SNOTEL station observations
     download_imerg.R          GPM IMERG liquid-precipitation probability
     download_prism.R          daily PRISM climate rasters
-    process_dem.py            reproject and coarsen elevation to 1 km
-    compile_observations.py   stations, satellite and reports onto one hourly grid
+    process_dem.py            reproject and resample elevation to 1 km
+    compile_observations.py   observations onto a common hourly grid
     resample_gridded.py       PRISM and IMERG onto the 1 km hourly grid
     kriging_interpolation.py  interpolate observations onto the grid
 
   model/
     common.py            settings shared by the model and evaluation code
-    build_dataset.py     assemble the point table the model trains on
-    train_model.py       fit, calibrate, choose the uncertainty band, export
-    shap_analysis.py     which predictors drive which predictions
+    build_dataset.py     assemble the point table used for fitting
+    train_model.py       fit, calibrate, select the band parameters, export
+    shap_analysis.py     SHAP attribution
 
   evaluation/
-    experiment_base.py   machinery shared by the experiment runners
+    experiment_base.py   shared code for the experiment runners
     model_evaluation.py  score the model and draw the summary figures
-    benchmarking.py      compare against standard published methods
-    ablation.py          retrain with each predictor removed in turn
+    benchmarking.py      compare against established methods
+    ablation.py          retrain with predictors removed
     bootstrap_cis.py     cluster bootstrap confidence intervals
 
   figures/
@@ -93,15 +91,14 @@ refactored/
 
 Two sets of figures are produced.
 
-Diagnostic figures live beside the artifacts they describe, under
-`outputs/model/<REGION>/graphics/` and `outputs/evaluation/<REGION>/.../graphics/`.
-They are written by the stage that computes them — training curves, the class
-weight sweep, per-experiment confusion matrices and so on.
+Diagnostic figures are written by the stage that computes them, under
+`outputs/model/<REGION>/graphics/` and `outputs/evaluation/<REGION>/.../graphics/`:
+training curves, the class weight sweep, per-experiment confusion matrices.
 
-Presentation figures go to `outputs/figures/<REGION>/`, all drawn by
-`figures/manuscript_figures.py`, which reads saved artifacts only and retrains
-nothing. Filenames follow `<REGION>_<description>.png`, with `_appendix` on
-figures meant for the supplement. Draw a subset with `--figures`:
+Presentation figures go to `outputs/figures/<REGION>/` and are all drawn by
+`figures/manuscript_figures.py`, which reads saved artifacts only. Filenames
+follow `<REGION>_<description>.png`, with `_appendix` on supplement figures.
+Draw a subset with `--figures`:
 
 ```bash
 python figures/manuscript_figures.py --figures calibration forest shap
@@ -114,7 +111,7 @@ Available keys: `station_checks`, `phase_combined`, `phase_extent`,
 `story5_twet`, `confusion`, `csi`.
 
 `station_checks` and `phase_combined` depend only on the compiled observations,
-so the pipeline draws them right after that stage as an early sanity check.
+so the pipeline draws them directly after that stage.
 
 ## Requirements
 
@@ -131,14 +128,13 @@ checked out alongside this repository.
 
 ## Notes on the approach
 
-The model is trained only on observations reported as pure rain or pure snow.
-Reports of mixed precipitation are held back rather than trained as a third
-class, because "mix" is as much a statement about uncertainty as it is a
-distinct physical state. Predicted probabilities are calibrated separately for
-near-freezing and clear-phase conditions, and mix is then defined as the region
-where the calibrated probability sits close enough to 0.5 — with "close enough"
-widening as wet-bulb temperature approaches freezing.
+The model is fitted on observations reported as pure rain or pure snow.
+Reports of mixed precipitation are excluded from fitting and retained for
+evaluation. Predicted probabilities are calibrated separately for near-freezing
+and clear-phase observations. Mix is then assigned where the calibrated
+probability falls inside a band around 0.5 whose width increases as wet-bulb
+temperature approaches freezing.
 
 The MRoS-derived predictors are computed leave-one-out: each observation's
-predictor value comes from the other observations in that hour, never from
-itself, so the labels cannot leak into the features.
+predictor value is interpolated from the other observations in that hour, not
+from itself.
