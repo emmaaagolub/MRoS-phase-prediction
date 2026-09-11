@@ -1,30 +1,24 @@
-"""
-bootstrap_cis.py — Paired space-time cluster bootstrap confidence intervals
-===========================================================================
+"""Paired space-time cluster bootstrap confidence intervals.
 
-Computes bootstrap CIs for (1) the benchmark comparison and (2) the ablation
-study, entirely from stored per-observation test predictions. No model is
-retrained and no gridded data are touched.
+Computes bootstrap CIs for the benchmark comparison and the ablation study
+from stored per-observation test predictions. No model is retrained and no
+gridded data is read.
 
 Method
 ------
 Observations are assigned to space-time clusters: a square spatial block of
-side BLOCK_KM (projected coordinates) crossed with a calendar day. Clusters —
-not individual observations — are resampled with replacement (cluster/block
-bootstrap), because citizen-science reports from the same storm and
-neighbourhood are not independent; an iid bootstrap would understate
-uncertainty. Every replicate applies the SAME resampled rows to all methods /
-configs, so method differences are paired within replicate and the CI on each
-delta is obtained directly (percentile intervals).
+side BLOCK_KM in projected coordinates, crossed with a calendar day. Clusters,
+not individual observations, are resampled with replacement. Every replicate
+applies the same resampled rows to all methods and configurations, so method
+differences are paired within replicate and the CI on each delta is taken
+directly as a percentile interval.
 
-Because block size is a judgment call, the analysis is repeated for each size
-in BLOCK_KM_GRID (plus an iid bootstrap for reference) and a sensitivity
-table is written; headline numbers use BLOCK_KM_PRIMARY.
+The analysis is repeated for each block size in BLOCK_KM_GRID, plus an iid
+bootstrap, and a sensitivity table is written. Headline numbers use
+BLOCK_KM_PRIMARY.
 
-Caveat to report alongside results: these CIs are conditional on the single
-trained model and train/test split — they quantify test-set sampling
-uncertainty, not training stochasticity. (Supplement with multi-seed retrains
-if needed.)
+These CIs are conditional on a single trained model and split; they cover
+test-set sampling only, not training stochasticity.
 
 Inputs
 ------
@@ -33,7 +27,7 @@ Inputs
                  (per-obs calibrated p(snow) + split labels; test rows used)
 
 Outputs (evaluation/{REGION}/benchmarking/bootstrap/)
-------
+-------
   bootstrap_benchmark_metrics_ci.csv    per-method accuracy, near-freeze acc,
                                         macro F1, near-freeze macro F1, snow /
                                         rain recall and bias, with CIs; plus
@@ -56,11 +50,10 @@ Outputs (evaluation/{REGION}/benchmarking/bootstrap/)
 
 Usage
 -----
-  python bootstrap_cis.py                 # uses REGION below
-  python bootstrap_cis.py --region CA
-  python bootstrap_cis.py --region CO --n-boot 10000 --block-km 30
+  python bootstrap_cis.py
+  python bootstrap_cis.py --regions CA
+  python bootstrap_cis.py --regions CO --n-boot 10000 --block-km 30
 """
-# conda activate "C:\Users\EmmaGolub\Desktop\MRoS_local\venv"
 
 from __future__ import annotations
 
@@ -80,7 +73,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from config import OUTPUT_DIR, REGION_IDS  # noqa: E402
 
 # =============================================================================
-# 1.  CONFIG
+# Config
 # =============================================================================
 
 N_BOOT      = 5000
@@ -118,7 +111,7 @@ METHOD_LABEL = {
 }
 
 # =============================================================================
-# 2.  CLUSTER CONSTRUCTION AND BOOTSTRAP SETUP
+# Cluster construction and bootstrap setup
 # =============================================================================
 
 def make_cluster_codes(df: pd.DataFrame, block_km: float | None,
@@ -161,8 +154,7 @@ def pct_ci(samples: np.ndarray) -> tuple[float, float]:
 def fast_auc(y_true_bin: np.ndarray, scores: np.ndarray) -> float:
     """Rank-based ROC AUC (equivalent to Mann-Whitney U). y_true_bin in {0,1}.
 
-    Fully vectorised, including average ranks for ties. Called O(10^5) times
-    across the ablation bootstrap, so the tie handling must not loop in Python.
+    Vectorised, including average ranks for ties.
     """
     n1 = int(y_true_bin.sum()); n0 = len(y_true_bin) - n1
     if n1 == 0 or n0 == 0:
@@ -181,7 +173,7 @@ def fast_auc(y_true_bin: np.ndarray, scores: np.ndarray) -> float:
 
 def gaussian_half_band(temp_wet, base_half_band, extra_half_band, sigma):
     """Wet-bulb-conditioned half-width of the uncertainty envelope.
-    Mirrors ML_XGBoost_binary_uncertainty_benchmarking.gaussian_half_band."""
+    Matches the definition in model/common.py."""
     t = np.asarray(temp_wet, float)
     return np.clip(base_half_band + extra_half_band * np.exp(-(t ** 2) / (2.0 * sigma ** 2)),
                    0.0, 0.5)
@@ -189,7 +181,7 @@ def gaussian_half_band(temp_wet, base_half_band, extra_half_band, sigma):
 
 def classify_phase_gaussian_band(p_snow, temp_wet, base_half_band, extra_half_band, sigma):
     """3-class prediction with mix abstention band.
-    Mirrors ML_XGBoost_binary_uncertainty_benchmarking.classify_phase_gaussian_band."""
+    Matches the definition in model/common.py."""
     p_snow = np.asarray(p_snow, float)
     hb = gaussian_half_band(temp_wet, base_half_band, extra_half_band, sigma)
     pred = np.full(len(p_snow), MIX_CODE, dtype=int)
@@ -199,7 +191,7 @@ def classify_phase_gaussian_band(p_snow, temp_wet, base_half_band, extra_half_ba
 
 
 # =============================================================================
-# 3.  METRICS (vectorised, per replicate)
+# Metrics (vectorised, per replicate)
 # =============================================================================
 
 def accuracy(correct: np.ndarray, idx: np.ndarray) -> float:
@@ -266,7 +258,7 @@ def masked_auc(y_bin: np.ndarray, scores: np.ndarray, mask: np.ndarray,
 
 
 # =============================================================================
-# 4.  BENCHMARK BOOTSTRAP
+# Benchmark bootstrap
 # =============================================================================
 
 def load_benchmark_df(region: str) -> tuple[pd.DataFrame, list[str]]:
@@ -442,7 +434,7 @@ def benchmark_tables(res: dict, out_dir: Path) -> tuple[pd.DataFrame, pd.DataFra
 
 
 # =============================================================================
-# 5.  ABLATION BOOTSTRAP  (from stored shap_values_all.parquet per config)
+# Ablation bootstrap, from the stored shap_values_all.parquet per config
 # =============================================================================
 
 def load_ablation_test_preds(region: str) -> tuple[dict[str, pd.DataFrame], dict[str, dict]]:
@@ -619,7 +611,7 @@ def run_ablation_bootstrap(cfgs: dict[str, pd.DataFrame], bands: dict[str, dict]
 
 
 # =============================================================================
-# 6.  FIGURES
+# Figures
 # =============================================================================
 
 def plot_ribbons(res: dict, region: str, graphics: Path):
@@ -702,7 +694,7 @@ def plot_delta_forest(deltas_df: pd.DataFrame, region: str, graphics: Path):
 
 
 # =============================================================================
-# 7.  MAIN
+# Main
 # =============================================================================
 
 def main():

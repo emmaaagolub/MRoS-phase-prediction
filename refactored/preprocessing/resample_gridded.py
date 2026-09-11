@@ -1,11 +1,11 @@
-"""Step 7 — Put the existing gridded products (PRISM and IMERG) on the same
-1 km grid and hourly step as everything else.
+"""Resample PRISM and IMERG onto the 1 km hourly grid.
 
-PRISM arrives daily at 800 m. It is resampled to the DEM grid, then expanded to
-hourly: air temperature follows a simple daily cycle fitted between the day's
-minimum and maximum, while the other variables repeat their daily value.
+PRISM is daily at 800 m. It is regridded to the DEM grid, then expanded to
+hourly: air temperature is interpolated from the daily minimum and maximum
+using a fixed diurnal curve, and the remaining variables repeat their daily
+value at each hour.
 
-IMERG is already hourly, so it only needs regridding.
+IMERG is already hourly and is only regridded.
 
 Inputs:  Data/PRISM/<REGION>/combined_prism_*.parquet
          outputs/compiled/<REGION>/hourly_data/imerg_hourly.parquet

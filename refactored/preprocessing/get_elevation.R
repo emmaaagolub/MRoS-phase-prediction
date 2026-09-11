@@ -1,4 +1,4 @@
-## Step 1 — Download 1/3 arc-second (~10 m) DEMs from the USGS National Map
+## Download 1/3 arc-second (~10 m) DEMs from the USGS National Map
 ## and clip them to each study area.
 ##
 ## Output: Data/Elevation/<region>_DEM_AOI_TNM_10m.tif

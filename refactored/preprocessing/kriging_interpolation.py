@@ -1,29 +1,27 @@
-"""Step 8 — Interpolate the point observations onto the 1 km grid, hour by hour.
+"""Interpolate the point observations onto the 1 km grid, hour by hour.
 
-Two things are produced:
+Produces two outputs:
 
 1. Gridded predictor surfaces.
-   Temperature variables are fitted to elevation each hour and the leftover
-   residual is kriged, so the surface follows the terrain. Humidity is kriged
-   with elevation as an external drift. The MRoS phase categories are turned
-   into snow/mix/rain indicators and kriged separately, then rescaled so the
-   three probabilities sum to one.
+   Temperature variables are regressed on elevation each hour and the residual
+   is kriged with ordinary kriging. Humidity is kriged with elevation as an
+   external drift. The MRoS phase categories are converted to snow/mix/rain
+   indicators, kriged separately, then rescaled to sum to one.
 
 2. A leave-one-out table of MRoS predictions.
-   Each MRoS observation is predicted from all the others in that hour. This
-   gives the machine-learning stage an MRoS-derived predictor that never saw
-   the point it is predicting, so the labels do not leak into the features.
+   Each MRoS observation is predicted by kriging from the other observations
+   in the same hour.
 
 Inputs:  outputs/compiled/<REGION>/hourly_data/{stations,mros}_hourly.parquet
          Data/Elevation/<REGION>_DEM_AOI_1km.tif
-Output:  outputs/interpolated/<REGION>/indicator_kriging/  (see config.interpolation_dir)
+Output:  outputs/interpolated/<REGION>/indicator_kriging/
            hourly_predictors_1km_indicator_kriging.nc
            mros_loocv_point_predictions_kriging.{parquet,csv}
            mros_loocv_summary_kriging.csv
            variogram_calibration/
 
-Work is checkpointed a day at a time and flushed into the final file in
-batches, so an interrupted run picks up where it stopped.
+Results are written one day at a time and appended to the output file in
+batches, so an interrupted run resumes from the last completed day.
 """
 
 from __future__ import annotations
@@ -82,8 +80,8 @@ SETTINGS = {
     "default_lapse_degC_per_m": -0.005,
     "lapse_bounds_degC_per_m": (-0.009, 0.002),
 
-    # Variogram fitting. A sample of hours is pooled rather than fitting one
-    # variogram per hour, which would be both slow and unstable.
+    # Variogram fitting. Empirical variograms from a sample of hours are
+    # pooled and one model is fitted to the pooled result.
     "variogram_model": "spherical",
     "max_hours_for_variogram": 300,
     "max_points_per_hour_for_variogram": 30,
@@ -432,7 +430,7 @@ def fit_variogram_model(emp, model_name, var_name, eps):
         )
         sill, rng, nugget = map(float, popt)
 
-        # A nugget at or above the sill means the fit found no structure.
+        # A nugget at or above the sill is a degenerate fit.
         if nugget >= sill:
             warnings.warn(f"Degenerate variogram fit for '{var_name}'; using initial guesses.")
             sill, rng, nugget = sill_guess, range_guess, nugget_guess
@@ -520,8 +518,7 @@ def calibrate_variograms(st_hr, mros_hr, cfg):
 
         fit_df = pd.concat(rows, ignore_index=True)
 
-        # Air and wet-bulb temperature come from far fewer stations than
-        # dewpoint, so relax the pair thresholds to what those hours can supply.
+        # Lower the pair thresholds to what the available hours support.
         n_median = fit_df.groupby("hour_utc").size().median()
         max_pairs = int(n_median * (n_median - 1) / 2 / cfg["n_lags"])
         sparse_cfg = {**cfg,
@@ -543,8 +540,7 @@ def calibrate_variograms(st_hr, mros_hr, cfg):
             bins_dict[var] = emp
             summary_rows.append(fit)
 
-    # MRoS is much sparser than the station network, and only hours with actual
-    # reports are used so empty summer hours do not dilute the pool.
+    # Fitted on hours with observations only, with lower pair thresholds.
     mros_active = mros_hr[mros_hr["mros_phase"].isin(PHASE_ORDER)]
     mros_cfg = {**cfg, "variogram_min_pairs": 5, "variogram_min_bins": 3}
     for prob_col in cfg["mros_phase_probs"]:
@@ -999,7 +995,7 @@ def interpolate_all_hours(st_hr, mros_hr, dem_data, dem_profile, proj_crs,
                 full[valid_points] = vals
                 slice_vars[var] = full.reshape(height, width)
 
-            # Outside the MRoS season there is nothing to interpolate or score.
+            # MRoS surfaces and scoring are limited to the active months.
             in_season = pd.Timestamp(hour).month in cfg["mros_active_months"]
             if in_season:
                 pred = interpolate_mros_indicator_hour(mros_t, grid_xy_valid,

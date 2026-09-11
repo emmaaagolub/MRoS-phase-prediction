@@ -1,4 +1,4 @@
-## Step 4 — Download daily PRISM rasters, clip them to each study area, stack
+## Download daily PRISM rasters, clip them to each study area, stack
 ## the variables into one file per day, then flatten the whole series into a
 ## table of gridded predictors.
 ##

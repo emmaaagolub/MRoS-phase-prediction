@@ -1,13 +1,11 @@
-"""Ablation study — how much does each predictor actually contribute?
+"""Ablation study - retrain the model with predictors removed.
 
-Every experiment retrains the whole pipeline with one predictor (or one group)
-removed, so any drop in performance is attributable to that predictor rather
-than to a different fit. The gridded cube is sampled to the observation points
-once and cached, and every experiment reuses the model's own train/val/test
-split, so the numbers are directly comparable with the model's.
+Each experiment refits the model on a subset of the predictors and writes its
+own metrics. The gridded cube is sampled to the observation points once and
+cached, and every experiment reuses the model's train/val/test split.
 
 Calibration matches the main model: beta calibration, fitted separately for
-near-freezing and clear-phase conditions.
+near-freezing and clear-phase observations.
 
 Each experiment writes its own subfolder under
   outputs/evaluation/<REGION>/ablation/
@@ -83,8 +81,8 @@ BASE_FEATURE_CONFIG = dict(
     use_mros_loocv=True,
 )
 
-# The experiments: one baseline, then drop each predictor in turn, then a few
-# combinations that test whether groups of predictors carry each other.
+# One configuration with all predictors, then single-predictor drops, then
+# combined drops.
 ABLATION_CONFIGS: list[dict] = [
     dict(name="baseline_full"),
     dict(name="no_mros_loocv", use_mros_loocv=False),
@@ -101,8 +99,8 @@ ABLATION_CONFIGS: list[dict] = [
 # Set per region by configure().
 REGION = None
 PATHS = None
-# The model directory, whose split table is shared so this experiment
-# trains and tests on exactly the same observations as the model.
+# Model directory; its split table is reused so this experiment uses the
+# same train/val/test observations as the model.
 SETUP_DIR = None
 ABLATION_ROOT = None
 
@@ -540,7 +538,7 @@ def plot_per_experiment_stories(
     print(f"  Stories saved to: {graphics_dir}")
 
 # =============================================================================
-# 4.  ONE-TIME DATA LOAD
+# Data load
 # =============================================================================
 
 def load_and_sync_datasets():
@@ -566,14 +564,13 @@ def load_and_sync_datasets():
 
 
 # =============================================================================
-# 5.  ONE-TIME SAMPLING
+# Sample the predictor cube to the observation points
 # =============================================================================
 
 def get_master_df(ds_interp, ds_imerg, df_loocv_raw, common_times) -> pd.DataFrame:
     """
-    Sample the full-feature predictor cube to MRoS points once and cache to
-    parquet.  All ablation runs select columns from this cached table —
-    the gridded resampling never runs again after the first call.
+    Sample the full-feature predictor cube to MRoS points and cache to parquet.
+    Every experiment selects columns from this cached table.
     """
     cache_path = SETUP_DIR / "ml_input_points_split.parquet"
 
@@ -611,7 +608,7 @@ def get_master_df(ds_interp, ds_imerg, df_loocv_raw, common_times) -> pd.DataFra
 
 
 # =============================================================================
-# 6.  SHARED TRAIN / VAL / TEST SPLIT
+# Train / val / test split
 # =============================================================================
 
 def make_split(master_df: pd.DataFrame) -> pd.DataFrame:
@@ -632,7 +629,7 @@ def make_split(master_df: pd.DataFrame) -> pd.DataFrame:
 
 
 # =============================================================================
-# 7.  run_experiment()
+# One experiment
 # =============================================================================
 
 def build_feature_list(cfg: dict) -> list[str]:
@@ -920,51 +917,6 @@ def run_experiment(cfg: dict, split_df: pd.DataFrame, out_dir: Path) -> dict:
 
     shap_df.to_parquet(out_dir / "shap_values_all.parquet")
 
-    # Run this immediately after run_experiment() returns, while
-    low_psnow_mask = (p_all_cal < 0.05) & (df_all_full["phase_full"] == SNOW_CODE)
-    low_psnow = df_all_full[low_psnow_mask].copy()
-    low_psnow["p_snow_cal"] = p_all_cal[low_psnow_mask]
-
-    print(f"n = {len(low_psnow)}  ({100*len(low_psnow)/len(df_all_full):.1f}% of all obs)")
-    print("\nSplit breakdown:")
-    print(low_psnow["split"].value_counts())
-
-    print("\nThermodynamic fields:")
-    print(low_psnow[["temp_wet", "temp_air", "temp_dew", "elev"]].describe().round(2))
-
-    print("\nLOOCV predictors:")
-    print(low_psnow[["mros_p_snow_loocv", "mros_p_rain_loocv", "mros_p_mix_loocv"]].describe().round(3))
-
-    if "imerg_plp" in low_psnow.columns:
-        print(f"\nIMERG PLP: mean={low_psnow['imerg_plp'].mean():.3f}, "
-            f"median={low_psnow['imerg_plp'].median():.3f}")
-
-    # Compare to the full snow population
-    all_snow = df_all_full[df_all_full["phase_full"] == SNOW_CODE]
-    print(f"\n--- Contrast: full snow population (n={len(all_snow)}) ---")
-    print(all_snow[["temp_wet", "elev", "mros_p_snow_loocv", "mros_p_rain_loocv"]].describe().round(3))
-    
-    # Are these concentrated at specific stations / locations?
-    print("Spatial clustering:")
-    print(low_psnow[["x", "y", "elev"]].describe().round(1))
-
-    # Are they concentrated in certain months / storm types?
-    low_psnow["month"] = pd.to_datetime(low_psnow["time"]).dt.month
-    print("\nMonthly distribution:")
-    print(low_psnow["month"].value_counts().sort_index())
-
-    # How does the LOOCV conflict look — is mros_p_rain_loocv consistently near 1?
-    print("\nLOOCV conflict severity:")
-    print((low_psnow["mros_p_rain_loocv"] > 0.8).sum(), 
-        "of 42 have mros_p_rain_loocv > 0.8")
-    print((low_psnow["mros_p_rain_loocv"] > 0.9).sum(),
-        "of 42 have mros_p_rain_loocv > 0.9")
-
-    # Is there a station_id column that could reveal if it's one or two observers?
-    if "station_id" in low_psnow.columns:
-        print("\nUnique stations:", low_psnow["station_id"].nunique())
-        print(low_psnow["station_id"].value_counts())
-
     # ── SHAP plot 1: mean |SHAP| by phase (bar chart) ─────────────────────────
     phase_shap = (
         shap_df.groupby("phase_label")[shap_cols]
@@ -1034,7 +986,7 @@ def run_experiment(cfg: dict, split_df: pd.DataFrame, out_dir: Path) -> dict:
 
     def plot_calibration_detail(y_true_bin, p_cal, name, out_path, n_bins=15):
         """
-        Three-panel calibration deep-dive:
+        Three-panel calibration detail:
         Left:   reliability diagram with bin-level ECE contribution
         Centre: histogram of predicted probabilities (sharpness)
         Right:  ECE contribution per bin (which bins hurt most)
@@ -1060,7 +1012,7 @@ def run_experiment(cfg: dict, split_df: pd.DataFrame, out_dir: Path) -> dict:
         bin_mids = [(lo+hi)/2 for lo, hi in zip(bins[:-1], bins[1:])]
 
         fig, axes = plt.subplots(1, 3, figsize=(15, 5))
-        fig.suptitle(f"{name} — calibration deep-dive (test set)", fontsize=12)
+        fig.suptitle(f"{name} — calibration detail (test set)", fontsize=12)
 
         # Panel 1: reliability diagram, points sized by n
         ax = axes[0]
@@ -1148,7 +1100,7 @@ def run_experiment(cfg: dict, split_df: pd.DataFrame, out_dir: Path) -> dict:
     return metrics
 
 # =============================================================================
-# 8.  ABLATION LOOP + CROSS-EXPERIMENT PLOTS
+# Experiment loop and comparison plots
 # =============================================================================
 
 def load_all_metrics(ablation_root: Path) -> list[dict]:

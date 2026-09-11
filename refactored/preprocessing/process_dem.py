@@ -1,9 +1,8 @@
-"""Step 5 — Turn the raw 10 m DEMs into the 1 km grid the rest of the pipeline
-uses.
+"""Reproject and resample the raw 10 m DEMs to the 1 km grid.
 
-For each region: reproject to the local UTM zone, average down to 1 km, then
-cut to the study-area polygon. Cells outside the polygon become NaN. Nothing
-intermediate is written to disk.
+For each region: reproject to the local UTM zone, resample to 1 km by
+averaging, then clip to the study-area polygon. Cells outside the polygon are
+set to NaN. No intermediate files are written.
 
 Input:  Data/Elevation/<region>_DEM_AOI_TNM_10m.tif  (get_elevation.R)
 Output: Data/Elevation/{CA,CO}_DEM_AOI_1km.tif

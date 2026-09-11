@@ -1,4 +1,4 @@
-## Step 3 — Download GPM IMERG half-hourly Probability of Liquid Precipitation
+## Download GPM IMERG half-hourly Probability of Liquid Precipitation
 ## for both study areas and save one daily table per region.
 ##
 ## Output: Data/IMERG/<REGION>/gpm_imerg_<date>.parquet
@@ -14,10 +14,10 @@
 ##   3. Add NASA_DATA_USER and NASA_DATA_PASSWORD to your .Renviron
 ##      (usethis::edit_r_environ()), then restart R.
 ##
-## We talk to the OPeNDAP .ascii endpoint with curl directly rather than going
-## through climateR/RNetCDF. The NetCDF-C library has its own HTTP stack that
-## ignores R's auth settings; curl reads .netrc and returns plain text we can
-## parse, and the request is subset server-side so responses stay small.
+## Requests go to the OPeNDAP .ascii endpoint via curl rather than through
+## climateR/RNetCDF: the NetCDF-C library has its own HTTP stack that ignores
+## R's auth settings, whereas curl reads .netrc. The request is subset
+## server-side.
 
 suppressPackageStartupMessages({
   library(sf)
@@ -288,7 +288,7 @@ for (region_id in REGION_IDS) {
     message(sprintf("[%s] %s (%d/%d) run='%s'",
                     region_id, day, i, length(ALL_DAYS), run))
 
-    ## Periodic cleanup keeps memory flat over multi-day runs.
+    ## Periodic garbage collection and worker restart.
     if (i %% 20 == 0) {
       gc()
       plan(sequential)

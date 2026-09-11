@@ -1,12 +1,11 @@
-"""Shared machinery for the evaluation experiments.
+"""Shared code for the evaluation experiment runners.
 
-The ablation and benchmarking runners all need the same things: read the
-interpolated grid and the leave-one-out observations, sample the grid at each
-observation, sweep the class weight, calibrate, and fit the uncertainty band.
-Those pieces live here so the three runners stay short and stay in step with
-each other.
+Holds the settings, path helpers and functions used by both ablation.py and
+benchmarking.py: reading the interpolated grid and leave-one-out observations,
+sampling the grid at each observation, sweeping the class weight, and fitting
+the uncertainty band.
 
-Nothing in this module is specific to a region or to one experiment.
+Nothing here is specific to a region or to one experiment.
 """
 
 from __future__ import annotations
@@ -68,7 +67,7 @@ BASE_XGB_PARAMS = {
 ALL_GRID_FEATURES = ["temp_air", "temp_dew", "temp_wet", "rh", "imerg_plp", "elev"]
 ALL_LOOCV_FEATURES = ["mros_p_snow_loocv", "mros_p_mix_loocv", "mros_p_rain_loocv"]
 
-# One-degree wet-bulb bins through the transition, with catch-all tails.
+# One-degree wet-bulb bins with open-ended tails.
 TWET_BIN_EDGES = [-np.inf, -6, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6, np.inf]
 TWET_BIN_LABELS = ["<-6", "-6–-5", "-5–-4", "-4–-3", "-3–-2", "-2–-1",
                    "-1–0", "0–1", "1–2", "2–3", "3–4", "4–5", "5–6", ">6"]

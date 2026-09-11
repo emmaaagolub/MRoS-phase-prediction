@@ -1,14 +1,13 @@
-"""Step 12 — Score the trained model and produce the summary figures.
+"""Score the trained model and draw the summary figures.
 
-Every metric is computed once into a single dictionary, which is then written
-to metrics_summary.json and used for all the figures. The figures answer five
-questions in order:
+All metrics are computed once into a single dictionary, written to
+metrics_summary.json and reused by the figures. Five figures are produced:
 
-1. Can the model tell rain from snow at all?
-2. Do its probabilities mean what they say?
-3. Where across the temperature range does it do well or badly?
-4. Does the uncertainty band land where the genuinely ambiguous cases are?
-5. What happens right at the freezing point, where it matters most?
+1. story1 - binary discrimination: confusion matrices, ROC and PR curves
+2. story2 - reliability diagram, raw and calibrated
+3. story3 - per-class F1 and mix capture in 1 degC wet-bulb bins
+4. story4 - calibrated p(snow) of observed mix relative to the band
+5. story5 - three-class confusion matrices for near-freezing observations
 
 Input:  the prediction tables written by train_model.py
 Output: metrics_summary.json and story1..story5 figures under graphics/
@@ -115,7 +114,7 @@ def hard_metrics(y_true, y_pred, codes, names):
 
 
 def mix_metrics(y_true_phase, y_pred_phase):
-    """How the uncertainty band behaves: what it flags and what it gives up."""
+    """Mix capture rate, pure-phase coverage and accuracy on confident calls."""
     y_true = np.asarray(y_true_phase)
     y_pred = np.asarray(y_pred_phase)
 
@@ -294,7 +293,7 @@ def plot_normalised_cm(ax, y_true, y_pred, labels, display_labels, title, cmap="
 
 
 def story1_discrimination(frames, metrics, graphics_dir, interp_type):
-    """Confusion matrices plus ROC and precision-recall curves."""
+    """Confusion matrices, ROC and precision-recall curves."""
     fig = plt.figure(figsize=(16, 9))
     fig.suptitle("Story 1 — Telling rain from snow", fontsize=13, y=1.01)
 
@@ -338,7 +337,7 @@ def story1_discrimination(frames, metrics, graphics_dir, interp_type):
 
 
 def story2_calibration(frames, metrics, band_at_zero, graphics_dir, interp_type):
-    """Reliability diagram: do the stated probabilities match observed frequency?"""
+    """Reliability diagram, raw and calibrated, with a p(snow) histogram."""
     rain_thresh = 0.5 - band_at_zero
     snow_thresh = 0.5 + band_at_zero
 
@@ -414,7 +413,7 @@ def story3_twet_performance(profiles, graphics_dir, interp_type):
 
 
 def story4_band_placement(frames, band, graphics_dir, interp_type):
-    """Does the uncertainty band land on the observations that really are mixed?"""
+    """Observed-mix positions relative to the band, and p(snow) by true phase."""
     base_hb, extra_hb, sigma = band
     t_grid = np.linspace(-6, 6, 300)
     hb_grid = gaussian_half_band(t_grid, base_hb, extra_hb, sigma)

@@ -1,4 +1,4 @@
-## Step 2 — Collect HADS, LCD and WCC (SNOTEL) station observations for both
+## Collect HADS, LCD and WCC (SNOTEL) station observations for both
 ## study areas over the full study period.
 ##
 ## Station selection and post-processing come from the rainOrSnowTools package,
@@ -7,8 +7,8 @@
 ##
 ## Output: Data/Stations/<REGION>/{hads,lcd,wcc,station_metadata}_<dates>.csv
 ##
-## Note: temp_dew and temp_wet are not computed here. They are filled in by
-## assimilate.py, which has the full hourly record to work from.
+## temp_dew and temp_wet are not computed here; compile_observations.py
+## derives them from the hourly record.
 
 suppressPackageStartupMessages({
   library(devtools)
@@ -99,8 +99,8 @@ download_batched <- function(source, start_utc, end_utc, stations,
 }
 
 
-## WCC/SNOTEL comes from the AWDB REST API rather than rainOrSnowTools, because
-## the volume needs year-by-year checkpointing to survive long runs.
+## WCC/SNOTEL is fetched from the AWDB REST API rather than through
+## rainOrSnowTools, with a checkpoint written after each year.
 get_wcc_awdb <- function(start_utc, end_utc, stations, out_dir) {
 
   triplets <- stations %>%
@@ -259,8 +259,8 @@ for (region_id in REGION_IDS) {
   stations_hads <- station_select("HADS", lon_obs, lat_obs, DEG_FILTER, DIST_THRESH_M)
   stations_wcc  <- station_select("WCC",  lon_obs, lat_obs, DEG_FILTER, DIST_THRESH_M)
 
-  ## LCD is filtered straight from the metadata table; station_select drops
-  ## stations this study needs.
+  ## LCD stations are filtered from the metadata table directly rather than
+  ## through station_select.
   stations_lcd <- lcd_meta %>%
     filter(
       LONGITUDE >= lon_obs - DEG_FILTER, LONGITUDE <= lon_obs + DEG_FILTER,
@@ -283,7 +283,7 @@ for (region_id in REGION_IDS) {
     write_csv(hads_out$errors, file.path(out_dir, "hads_error_log.csv"))
   }
 
-  ## Smaller LCD batches — the API times out on large requests.
+  ## Smaller LCD batches; the API times out on large requests.
   message("\nDownloading LCD...")
   lcd_out <- download_batched("LCD", WY_START, WY_END, stations_lcd, batch_size = 10)
   write_csv(lcd_out$data, file.path(out_dir, paste0("lcd_", DATE_SUFFIX, ".csv")))

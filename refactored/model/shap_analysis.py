@@ -1,14 +1,11 @@
-"""Step 11 — Work out which predictors drive the model, and how that changes
-across the freezing transition.
+"""SHAP attribution for the trained model.
 
-SHAP values are computed for every observation and then sliced two ways: by the
-phase the model ended up predicting, and by wet-bulb temperature bin. The
-second view is the interesting one — it shows which predictors the model leans
-on when the answer is genuinely ambiguous.
+Computes SHAP values for every observation, then aggregates them two ways:
+by the predicted phase, and by wet-bulb temperature bin.
 
-SHAP values are expressed in probability units, which requires the
-interventional attribution method and a background sample to compare against.
-A stratified sample of the training split is used for that.
+SHAP values are in probability units, which requires the interventional
+attribution method and a background dataset. A stratified sample of the
+training split is used as the background.
 
 Input:  the model artifacts written by train_model.py
 Output: shap_values_all.parquet, shap_summary_by_phase.csv,
@@ -41,7 +38,7 @@ from config import parse_region_args  # noqa: E402
 PHASE_COLORS = {"snow": "#1f77b4", "rain": "#2ca02c", "mix": "#e377c2"}
 PHASE_LABELS = {SNOW_CODE: "snow", RAIN_CODE: "rain", MIX_CODE: "mix"}
 
-# One-degree bins through the transition, with catch-all tails.
+# One-degree wet-bulb bins with open-ended tails.
 TWET_BIN_EDGES = [-np.inf, -6, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6, np.inf]
 TWET_BIN_LABELS = ["<-6", "-6–-5", "-5–-4", "-4–-3", "-3–-2", "-2–-1", "-1–0",
                    "0–1", "1–2", "2–3", "3–4", "4–5", "5–6", ">6"]
@@ -159,12 +156,12 @@ def plot_shap_heatmap(data, title, savepath, vmax=None):
 
 
 def plot_top_features_across_bins(shap_df, shap_by_bin, shap_cols, graphics_dir):
-    """Line plot of the features that matter most where the answer is ambiguous."""
+    """Mean |SHAP| across wet-bulb bins for the top features near freezing."""
     near_freeze = shap_df["twet_bin"].isin(NEAR_FREEZE_BINS)
     top_features = (shap_df[near_freeze][shap_cols].abs().mean()
                     .rename(index=lambda c: c.replace("shap_", ""))
                     .nlargest(TOP_N_FEATURES).index.tolist())
-    print(f"  most important near freezing: {top_features}")
+    print(f"  top features near freezing: {top_features}")
 
     valid_bins = [b for b in TWET_BIN_LABELS if b in shap_by_bin.columns]
     colors = plt.cm.tab10(np.linspace(0, 0.9, TOP_N_FEATURES))
@@ -243,7 +240,7 @@ def analyze_region(region_id, interp_type=INTERP_TYPE):
     plot_shap_heatmap(shap_by_bin, "Mean |SHAP| by wet-bulb bin — all observations",
                       graphics_dir / "shap_wetbulb_heatmap_all.png")
 
-    # Per-phase heatmaps share a colour scale so they can be compared.
+    # Per-phase heatmaps share one colour scale.
     phase_tables = {}
     for phase in ["snow", "rain", "mix"]:
         subset = shap_df[shap_df["phase_label"] == phase]

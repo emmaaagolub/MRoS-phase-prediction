@@ -1,12 +1,11 @@
-"""Step 9 — Assemble the point-level table the model is trained on.
+"""Assemble the point-level table used for model fitting.
 
-Each MRoS observation gets:
-  - its phase label (snow / rain / mix), which is the only supervised target
-  - the interpolated meteorological predictors, read off the 1 km grid at that
-    location and hour
-  - IMERG liquid-precipitation probability, likewise
-  - the leave-one-out MRoS indicators, which describe what nearby observers
-    reported without ever using the observation itself
+For each MRoS observation, collects:
+  - the reported phase (snow / rain / mix), used as the label
+  - the interpolated meteorological predictors, sampled from the 1 km grid at
+    that location and hour
+  - IMERG liquid-precipitation probability, sampled the same way
+  - the leave-one-out MRoS indicators from the interpolation stage
 
 Inputs:  outputs/interpolated/<REGION>/indicator_kriging/*
          outputs/resampled_grids/<REGION>/imerg_hourly_1km.nc
@@ -171,10 +170,9 @@ def nearest_index_1d(coord_vals, query_vals):
 
 
 def sample_cube_at_points(points_df, ds_pred, predictor_vars, verbose=True):
-    """Read the cube at each observation, one hourly slice at a time.
+    """Sample the cube at each observation, one hourly slice at a time.
 
-    Only the hours that actually contain observations are opened, which keeps
-    memory flat over a multi-year cube.
+    Only hours containing observations are read.
     """
     pts = points_df.copy().reset_index(drop=True)
     pts["time"] = pd.to_datetime(pts["time"]).dt.floor("h")

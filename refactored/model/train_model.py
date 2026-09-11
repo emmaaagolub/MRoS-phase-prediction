@@ -1,29 +1,22 @@
-"""Step 10 — Train the precipitation-phase model.
+"""Train the precipitation-phase model.
 
-The approach:
+Steps:
 
-1. Split the observations 70 / 15 / 15 into train, validation and test, keeping
-   the phase balance the same in each. The split is random rather than by storm.
-   The relationship being learned is between an instantaneous atmospheric state
-   and the phase that falls out of it, which is physically stable across storms,
-   and the dataset is too small and too sparsely sampled for event blocking to
-   leave usable pieces. This follows Jennings et al. (2025). The cost is that
-   test scores may be mildly optimistic relative to a genuinely new season.
+1. Split the observations 70 / 15 / 15 into train, validation and test,
+   stratified on phase.
 
 2. Fit XGBoost on the pure-phase observations only, as rain vs snow. Observed
-   mix is held out of fitting rather than forced into a third class.
+   mix is excluded from fitting.
 
-3. Balance the classes by sweeping scale_pos_weight and taking the value that
-   brings snow and rain recall closest together.
+3. Sweep scale_pos_weight and select the value with the smallest difference
+   between snow and rain recall on the validation set.
 
-4. Calibrate the raw probabilities with beta calibration (Kull et al. 2017),
-   fitted separately for near-freezing and clear-phase conditions. Beta
-   calibration is bounded away from 0 and 1 by construction. Isotonic
-   regression was tried first and pushed most test predictions to exact 0 or 1
-   whenever a score fell outside the range it was fitted on.
+4. Calibrate the probabilities with beta calibration (Kull et al. 2017),
+   fitted separately for near-freezing and clear-phase observations.
 
-5. Derive the mix class from the calibrated probability using a band around 0.5
-   that widens near freezing. The band's shape is chosen on the validation set.
+5. Assign the mix class using a band around p(snow) = 0.5 whose width varies
+   with wet-bulb temperature. The band parameters are selected on the
+   validation set.
 
 Input:  the table from build_dataset.py
 Output: outputs/model/<REGION>/
@@ -104,7 +97,7 @@ def split_observations(points_df, graphics_dir, interp_type):
 
 
 def plot_split_diagnostics(split_df, graphics_dir, interp_type):
-    """Check the splits cover the same phase, temperature and elevation range."""
+    """Phase balance, wet-bulb temperature and elevation by split."""
     colors = {"train": "tab:blue", "val": "tab:orange", "test": "tab:red"}
     fig, axes = plt.subplots(1, 3, figsize=(15, 4))
 
@@ -136,7 +129,7 @@ def plot_split_diagnostics(split_df, graphics_dir, interp_type):
 
 def sweep_scale_pos_weight(X_train, y_train, X_val, y_val, candidates,
                            probe_rounds=350, early_stopping=30):
-    """Short training runs at each candidate weight, scored on recall balance."""
+    """Short training run at each candidate weight, scored on recall balance."""
     dtrain = xgb.DMatrix(X_train, label=y_train, feature_names=list(X_train.columns))
     dval = xgb.DMatrix(X_val, label=y_val, feature_names=list(X_val.columns))
 
@@ -193,12 +186,13 @@ def plot_scale_pos_weight_sweep(sweep_df, best_weight, graphics_dir, interp_type
 # ---------------------------------------------------------------------------
 
 def optimize_threshold_params(p_snow_cal, temp_wet, y_true_phase):
-    """Search the band grids for the best trade-off on the validation set.
+    """Grid search over the band parameters on the validation set.
 
-    A candidate is only eligible if it still makes a confident call on enough
-    of the pure-phase observations, overall and near freezing. Among those, the
-    winner maximises a weighted blend of mix capture and accuracy on the pure
-    phases it did call.
+    A candidate is eligible if the fraction of pure-phase observations given a
+    confident label meets MIN_PURE_COVERAGE overall and MIN_NF_PURE_COVERAGE
+    for |Twet| <= 1. Among eligible candidates the objective is
+    MIX_CAPTURE_WEIGHT * mix capture + (1 - MIX_CAPTURE_WEIGHT) * accuracy on
+    the confidently labelled pure phases.
     """
     p_snow = np.asarray(p_snow_cal, dtype=float)
     t_wet = np.asarray(temp_wet, dtype=float)
@@ -302,9 +296,8 @@ def plot_band_shape(base_hb, extra_hb, sigma, graphics_dir, interp_type):
 def fit_calibrators(p_raw, y_true, temp_wet):
     """Fit one calibrator per wet-bulb regime.
 
-    Clear-phase uses the full three-parameter beta family; near-freezing uses
-    the symmetric two-parameter form, since there is no reason to expect the
-    mapping to be lopsided right at the phase boundary.
+    Clear-phase uses the three-parameter beta family; near-freezing uses the
+    symmetric two-parameter form.
     """
     near_freezing = np.abs(temp_wet) <= CLEAR_PHASE_TWET_C
     clear_phase = ~near_freezing
@@ -340,8 +333,7 @@ def apply_calibration(p_raw, temp_wet, calibrators):
         out[near_freezing] = calibrators["near_freezing"].predict(
             p_raw[near_freezing].reshape(-1, 1))
 
-    # Beta calibration cannot reach exactly 0 or 1; this only guards against
-    # numerical edge cases.
+    # Numerical safeguard.
     return np.clip(out, 1e-4, 1 - 1e-4)
 
 
@@ -397,7 +389,7 @@ def train_region(region_id, interp_type=INTERP_TYPE):
     for name, frame in fit.items():
         print(f"  {name}: {frame[TARGET_FULL].value_counts().sort_index().to_dict()}")
 
-    # Predictor correlations, for the record.
+    # Predictor correlation matrix.
     corr = fit["train"][FEATURES].corr(numeric_only=True)
     corr.to_csv(model_dir / "predictor_correlation_matrix.csv")
     pairs = (corr.where(np.triu(np.ones(corr.shape), k=1).astype(bool))
@@ -444,8 +436,7 @@ def train_region(region_id, interp_type=INTERP_TYPE):
     plt.close(fig)
 
     # --- Calibrate ---------------------------------------------------------
-    # Calibrators are fitted on the final booster's own scores over train+val,
-    # so they see the same score distribution the model produces at inference.
+    # Calibrators are fitted on the final booster's scores over train+val.
     trainval = pd.concat([fit["train"], fit["val"]]).reset_index(drop=True)
     y_trainval = trainval[TARGET_FULL].map(BINARY_LABEL_MAP).astype(int).to_numpy()
     twet_trainval = trainval["temp_wet"].to_numpy()
@@ -558,10 +549,8 @@ def export_artifacts(model_dir, booster, calibrators, evals_result, params,
         "method": "beta_calibration_regime_stratified",
         "description": (
             "Beta calibration (Kull et al. 2017) of the raw XGBoost probabilities, "
-            "fitted separately for near-freezing and clear-phase conditions on the "
-            "final booster's scores over the train+val pure-phase pool. Replaces "
-            "isotonic regression, which pushed most test predictions to exact 0 or 1 "
-            "when scores fell outside its fitted range."
+            "fitted separately for near-freezing and clear-phase observations on the "
+            "final booster's scores over the train+val pure-phase pool."
         ),
         "reference": ("Kull, M., Silva Filho, T. M., & Flach, P. (2017). Beta calibration. "
                       "AISTATS 2017, PMLR 54:623-631."),
@@ -613,8 +602,8 @@ def export_artifacts(model_dir, booster, calibrators, evals_result, params,
         "xgboost_params": params,
         "label_source": "raw MRoS categorical observations",
         "training_target_definition": (
-            "Only observed rain and snow are used for supervised fitting; observed "
-            "mix is held out and used to evaluate the uncertainty band."
+            "Only observed rain and snow are used for fitting; observed mix is "
+            "excluded from fitting and retained for evaluation."
         ),
         "calibration": calibration_summary,
         "weighting": {
@@ -631,11 +620,11 @@ def export_artifacts(model_dir, booster, calibrators, evals_result, params,
         "features": FEATURES,
         "training_summary": training_summary,
         "methodology_notes": [
+            "Labels come from the raw MRoS observations.",
             "No interpolated MRoS surface is used as a label.",
-            "Raw MRoS observations provide the supervised target.",
             "Observed mix is not trained as a class.",
-            "Leave-one-out MRoS indicators are predictors only.",
-            "Mix is derived from calibrated rain/snow probabilities via the "
+            "Leave-one-out MRoS indicators are used as predictors only.",
+            "Mix is assigned from calibrated rain/snow probabilities using the "
             "wet-bulb-conditioned band.",
         ],
     }

@@ -1,6 +1,6 @@
 ## Shared region definitions and paths for the R download scripts.
 ## Sourced by get_elevation.R, download_station_data.R, download_imerg.R and
-## download_prism.R so the two study areas are defined in exactly one place.
+## download_prism.R.
 
 suppressPackageStartupMessages({
   library(sf)

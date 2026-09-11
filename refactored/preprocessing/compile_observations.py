@@ -1,23 +1,21 @@
-"""Step 6 — Bring stations, IMERG and MRoS observations onto a common hourly
+"""Compile station, IMERG and MRoS observations onto a common hourly
 grid for each region.
 
-What happens here, per region:
-
 Stations
-  Read the per-station CSVs, convert local timestamps to UTC, and average to
-  one row per station-hour. Screen out readings that are physically impossible,
-  are extreme relative to the station's own history, jump too fast, or repeat
-  unchanged for hours (a stuck sensor). Gaps in dewpoint and humidity are
-  filled by interpolating from nearby stations with an elevation correction,
-  then wet-bulb temperature is derived from what is left.
+  Reads the per-station CSVs, converts local timestamps to UTC, and averages
+  to one row per station-hour. Applies four filters: hard physical bounds, a
+  per-station interquartile range test, an hour-to-hour step limit, and a
+  repeated-value run test. Missing dewpoint and humidity are filled by
+  inverse-distance interpolation from other stations with an elevation
+  correction, then wet-bulb temperature is derived.
 
 IMERG
-  Reshape the daily wide tables into one row per cell-hour and average the two
-  half-hourly probability values in each hour.
+  Reshapes the daily wide tables to one row per cell-hour and averages the two
+  half-hourly probability values within each hour.
 
 MRoS
-  Keep the latest report per observer per hour, and convert the reported phase
-  to a numeric proxy (snow 0, mix 50, rain 100).
+  Keeps the last report per observer per hour and maps the reported phase to a
+  numeric proxy (snow 0, mix 50, rain 100).
 
 All three are given DEM elevation and clipped to the study-area polygon.
 
@@ -45,13 +43,13 @@ from config import (  # noqa: E402
     CRS_WGS84, REGIONS, WY_END, WY_START, parse_region_args, region_paths,
 )
 
-# Readings outside these bounds are treated as sensor faults, not weather.
+# Hard bounds; readings outside these are set to missing.
 PHYSICAL_CUTOFFS = {"temp_air": (-45, 45), "temp_dew": (-50, 25), "rh": (0, 100)}
 
 # Quality-control thresholds for the hourly station series.
 IQR_MULTIPLIER = 3.0          # per-station outlier width
 SPIKE_THRESHOLDS = {"temp_air": 10.0, "temp_dew": 8.0, "rh": 40.0}  # max change per hour
-MIN_STUCK_RUN = 6             # identical values in a row before we call it stuck
+MIN_STUCK_RUN = 6             # identical consecutive values flagged as a stuck sensor
 
 MROS_PHASE_TO_PROXY = {"snow": 0.0, "mix": 50.0, "rain": 100.0}
 
@@ -66,7 +64,7 @@ PLP_SLOT_RE = re.compile(r"^plp_(\d{2})$")
 # ---------------------------------------------------------------------------
 
 def esat_hpa(temp_c):
-    """Saturation vapour pressure over water (hPa), Magnus/Tetens form."""
+    """Saturation vapor pressure over water (hPa), Magnus/Tetens form. Bolton's coefficients."""
     return 6.112 * np.exp(17.27 * temp_c / (temp_c + 237.3))
 
 
@@ -108,13 +106,13 @@ def psychrometric_tw(temp_c, rh, pressure_hpa=1013.25):
     if not math.isfinite(temp_c) or not math.isfinite(rh):
         return np.nan
 
-    vapour_pressure = (rh / 100.0) * esat_hpa(temp_c)
+    vapor_pressure = (rh / 100.0) * esat_hpa(temp_c)
     cp, latent_heat, mw_ratio = 1004.0, 2.5e6, 0.622
     gamma = cp * pressure_hpa / (latent_heat * mw_ratio) / 100.0
 
     tw = temp_c
     for _ in range(50):
-        tw_new = tw + 0.2 * ((temp_c - tw) * gamma - (esat_hpa(tw) - vapour_pressure))
+        tw_new = tw + 0.2 * ((temp_c - tw) * gamma - (esat_hpa(tw) - vapor_pressure))
         if abs(tw_new - tw) < 0.01:
             break
         tw = tw_new
@@ -287,7 +285,7 @@ def hourly_station_agg(st_df, meta):
     )
     agg = apply_physical_cutoffs(agg, verbose=True)
 
-    # Values far outside a station's own spread.
+    # Per-station interquartile range test.
     for col in ["temp_air", "temp_dew"]:
         q1 = agg.groupby("id")[col].transform("quantile", 0.25)
         q3 = agg.groupby("id")[col].transform("quantile", 0.75)
@@ -297,7 +295,7 @@ def hourly_station_agg(st_df, meta):
             print(f"  outlier filter: nulled {mask.sum()} {col} values")
         agg.loc[mask, col] = np.nan
 
-    # Implausibly fast hour-to-hour changes.
+    # Hour-to-hour step limit.
     agg = agg.sort_values(["id", "hour_utc"]).reset_index(drop=True)
     for col, thresh in SPIKE_THRESHOLDS.items():
         delta = agg.groupby("id")[col].diff().abs()
@@ -305,7 +303,7 @@ def hourly_station_agg(st_df, meta):
             print(f"  spike filter: nulled {(delta > thresh).sum()} {col} values")
         agg.loc[delta > thresh, col] = np.nan
 
-    # Long runs of an identical value mean the sensor has stopped responding.
+    # Runs of identical consecutive values.
     for col in ["temp_air", "temp_dew"]:
         is_same = agg.groupby("id")[col].transform(lambda s: s == s.shift(1))
         agg["_run_id"] = (~is_same).groupby(agg["id"]).cumsum()
@@ -316,7 +314,7 @@ def hourly_station_agg(st_df, meta):
             print(f"  stuck-sensor filter: nulled {stuck.sum()} {col} values")
         agg.loc[stuck, col] = np.nan
 
-    # Dewpoint above air temperature is not physical.
+    # Dewpoint cannot exceed air temperature.
     agg.loc[agg["temp_dew"] > agg["temp_air"], "temp_dew"] = np.nan
     return agg
 

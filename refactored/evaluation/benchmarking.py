@@ -1,13 +1,12 @@
-"""Benchmark the model against the standard precipitation-phase methods.
+"""Compare the model against established precipitation-phase methods.
 
-The comparison set is the one used in the literature: fixed temperature
-thresholds on air, dewpoint and wet-bulb temperature, and the Northern
-Hemisphere binary logistic regression of Jennings et al. (2018), both with its
-published coefficients and refitted on this domain. All methods are scored on
-the same test split as the model, so the numbers are directly comparable.
+The comparison set is fixed temperature thresholds on air, dewpoint and
+wet-bulb temperature, plus the binary logistic regression of Jennings et al.
+(2018) with both its published coefficients and coefficients refitted on this
+domain. All methods are scored on the model's test split.
 
-The XGBoost baseline retrained here uses the same features and the same split
-as the ablation baseline_full run, so the two are comparable as well.
+The XGBoost model retrained here uses the same features and split as the
+ablation baseline_full configuration.
 
 Output: outputs/evaluation/<REGION>/benchmarking/
 
@@ -80,17 +79,16 @@ BINLOG_A = -10.04
 BINLOG_B = 1.41
 BINLOG_G = 0.09
 
-# Also refit the same form on this domain's training split, so the comparison
-# separates "wrong model" from "coefficients fitted elsewhere".
+# Also refit the same functional form on this domain's training split.
 INCLUDE_FITTED_BINLOG = True
 
-# Must match the ablation baseline_full feature set for the comparison to hold.
+# Matches the ablation baseline_full feature set.
 MODEL_NAME = "xgboost_mros"
 MODEL_FEATURES = ["temp_air", "temp_dew", "temp_wet", "imerg_plp", "elev",
                   "mros_p_snow_loocv", "mros_p_mix_loocv", "mros_p_rain_loocv"]
 
 # Air-temperature bins for the accuracy and bias profiles.
-TAIR_BIN_WIDTH = 1.0     # degC; the reference paper used 0.5, wider suits our sample size
+TAIR_BIN_WIDTH = 1.0     # degC; the reference paper used 0.5
 TAIR_BIN_MIN = -8.0
 TAIR_BIN_MAX = 8.0
 MIN_BIN_N = 20           # minimum pure observations in a bin before scoring it
@@ -122,8 +120,8 @@ METHOD_LABEL = {
 # Set per region by configure().
 REGION = None
 PATHS = None
-# The model directory, whose split table is shared so this experiment
-# trains and tests on exactly the same observations as the model.
+# Model directory; its split table is reused so this experiment uses the
+# same train/val/test observations as the model.
 SETUP_DIR = None
 BENCH_ROOT = None
 
@@ -131,9 +129,8 @@ BENCH_ROOT = None
 def configure(region: str) -> None:
     """Point the module at one region's inputs and outputs.
 
-    The setup directory deliberately matches the main model run, so the
-    train/val/test split is identical and the benchmark numbers line up with
-    the model's own reported scores.
+    The setup directory is the model's, so the train/val/test split is the
+    same one the model used.
     """
     global REGION, PATHS, SETUP_DIR, BENCH_ROOT
     REGION = region
@@ -146,7 +143,7 @@ def configure(region: str) -> None:
 
 
 # =============================================================================
-# 4.  ONE-TIME DATA LOAD  (verbatim)
+# Data load
 # =============================================================================
 
 def load_and_sync_datasets():
@@ -172,7 +169,7 @@ def load_and_sync_datasets():
 
 
 # =============================================================================
-# 5.  ONE-TIME SAMPLING  (verbatim — shares the ablation cache)
+# Sample the predictor cube to the observation points (shared cache)
 # =============================================================================
 
 def get_master_df(ds_interp, ds_imerg, df_loocv_raw, common_times) -> pd.DataFrame:
@@ -211,7 +208,7 @@ def get_master_df(ds_interp, ds_imerg, df_loocv_raw, common_times) -> pd.DataFra
 
 
 # =============================================================================
-# 6.  SHARED TRAIN / VAL / TEST SPLIT  (verbatim — identical to ablation)
+# Train / val / test split (same as the ablation study)
 # =============================================================================
 
 def make_split(master_df: pd.DataFrame) -> pd.DataFrame:
@@ -231,7 +228,7 @@ def make_split(master_df: pd.DataFrame) -> pd.DataFrame:
 
 
 # =============================================================================
-# 7.  XGBOOST BASELINE MODEL  (condensed ablation baseline_full run)
+# XGBoost model
 # =============================================================================
 
 def train_xgboost_baseline(split_df: pd.DataFrame, out_dir: Path) -> dict:
@@ -323,7 +320,7 @@ def train_xgboost_baseline(split_df: pd.DataFrame, out_dir: Path) -> dict:
 
 
 # =============================================================================
-# 8.  BENCHMARK METHODS
+# Benchmark methods
 # =============================================================================
 
 def binlog_p_snow(temp_air, rh, a=BINLOG_A, b=BINLOG_B, g=BINLOG_G):
@@ -376,7 +373,7 @@ def benchmark_predictions(df: pd.DataFrame, fitted_binlog=None) -> dict[str, np.
 
 
 # =============================================================================
-# 9.  EVALUATION — paper-style metrics
+# Evaluation
 # =============================================================================
 
 def snow_rain_bias(y_true, y_pred):
@@ -485,7 +482,7 @@ def evaluate_all(test_full: pd.DataFrame, bench_preds: dict[str, np.ndarray],
 
 
 # =============================================================================
-# 10.  FIGURES
+# Figures
 # =============================================================================
 
 def plot_fig1_by_tair(profiles: dict[str, pd.DataFrame], out_path: Path):
@@ -633,7 +630,7 @@ def make_all_outputs(test_full, bench_preds, model_out, out_root: Path):
 
 
 # =============================================================================
-# 11.  MAIN
+# Main
 # =============================================================================
 
 def replot_from_saved(out_root: Path):
@@ -687,8 +684,7 @@ def main():
             replot_from_saved(BENCH_ROOT)
             continue
 
-        # Same data, cache and split as the ablation study, so the numbers
-        # are directly comparable.
+        # Same data, cache and split as the ablation study.
         ds_interp, ds_imerg, df_loocv_raw, common_times = load_and_sync_datasets()
         master_df = get_master_df(ds_interp, ds_imerg, df_loocv_raw, common_times)
         split_df = make_split(master_df)

@@ -1,4 +1,5 @@
-"""Settings and small helpers shared by the model and evaluation scripts."""
+"""Settings and helper functions shared by the model and evaluation scripts.
+"""
 
 import sys
 from pathlib import Path
@@ -10,8 +11,7 @@ from config import (  # noqa: F401,E402  (REGIONS is re-exported)
     OUTPUT_DIR, REGIONS, interpolation_dir,
 )
 
-# Which interpolation product feeds the model. Kriging is the current one; the
-# inverse-distance product is kept as an option for comparison runs.
+# Interpolation product used as the source of the gridded predictors.
 INTERP_TYPE = "kriging"
 
 # Phase codes as they appear in the observation tables.
@@ -67,28 +67,28 @@ BASE_XGB_PARAMS = {
 NUM_BOOST_ROUND = 2000
 EARLY_STOPPING_ROUNDS = 50
 
-# Class weights are swept and the value that balances snow and rain recall wins.
+# Candidate values for the scale_pos_weight sweep.
 SCALE_POS_WEIGHT_GRID = [0.15, 0.20, 0.25, 0.30, 0.35, 0.40, 0.50, 0.75, 1.0,
                          1.25, 1.5, 2.0]
 
-# Wet-bulb temperature separating the near-freezing regime from clear phases.
-# Probabilities are calibrated separately either side of it. The value follows
-# the uncertainty range in Sims & Liu (2015).
+# Wet-bulb threshold separating the near-freezing and clear-phase regimes.
+# Probabilities are calibrated separately on each side. Value from
+# Sims & Liu (2015).
 CLEAR_PHASE_TWET_C = 2.0
 
-# The mix class is not trained directly. Instead a band is drawn around
-# p(snow) = 0.5 that widens near freezing:
+# Mix is assigned by a band around p(snow) = 0.5 whose half-width varies with
+# wet-bulb temperature:
 #     half_band(Twet) = base + extra * exp(-Twet^2 / (2 * sigma^2))
-# Predictions inside the band are called mix. These grids are searched for the
-# band that captures the most observed mix without giving up too much confident
-# coverage of the pure phases.
+# Predictions inside the band are labelled mix. The grids below are searched
+# for the parameters maximising the objective in optimize_threshold_params.
 BASE_HALF_BAND_GRID = (0.05, 0.10, 0.15, 0.20)
 EXTRA_HALF_BAND_GRID = (0.10, 0.15, 0.20, 0.25, 0.30)
-SIGMA_GRID = (1.0, 1.5, 2.0)  # degC, bounded by the Sims & Liu empirical range
+SIGMA_GRID = (1.0, 1.5, 2.0)  # degC, range from Sims & Liu (2015)
 MAX_TOTAL_HALF_BAND = 0.40
 MIN_PURE_COVERAGE = 0.50
 MIN_NF_PURE_COVERAGE = 0.35
 MIX_CAPTURE_WEIGHT = 0.5
+
 
 def model_paths(region_id, interp_type=INTERP_TYPE):
     """Input and output locations for one region and interpolation product."""
@@ -118,7 +118,7 @@ def make_output_dirs(paths):
 
 
 # ---------------------------------------------------------------------------
-# The wet-bulb-conditioned uncertainty band
+# Uncertainty band
 # ---------------------------------------------------------------------------
 
 def gaussian_half_band(temp_wet, base_half_band, extra_half_band, sigma):
@@ -139,5 +139,5 @@ def classify_phase_gaussian_band(p_snow, temp_wet, base_half_band, extra_half_ba
 
 
 def transition_score_from_psnow(p_snow):
-    """How ambiguous the prediction is: 1 at p=0.5, 0 at p=0 or p=1."""
+    """Distance of p(snow) from 0 or 1: 1 at p=0.5, 0 at p=0 or p=1."""
     return 1.0 - np.abs(2.0 * np.asarray(p_snow) - 1.0)
