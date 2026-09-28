@@ -1,3 +1,15 @@
+# Only the pipeline code and its documentation are tracked.
+# Data live on Zenodo (see data/README.md); results are produced locally.
+/data/*
+!/data/README.md
+/results/
+/legacy/
+/manuscript/
+/Manuscript/
+/archive/
+/zenodo_upload/
+/outputs/
+
 # ------------------------------------------------------------
 # R
 .Rproj.user
@@ -13,40 +25,18 @@ __pycache__/
 *.egg-info/
 .env
 venv/
+.venv/
 
 # ------------------------------------------------------------
-# Large data files — ALL locations
-# (keeps repo to code + small CSVs only)
-
-/Data/
-
-# Raster / gridded
-*.tif
-*.tiff
+# Safety net: never commit large data files from anywhere
 *.nc
 *.nc4
-*.hdf
-*.hdf5
-*.bil
-*.bil.aux.xml
-*.prj
-
-# Tabular / serialized
+*.tif
+*.tiff
 *.parquet
-*.arrow
-*.feather
-*.csv.gz
-
-# Compressed archives (downloaded zips from PRISM, USGS, etc.)
 *.zip
-
-# ------------------------------------------------------------
-# Specific output directories
-outputs/
-Data/
-ML_pipeline/
-Manuscript/
-Scripts/
+*.pkl
+*.bin
 
 # ------------------------------------------------------------
 # OS / editor

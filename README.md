@@ -5,140 +5,103 @@ the Sierra Nevada / Lake Tahoe area of California (CA) and the Colorado
 Mountains (CO).
 
 Crowdsourced observations from the Mountain Rain or Snow project provide the
-labels. Weather stations, satellite and gridded climate data provide the
+labels. Weather stations and satellite (GPM IMERG) data provide the
 predictors. A gradient-boosted model predicts rain versus snow, and an
 uncertainty band around the resulting probability produces a third "mix" class
 where the answer is genuinely ambiguous.
 
-## Running it
+## Quick start
 
 ```bash
-cd refactored
-pip install -r requirements.txt
+git clone https://github.com/emmaaagolub/MRoS-phase-prediction.git
+cd MRoS-phase-prediction
+pip install -r pipeline/requirements.txt
 
-python run_pipeline.py                  # everything, both regions
-python run_pipeline.py --skip-download  # data already downloaded
-python run_pipeline.py --list           # see the stages
+python pipeline/get_data.py          # download the input data from Zenodo into data/
+python pipeline/run_pipeline.py      # run every stage for both regions
 ```
 
-Both regions are handled automatically by every stage. Use `--regions CA` to
-restrict to one. If a stage fails, fix the problem and resume with
-`python run_pipeline.py --from <stage>`.
+That's it. Everything the pipeline writes lands in `data/interim/` and
+`results/pipeline/`, one dated folder per run.
 
-Every script also runs on its own:
+Run part of it:
 
 ```bash
-python preprocessing/compile_observations.py --regions CO
-python figures/manuscript_figures.py --figures shap band
-Rscript preprocessing/download_prism.R
+python pipeline/run_pipeline.py --list                  # the 13 stages
+python pipeline/run_pipeline.py --regions CA            # one region
+python pipeline/run_pipeline.py --from build_dataset    # resume from a stage
+python pipeline/run_pipeline.py --only manuscript_figures
 ```
 
-Source data is read from the repository's shared `Data/` folder. Everything the
-pipeline writes goes to `refactored/outputs/`, so a run here never disturbs
-results produced by the earlier notebook version.
+Kriging (stage 5) is the slow step: it takes many hours per region. To skip it
+and start from the manuscript's interpolated grids, download them too:
+
+```bash
+python pipeline/get_data.py --include interim           # adds ~30 GB
+python pipeline/run_pipeline.py --from build_dataset
+```
+
+To redraw the manuscript figures from the exact runs used in the paper:
+
+```bash
+python pipeline/get_data.py --include interim results
+python pipeline/figures/manuscript_figures.py
+```
 
 ## Layout
 
 ```
-refactored/
-  config.py            region definitions, paths and the study period
-  run_pipeline.py      runs every stage in order
-  requirements.txt
-
-  preprocessing/
-    regions.R                 shared region definitions for the R scripts
-    get_elevation.R           download raw elevation models from the USGS
-    download_station_data.R   HADS, LCD and SNOTEL station observations
-    download_imerg.R          GPM IMERG liquid-precipitation probability
-    download_prism.R          daily PRISM climate rasters
-    process_dem.py            reproject and coarsen elevation to 1 km
-    compile_observations.py   stations, satellite and reports onto one hourly grid
-    resample_gridded.py       PRISM and IMERG onto the 1 km hourly grid
-    kriging_interpolation.py  interpolate observations onto the grid
-
-  model/
-    common.py            settings shared by the model and evaluation code
-    build_dataset.py     assemble the point table the model trains on
-    train_model.py       fit, calibrate, choose the uncertainty band, export
-    shap_analysis.py     which predictors drive which predictions
-
-  evaluation/
-    experiment_base.py   machinery shared by the experiment runners
-    model_evaluation.py  score the model and draw the summary figures
-    benchmarking.py      compare against standard published methods
-    ablation.py          retrain with each predictor removed in turn
-    bootstrap_cis.py     cluster bootstrap confidence intervals
-
-  figures/
-    manuscript_figures.py  redraw every figure from the saved artifacts
+pipeline/              the code (this is what the repository tracks)
+  run_pipeline.py        runs the stages in order
+  get_data.py            downloads the data from Zenodo
+  config.py              regions, study period, run-folder handling
+  preprocessing/  model/  evaluation/  figures/
+project_paths.yaml     where every input and output lives
+pinned_runs.yaml       the runs the manuscript figures are drawn from
+data/                  NOT in git; filled by get_data.py (see data/README.md)
+  raw/                   stations, IMERG, MRoS observations, DEMs, boundaries
+  interim/               derived grids, one folder per run
+results/               NOT in git; created when you run the pipeline
+  pipeline/              model, benchmarking, ablations, figures (one folder per run)
 ```
 
-## What each stage produces
+## How runs are stored
 
-| Stage | Output |
-| --- | --- |
-| `get_elevation.R` | `Data/Elevation/<region>_DEM_AOI_TNM_10m.tif` |
-| `download_station_data.R` | `Data/Stations/<REGION>/*.csv` |
-| `download_imerg.R` | `Data/IMERG/<REGION>/gpm_imerg_<date>.parquet` |
-| `download_prism.R` | `Data/PRISM/<REGION>/combined_prism_*.parquet` |
-| `process_dem.py` | `Data/Elevation/<REGION>_DEM_AOI_1km.tif` |
-| `compile_observations.py` | `outputs/compiled/<REGION>/hourly_data/*.parquet` |
-| `resample_gridded.py` | `outputs/resampled_grids/<REGION>/*.nc` |
-| `kriging_interpolation.py` | `outputs/interpolated/<REGION>/indicator_kriging/` |
-| `build_dataset.py`, `train_model.py`, `shap_analysis.py` | `outputs/model/<REGION>/` |
-| `benchmarking.py`, `ablation.py`, `bootstrap_cis.py` | `outputs/evaluation/<REGION>/` |
-| `manuscript_figures.py` | `outputs/figures/<REGION>/` |
+Every run of a stage writes a **new** folder named by date and time, e.g.
+`results/pipeline/model/CA/20261002-1415/`, so re-running never overwrites
+earlier results. Each folder holds a `run_manifest.json` recording when it
+ran, the git commit, and which input runs it read. Later stages read the
+newest completed run of the stage before them.
 
-## Figures
+The kriging and resampled-IMERG stages are large (3–14 GB per run), so only
+the newest two runs are kept (`keep_last` in `project_paths.yaml`); runs
+listed in `pinned_runs.yaml` are never removed.
 
-Two sets of figures are produced.
-
-Diagnostic figures live beside the artifacts they describe, under
-`outputs/model/<REGION>/graphics/` and `outputs/evaluation/<REGION>/.../graphics/`.
-They are written by the stage that computes them — training curves, the class
-weight sweep, per-experiment confusion matrices and so on.
-
-Presentation figures go to `outputs/figures/<REGION>/`, all drawn by
-`figures/manuscript_figures.py`, which reads saved artifacts only and retrains
-nothing. Filenames follow `<REGION>_<description>.png`, with `_appendix` on
-figures meant for the supplement. Draw a subset with `--figures`:
-
-```bash
-python figures/manuscript_figures.py --figures calibration forest shap
-```
-
-Available keys: `station_checks`, `phase_combined`, `phase_extent`,
-`phase_coverage`, `phase_elev_kde`, `phase_month`, `calibration`, `forest`,
-`tair`, `tair_accuracy`, `tair_relimp_ci`, `f1_twet`, `f1_tair`, `shap`,
-`ablation_ci`, `ablation_comparison`, `band`, `overall_bars`, `story5_tair`,
-`story5_twet`, `confusion`, `csi`.
-
-`station_checks` and `phase_combined` depend only on the compiled observations,
-so the pipeline draws them right after that stage as an early sanity check.
+`manuscript_figures.py` draws from the runs in `pinned_runs.yaml` by default
+and copies each PDF into the manuscript folder (turn that off with
+`figures.copy_to_manuscript: false`). `--inputs latest` draws from your newest
+runs instead.
 
 ## Requirements
 
-**Python** — see `requirements.txt`.
+**Python 3.10+** — `pip install -r pipeline/requirements.txt`.
 
-**R** — terra, sf, tidyverse, lubridate, purrr, readr, httr, jsonlite, glue,
-furrr, arrow, curl, devtools, geosphere. Station downloads also need the
+**R** (only to re-collect the raw data with `--with-collection`) — terra, sf,
+tidyverse, lubridate, purrr, readr, httr, jsonlite, glue, furrr, arrow, curl,
+devtools, geosphere, and the
 [rainOrSnowTools](https://github.com/LynkerIntel/rainOrSnowTools) package
-checked out alongside this repository.
-
-**Credentials** — IMERG downloads need a free NASA Earthdata account with the
-"NASA GESDISC DATA ARCHIVE" application approved. Put `NASA_DATA_USER` and
-`NASA_DATA_PASSWORD` in your `.Renviron`.
+checked out alongside this repository. IMERG downloads need a free NASA
+Earthdata account; put `NASA_DATA_USER` and `NASA_DATA_PASSWORD` in `.Renviron`.
 
 ## Notes on the approach
 
-The model is trained only on observations reported as pure rain or pure snow.
-Reports of mixed precipitation are held back rather than trained as a third
-class, because "mix" is as much a statement about uncertainty as it is a
-distinct physical state. Predicted probabilities are calibrated separately for
-near-freezing and clear-phase conditions, and mix is then defined as the region
-where the calibrated probability sits close enough to 0.5 — with "close enough"
-widening as wet-bulb temperature approaches freezing.
+The model is fitted on observations reported as pure rain or pure snow.
+Reports of mixed precipitation are excluded from fitting and retained for
+evaluation. Predicted probabilities are calibrated separately for near-freezing
+and clear-phase observations. Mix is then assigned where the calibrated
+probability falls inside a band around 0.5 whose width increases as wet-bulb
+temperature approaches freezing.
 
 The MRoS-derived predictors are computed leave-one-out: each observation's
-predictor value comes from the other observations in that hour, never from
-itself, so the labels cannot leak into the features.
+predictor value is interpolated from the other observations in that hour, not
+from itself.

@@ -1,0 +1,121 @@
+"""Package data/ (and optionally the pinned runs) for upload to Zenodo.
+
+Writes zip archives plus zenodo_manifest.json into zenodo_upload/ (ignored by
+git). Upload every file in that folder to one Zenodo record, then put the
+record id in project_paths.yaml (zenodo.record_id) so get_data.py can find it.
+
+  python pipeline/tools/package_for_zenodo.py                  core inputs
+  python pipeline/tools/package_for_zenodo.py --groups core dem_10m interim results
+  python pipeline/tools/package_for_zenodo.py --dry-run        sizes only
+
+Archive paths are relative to the repository root, so get_data.py unpacks
+them straight into place. Zenodo allows 50 GB per record (100 files).
+"""
+
+from __future__ import annotations
+
+import argparse
+import hashlib
+import json
+import shutil
+import sys
+import zipfile
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from config import REGION_IDS, REGIONS, REPO_ROOT, dem_1km_path, pinned_run, raw_path  # noqa: E402
+
+OUT_DIR = REPO_ROOT / "zenodo_upload"
+SKIP_NAMES = {"run_manifest.json.tmp"}
+SKIP_DIRS = {"__pycache__", "_download_logs", "hourly_chunks", "loocv_chunks"}
+
+
+def md5sum(path, chunk=8 * 1024 * 1024):
+    h = hashlib.md5()
+    with open(path, "rb") as fh:
+        for block in iter(lambda: fh.read(chunk), b""):
+            h.update(block)
+    return h.hexdigest()
+
+
+def files_under(folder, recursive=True):
+    folder = Path(folder)
+    it = folder.rglob("*") if recursive else folder.glob("*")
+    return sorted(p for p in it if p.is_file() and p.name not in SKIP_NAMES
+                  and not SKIP_DIRS & set(p.relative_to(folder).parts[:-1]))
+
+
+def packages(groups):
+    """(archive name, group, [files], unzip, destination shown to users)."""
+    out = []
+    if "core" in groups:
+        out.append(("mros_observations.zip", "core",
+                     [raw_path("mros")] + files_under(raw_path("reference")), True, "data/raw/"))
+        out.append(("dem_1km.zip", "core", [dem_1km_path(r) for r in REGION_IDS]
+                    + [p for r in REGION_IDS
+                       if (p := dem_1km_path(r).with_suffix(".tif.aux.xml")).exists()],
+                    True, "data/interim/dem_1km/"))
+        for r in REGION_IDS:
+            out.append((f"stations_{r}.zip", "core", files_under(raw_path("stations", r)),
+                        True, f"data/raw/stations/{r}/"))
+            out.append((f"imerg_{r}.zip", "core", files_under(raw_path("imerg", r)),
+                        True, f"data/raw/imerg/{r}/"))
+    if "dem_10m" in groups:
+        for r in REGION_IDS:
+            p = raw_path("dem_10m", r)
+            out.append((p.name, "dem_10m", [p], False, f"data/raw/dem/{p.name}"))
+    for group, stages in (("interim", ("hourly_compiled", "resampled_1km", "kriging")),
+                          ("results", ("model", "benchmarking", "ablations"))):
+        if group not in groups:
+            continue
+        for r in REGION_IDS:
+            for stage in stages:
+                run = pinned_run(stage, r)
+                if run is None:
+                    print(f"  no pinned {stage} run for {r}; skipped")
+                    continue
+                rel = run.relative_to(REPO_ROOT).as_posix()
+                out.append((f"{group}_{stage}_{r}.zip", group, files_under(run), True, rel + "/"))
+    return out
+
+
+def main():
+    ap = argparse.ArgumentParser(description=__doc__,
+                                 formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("--groups", nargs="+", default=["core"],
+                    choices=["core", "dem_10m", "interim", "results"])
+    ap.add_argument("--dry-run", action="store_true")
+    args = ap.parse_args()
+
+    pkgs = packages(set(args.groups))
+    grand = 0
+    for name, group, files, _, dest in pkgs:
+        size = sum(f.stat().st_size for f in files)
+        grand += size
+        print(f"  [{group:7s}] {name:36s} {len(files):5d} files {size / 1e9:7.2f} GB -> {dest}")
+    print(f"  total before compression: {grand / 1e9:.1f} GB")
+    if args.dry_run:
+        return
+
+    OUT_DIR.mkdir(exist_ok=True)
+    manifest = {"description": "Mountain Rain or Snow gridded precipitation-phase data. "
+                               "Unpack with pipeline/get_data.py.", "files": []}
+    for name, group, files, unzip, dest in pkgs:
+        target = OUT_DIR / name
+        print(f"writing {target.name} ...")
+        if unzip:
+            with zipfile.ZipFile(target, "w", zipfile.ZIP_DEFLATED, allowZip64=True) as zf:
+                for f in files:
+                    zf.write(f, f.relative_to(REPO_ROOT).as_posix())
+        else:
+            shutil.copy2(files[0], target)
+        manifest["files"].append({"name": name, "group": group, "dest": dest,
+                                  "unzip": unzip, "size": target.stat().st_size,
+                                  "md5": md5sum(target)})
+    (OUT_DIR / "zenodo_manifest.json").write_text(json.dumps(manifest, indent=2))
+    print(f"\nUpload everything in {OUT_DIR} (including zenodo_manifest.json) to one "
+          "Zenodo record, then set zenodo.record_id in project_paths.yaml.")
+
+
+if __name__ == "__main__":
+    main()

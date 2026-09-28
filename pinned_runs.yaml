@@ -1,0 +1,23 @@
+# Runs the manuscript is drawn from.
+#
+# - pipeline/figures/manuscript_figures.py reads these by default
+#   (use --inputs latest to draw from the newest pipeline runs instead).
+# - legacy/ code reads its inputs from these.
+# - Pinned runs are never removed by keep_last pruning.
+#
+# Paths are relative to the repository root. If a pinned path does not exist
+# (for example in a fresh clone), the newest completed pipeline run is used.
+CA:
+  hourly_compiled: data/interim/hourly_compiled/CA/20260528_compiled
+  resampled_1km:   data/interim/resampled_1km/CA/20260528_resampled
+  kriging:         data/interim/kriging/CA/20260806_kriging
+  model:           results/legacy/model/CA/20260604_kriging
+  benchmarking:    results/legacy/benchmarking/CA/20260728_benchmarking
+  ablations:       results/legacy/ablations/CA/20260609_ablations
+CO:
+  hourly_compiled: data/interim/hourly_compiled/CO/20260528_compiled
+  resampled_1km:   data/interim/resampled_1km/CO/20260528_resampled
+  kriging:         data/interim/kriging/CO/20260806_kriging
+  model:           results/legacy/model/CO/20260604_kriging
+  benchmarking:    results/legacy/benchmarking/CO/20260728_benchmarking
+  ablations:       results/legacy/ablations/CO/20260605_ablations

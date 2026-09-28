@@ -1,0 +1,56 @@
+# Where everything lives. Paths are relative to the repository root.
+# Read by pipeline/config.py and by legacy/legacy_paths.py, so a folder that
+# moves only needs to be changed here.
+
+# --- Input data (download from Zenodo with `python pipeline/get_data.py`) ----
+raw:
+  stations: data/raw/stations/{region}          # hads_, lcd_, asos_, wcc_ CSVs + station_metadata_
+  station_metadata: data/raw/stations/{region}/station_metadata_20221001_20260501.csv
+  imerg: data/raw/imerg/{region}                # gpm_imerg_YYYY-MM-DD.parquet
+  dem_10m: data/raw/dem/{dem_10m}               # file name set per region in pipeline/config.py
+  mros: data/raw/mros/mros_ca_co_20221001_20260501.parquet
+  reference: data/raw/reference                 # state boundaries (cached by the figure script)
+
+# The 1 km DEM is derived from the 10 m DEM. It is small and deterministic, so
+# it is overwritten in place rather than versioned.
+dem_1km: data/interim/dem_1km/{dem_1km}
+
+# --- Versioned stages ----------------------------------------------------------
+# Every run of a stage writes a NEW folder:  <root>/<region>/<run_id>/
+# (run_id = YYYYMMDD-HHMM). Nothing is overwritten. Each run folder holds a
+# run_manifest.json recording when it ran, the git commit, and which input runs
+# it read. Downstream stages read the newest completed run unless one is named.
+#
+# keep_last: after a new run completes, older completed runs beyond this number
+# are removed (see prune_older_runs). Runs listed in pinned_runs.yaml are never
+# removed. null = keep everything.
+stages:
+  hourly_compiled: {root: data/interim/hourly_compiled, keep_last: null}  # ~70 MB per run
+  resampled_1km:   {root: data/interim/resampled_1km,   keep_last: 2}     # ~3 GB per run
+  kriging:         {root: data/interim/kriging,         keep_last: 2}     # ~11-14 GB per run
+  model:           {root: results/pipeline/model,        keep_last: null}
+  benchmarking:    {root: results/pipeline/benchmarking, keep_last: null}
+  ablations:       {root: results/pipeline/ablations,    keep_last: null}
+  figures:         {root: results/pipeline/figures,      keep_last: null, per_region: false}
+
+# ask  = list the runs that would be removed and ask before deleting (default)
+# auto = delete without asking
+# off  = never delete; just report
+prune_older_runs: ask
+
+# Outputs written by the old code in legacy/ go here, never into data/ or
+# results/pipeline/. Same <stage>/<region>/<run_id>/ pattern.
+legacy_results: results/legacy
+
+# --- Figures ---------------------------------------------------------------------
+figures:
+  # Also copy each manuscript figure PDF into the LaTeX figures folder.
+  copy_to_manuscript: true
+  manuscript_dir: manuscript/figures
+
+# --- Zenodo ------------------------------------------------------------------------
+# Fill these in once the data record is published. get_data.py downloads every
+# file in the record and unpacks it into data/.
+zenodo:
+  record_id: null        # e.g. 1234567
+  doi: null              # e.g. 10.5281/zenodo.1234567
