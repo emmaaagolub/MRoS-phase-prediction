@@ -14,9 +14,12 @@ them straight into place. Zenodo allows 50 GB per record (100 files).
 MRoS locations: the core bundle contains the PUBLIC MRoS file made by
 make_public_mros.py (coordinates rounded to 4 decimals, etc.), stored under
 the raw.mros path so the pipeline finds it. The original file is never
-packaged. The interim and results groups still hold full-precision observer
-locations (lat/lon and UTM x/y), so they are refused unless
---allow-precise-locations is given.
+packaged. In the interim group, the tables that list individual MRoS reports
+(MROS_POINT_FILES below) are packaged as copies with coordinates rounded the
+same way as the public file (lat/lon to 4 decimals, x/y to 10 m), with a
+note in each bundle; everything else is packaged as is. The results group still holds
+full-precision observer locations (lat/lon and UTM x/y in the point tables),
+so it is refused unless --allow-precise-locations is given.
 """
 
 from __future__ import annotations
@@ -25,6 +28,7 @@ import argparse
 import hashlib
 import json
 import shutil
+import tempfile
 import sys
 import zipfile
 from pathlib import Path
@@ -32,11 +36,23 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from config import REGION_IDS, REPO_ROOT, dem_1km_path, pinned_run, raw_path  # noqa: E402
-from make_public_mros import public_mros_path  # noqa: E402
+from make_public_mros import (  # noqa: E402
+    ACCESS_NOTE, DECIMALS, XY_ROUND_M, coarsen_point_table, public_mros_path,
+)
 
 OUT_DIR = REPO_ROOT / "zenodo_upload"
 SKIP_NAMES = {"run_manifest.json.tmp"}
 SKIP_DIRS = {"__pycache__", "_download_logs", "hourly_chunks", "loocv_chunks"}
+
+# Interim files holding one row per MRoS report with full-precision lat/lon
+# (and UTM x/y). The interim bundles get copies with rounded coordinates
+# (make_public_mros.coarsen_point_table), never the originals.
+MROS_POINT_FILES = {
+    "mros_hourly.parquet",                            # hourly_compiled
+    "mros_processed.parquet",                         # kriging/processed_inputs
+    "mros_loocv_point_predictions_kriging.parquet",   # kriging
+    "mros_loocv_point_predictions_kriging.csv",       # kriging
+}
 
 
 def md5sum(path, chunk=8 * 1024 * 1024):
@@ -53,6 +69,26 @@ def files_under(folder, recursive=True):
     return [(p, arc(p)) for p in sorted(
         p for p in it if p.is_file() and p.name not in SKIP_NAMES
         and not SKIP_DIRS & set(p.relative_to(folder).parts[:-1]))]
+
+
+def interim_note(rounded_files):
+    names = "\n".join(f"  {Path(a).name}" for a in rounded_files)
+    return f"""MRoS observation locations in this folder
+
+To protect observers' locations, these tables list MRoS reports with rounded
+coordinates, the same rounding as the public MRoS file
+(data/raw/mros/README_public_version.txt): latitude/longitude to {DECIMALS} decimal
+places (~10 m), projected x/y to the nearest {XY_ROUND_M} m.
+{names}
+
+The gridded products in this folder were computed from the full-precision
+locations. Training the model from these tables (starting at build_dataset)
+therefore gives results that differ slightly from the published ones: a few
+reports fall in a neighbouring 1 km grid cell. Re-running the whole pipeline
+on the public MRoS file is self-consistent but also differs slightly.
+
+{ACCESS_NOTE}
+"""
 
 
 def arc(path):
@@ -97,7 +133,18 @@ def packages(groups):
                     print(f"  no pinned {stage} run for {r}; skipped")
                     continue
                 rel = run.relative_to(REPO_ROOT).as_posix()
-                out.append((f"{group}_{stage}_{r}.zip", group, files_under(run), True, rel + "/"))
+                files = files_under(run)
+                if group == "interim":
+                    rounded = [a for p, a in files if p.name in MROS_POINT_FILES]
+                    # A third element marks a file to be packaged as a rounded copy.
+                    files = [(p, a, "coarsen") if p.name in MROS_POINT_FILES else (p, a)
+                             for p, a in files]
+                    for a in rounded:
+                        print(f"  rounded copy (MRoS report locations): {a}")
+                    if rounded:
+                        files.append((None, f"{rel}/README_mros_locations.txt",
+                                      interim_note(rounded)))
+                out.append((f"{group}_{stage}_{r}.zip", group, files, True, rel + "/"))
     return out
 
 
@@ -108,22 +155,21 @@ def main():
                     choices=["core", "dem_10m", "interim", "results"])
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("--allow-precise-locations", action="store_true",
-                    help="Package the interim/results groups even though they hold "
+                    help="Package the results group even though its point tables hold "
                          "full-precision MRoS observer locations.")
     args = ap.parse_args()
 
-    precise = {"interim", "results"} & set(args.groups)
-    if precise and not args.allow_precise_locations:
+    if "results" in args.groups and not args.allow_precise_locations:
         raise SystemExit(
-            f"The {', '.join(sorted(precise))} group(s) contain full-precision MRoS "
-            "observer locations (lat/lon and UTM x/y). Rebuild them from the public MRoS "
-            "file first, or pass --allow-precise-locations if you intend to publish them."
+            "The results group contains full-precision MRoS observer locations "
+            "(lat/lon and UTM x/y in the point tables). Rebuild it from the public MRoS "
+            "file first, or pass --allow-precise-locations if you intend to publish it."
         )
 
     pkgs = packages(set(args.groups))
     grand = 0
     for name, group, files, _, dest in pkgs:
-        size = sum(f.stat().st_size for f, _ in files)
+        size = sum(item[0].stat().st_size for item in files if item[0] is not None)
         grand += size
         print(f"  [{group:7s}] {name:36s} {len(files):5d} files {size / 1e9:7.2f} GB -> {dest}")
     print(f"  total before compression: {grand / 1e9:.1f} GB")
@@ -132,14 +178,22 @@ def main():
 
     OUT_DIR.mkdir(exist_ok=True)
     manifest = {"description": "Mountain Rain or Snow gridded precipitation-phase data. "
-                               "Unpack with pipeline/get_data.py.", "files": []}
+                               "Unpack with pipeline/get_data.py. MRoS observation "
+                               "locations are rounded to ~10 m; " + ACCESS_NOTE,
+                "files": []}
     for name, group, files, unzip, dest in pkgs:
         target = OUT_DIR / name
         print(f"writing {target.name} ...")
         if unzip:
-            with zipfile.ZipFile(target, "w", zipfile.ZIP_DEFLATED, allowZip64=True) as zf:
-                for f, name_in_zip in files:
-                    zf.write(f, name_in_zip)
+            with zipfile.ZipFile(target, "w", zipfile.ZIP_DEFLATED, allowZip64=True) as zf, \
+                    tempfile.TemporaryDirectory() as tmp:
+                for f, name_in_zip, *extra in files:
+                    if f is None:                      # generated text (the note)
+                        zf.writestr(name_in_zip, extra[0])
+                    elif extra == ["coarsen"]:         # rounded copy, never the original
+                        zf.write(coarsen_point_table(f, Path(tmp) / f.name), name_in_zip)
+                    else:
+                        zf.write(f, name_in_zip)
         else:
             shutil.copy2(files[0][0], target)
         manifest["files"].append({"name": name, "group": group, "dest": dest,

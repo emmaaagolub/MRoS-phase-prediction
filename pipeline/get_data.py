@@ -1,27 +1,39 @@
-"""Download the project data from Zenodo into data/.
+"""STEP 1 of 2 — download the project data from Zenodo into data/.
 
-  python pipeline/get_data.py                         core inputs (~2 GB)
-  python pipeline/get_data.py --include dem_10m       also the raw 10 m DEMs (~6 GB)
-  python pipeline/get_data.py --include interim results
-                                                      also the manuscript's
-                                                      intermediate grids and model
-                                                      runs, to redraw the figures
-                                                      without re-running kriging
-  python pipeline/get_data.py --list                  show what the record holds
+Run this once, before run_pipeline.py (step 2). run_pipeline.py stops with a
+reminder if the data it needs are not in data/ yet.
+
+  python pipeline/get_data.py --list                  what the record holds, with sizes
+  python pipeline/get_data.py                         core inputs            ~2 GB
+  python pipeline/get_data.py --include dem_10m       + raw 10 m DEMs        ~6 GB
+  python pipeline/get_data.py --include interim       + intermediate grids  ~33 GB
   python pipeline/get_data.py --from-dir ~/Downloads  use files already downloaded
                                                       by hand from the Zenodo page
+
+CAUTION — the interim group is large (~33 GB of gridded surfaces). You need
+roughly that much free disk space plus room for the largest single archive
+(~15 GB) while it is unpacked. The script shows the total and checks free
+space before downloading anything, and asks for confirmation when the
+download is over 5 GB (skip the question with --yes).
+
+Which groups do you need?
+  core     Everything needed to run the full pipeline from the start
+           (python pipeline/run_pipeline.py): station tables, IMERG, MRoS
+           observations (public version, locations rounded to ~10 m), state
+           boundaries, 1 km DEMs.
+  dem_10m  Raw 10 m DEMs. Only needed to re-run process_dem; the 1 km DEMs in
+           core are enough otherwise.
+  interim  The manuscript's compiled tables, 1 km IMERG grid, kriged predictor
+           surfaces and leave-one-out table. Lets you skip the slow
+           preprocessing and kriging stages and start at build_dataset
+           (python pipeline/run_pipeline.py --from build_dataset). MRoS
+           locations rounded to ~10 m, so results differ slightly from the
+           published ones (see the README).
 
 The Zenodo record id is set in project_paths.yaml (zenodo.record_id) or given
 with --record. The record holds zenodo_manifest.json, which says where each
 file goes; every file is checked against its MD5 checksum. Files already in
 place are skipped, so the script can be re-run after an interruption.
-
-Groups
-  core     station tables, IMERG, MRoS observations (public version, locations
-           rounded to ~10 m), state boundaries, 1 km DEMs
-  dem_10m  raw 10 m DEMs (only needed to re-run process_dem)
-  interim  pinned compiled tables, resampled IMERG grid and kriging output
-  results  pinned model, benchmarking and ablation runs
 """
 
 from __future__ import annotations
@@ -103,6 +115,35 @@ def resolve_source(args):
     return manifest, fetch
 
 
+CONFIRM_ABOVE_GB = 5
+
+
+def group_summary(files):
+    sizes = {}
+    for f in files:
+        sizes[f["group"]] = sizes.get(f["group"], 0) + f["size"]
+    return sizes
+
+
+def check_space(wanted, keep_archives):
+    """Stop if the disk holding the repository cannot take the download."""
+    todo = [f for f in wanted
+            if not ((DOWNLOAD_DIR / f"{f['name']}.done").exists()
+                    and (DOWNLOAD_DIR / f"{f['name']}.done").read_text().strip() == f["md5"])]
+    if not todo:
+        return
+    total = sum(f["size"] for f in todo)
+    # An archive and its unpacked contents coexist until the archive is deleted.
+    zips = [f["size"] for f in todo if f["unzip"]]
+    peak = total + (sum(zips) if keep_archives else max(zips, default=0))
+    free = shutil.disk_usage(REPO_ROOT).free
+    print(f"  space needed: ~{peak / 1e9:.1f} GB   free on this disk: {free / 1e9:.1f} GB")
+    if free < peak * 1.05:
+        raise SystemExit(
+            f"\nNot enough free disk space for this download (~{peak / 1e9:.0f} GB needed). "
+            "Free up space, or download fewer groups (drop --include interim).")
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -112,7 +153,9 @@ def main():
     ap.add_argument("--record", help="Zenodo record id (overrides project_paths.yaml).")
     ap.add_argument("--from-dir", help="Folder holding files already downloaded from Zenodo.")
     ap.add_argument("--keep-archives", action="store_true",
-                    help="Keep the downloaded .zip files after unpacking.")
+                    help="Keep the downloaded .zip files after unpacking (needs twice the space).")
+    ap.add_argument("--yes", "-y", action="store_true",
+                    help="Do not ask for confirmation before a large download.")
     ap.add_argument("--list", action="store_true", help="List the record's files and exit.")
     args = ap.parse_args()
 
@@ -123,11 +166,29 @@ def main():
     if args.list:
         for f in files:
             print(f"  [{f['group']:7s}] {f['name']:40s} {f['size'] / 1e9:7.2f} GB  -> {f['dest']}")
+        print("\nTotal per group:")
+        for g, size in group_summary(files).items():
+            print(f"  {g:8s} {size / 1e9:6.1f} GB")
         return
+
+    missing = sorted(set(args.include) - {f["group"] for f in files})
+    if missing:
+        raise SystemExit(f"This Zenodo record has no {', '.join(missing)} group.")
 
     wanted = [f for f in files if f["group"] in groups]
     total = sum(f["size"] for f in wanted) / 1e9
-    print(f"Downloading {len(wanted)} file(s), {total:.1f} GB, groups: {', '.join(sorted(groups))}")
+    print(f"Downloading {len(wanted)} file(s) into {REPO_ROOT / 'data'}")
+    for g, size in group_summary(wanted).items():
+        print(f"  {g:8s} {size / 1e9:6.1f} GB")
+    print(f"  total    {total:6.1f} GB")
+    check_space(wanted, args.keep_archives)
+
+    if total > CONFIRM_ABOVE_GB and not args.yes:
+        if not sys.stdin or not sys.stdin.isatty():
+            raise SystemExit(f"\nThis is a {total:.0f} GB download. Re-run with --yes to confirm.")
+        answer = input(f"\nThis is a {total:.0f} GB download. Continue? [y/N] ").strip().lower()
+        if answer not in ("y", "yes"):
+            raise SystemExit("Cancelled.")
     DOWNLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
     for f in wanted:
@@ -157,7 +218,11 @@ def main():
                 target.unlink()
         marker.write_text(f["md5"])
 
-    print("\nDone. Next:\n  python pipeline/run_pipeline.py")
+    print("\nDone. Next (step 2):")
+    if "interim" in groups:
+        print("  python pipeline/run_pipeline.py --from build_dataset   # start from the downloaded grids")
+    print("  python pipeline/run_pipeline.py                        # the full pipeline")
+    print("Note: running the preprocessing and kriging stages writes ~33 GB more to data/interim/.")
 
 
 if __name__ == "__main__":

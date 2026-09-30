@@ -1,6 +1,6 @@
-# Where everything lives. Paths are relative to the repository root.
-# Read by pipeline/config.py and by legacy/legacy_paths.py, so a folder that
-# moves only needs to be changed here.
+# Outline of where everything lives. 
+# Paths are relative to the repository root.
+# Read by pipeline/config.py and by legacy/legacy_paths.py, so a folder that moves only needs to be changed here.
 
 # --- Input data (download from Zenodo with `python pipeline/get_data.py`) ----
 raw:
@@ -11,8 +11,7 @@ raw:
   mros: data/raw/mros/mros_ca_co_20221001_20260501.parquet
   reference: data/raw/reference                 # state boundaries (cached by the figure script)
 
-# The 1 km DEM is derived from the 10 m DEM. It is small and deterministic, so
-# it is overwritten in place rather than versioned.
+# The 1 km DEM is derived from the 10 m DEM; can be overwritten.
 dem_1km: data/interim/dem_1km/{dem_1km}
 
 # --- Versioned stages ----------------------------------------------------------

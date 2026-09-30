@@ -1,7 +1,6 @@
 """Draw the manuscript figures from saved artifacts.
 
-Reads the outputs of earlier stages only. No model is retrained, no
-interpolation is rerun, and no raw data is read.
+Reads the outputs of earlier stages only.
 
 Sources (all read-only), one run per stage and region:
   model            trained-model artifacts, predictions, SHAP
@@ -23,20 +22,20 @@ Pass --png to also write PNG previews to <run folder>/png_previews/.
 
 Naming and labelling conventions
 --------------------------------
-  - Nothing *drawn inside* a figure says CA or CO: the domains are labelled
+  - Nothing drawn inside a figure says CA or CO: the domains are labeled
     SNM and CRM (see REGION_DISPLAY / REGION_FULL_LABEL). The "CA" / "CO"
     keys remain the artifact and folder identifiers.
-  - Panels are labelled a), b), c), ... in reading order across the WHOLE
+  - Panels are labeled a), b), c), ... in reading order across the WHOLE
     combined figure, so a label never repeats within a figure: the SNM panels
     come first, and the CRM panels continue the sequence.
   - Figure titles and panel titles are Title Case; axis labels, legend
     entries and legend titles are sentence case.
-  - The ablation configuration using all predictors is labelled "Full
+  - The ablation configuration using all predictors is labeled "Full
     configuration". The folder name and saved metric keys still read
     baseline_full and *_baseline_minus_config; the translation happens at
     display time via CONFIG_DISPLAY_NAME.
   - The IMERG probability-of-liquid-precipitation predictor is written pLP.
-  - The model is labelled XGB-Full.
+  - The model is labeled XGB-Full.
   - The binary logistic benchmark evaluated with the published Jennings et al.
     (2018) coefficients (binlog_jennings18) is excluded from every figure; only
     the logistic model refit on these domains is shown. See EXCLUDED_METHODS.
@@ -56,13 +55,6 @@ Usage
   python manuscript_figures.py --figures shap band   # a subset
   python manuscript_figures.py --png                 # also write PNG previews
   python manuscript_figures.py --regions CA          # one domain only (drafts)
-
-This is the single figure script for the manuscript. It replaces
-Manuscript/produce_manuscript_figures.py, whose figure body was a verbatim
-copy of this one; the only things that copy had that this one did not were
-its output folder (Manuscript/figures/, now one of OUTPUT_DIRS) and a
-self-contained region table (the region geometry is read from
-refactored/config.py here, with the display labels in REGION_FULL_LABEL).
 """
 
 from __future__ import annotations

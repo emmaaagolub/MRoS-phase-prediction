@@ -6,10 +6,10 @@ into this folder with
 ```bash
 python pipeline/get_data.py                     # core inputs, ~2 GB
 python pipeline/get_data.py --include dem_10m   # + raw 10 m DEMs (~6 GB)
-python pipeline/get_data.py --include interim   # + the manuscript's grids (~30 GB)
+python pipeline/get_data.py --include interim   # + the manuscript's intermediate and processed products (~30 GB)
 ```
 
-(Zenodo DOI: to be added.)
+(Zenodo DOI: 10.5281/zenodo.23022221)
 
 ```
 data/
@@ -28,6 +28,11 @@ data/
     resampled_1km/{CA,CO}/<run>/      IMERG on the 1 km hourly grid
     kriging/{CA,CO}/<run>/            kriged predictor surfaces + leave-one-out MRoS table
 ```
+
+All MRoS locations on Zenodo are rounded to ~10 m, so results computed from
+them differ slightly from the published ones. Full-precision MRoS observation
+locations can be shared on request, subject to approval by the Mountain Rain
+or Snow project team.
 
 Study period: 1 October 2022 – 1 May 2026. Every location above is set in
 `project_paths.yaml` at the repository root.

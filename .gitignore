@@ -1,5 +1,6 @@
 # Only the pipeline code and its documentation are tracked.
 # Data live on Zenodo (see data/README.md); results are produced locally.
+
 /data/*
 !/data/README.md
 /results/
@@ -9,6 +10,7 @@
 /archive/
 /zenodo_upload/
 /outputs/
+/tools/
 
 # ------------------------------------------------------------
 # R
@@ -28,7 +30,7 @@ venv/
 .venv/
 
 # ------------------------------------------------------------
-# Safety net: never commit large data files from anywhere
+# Avoid large data files from anywhere
 *.nc
 *.nc4
 *.tif

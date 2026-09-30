@@ -1,4 +1,4 @@
-"""Paired space-time cluster bootstrap confidence intervals.
+"""Paired cluster bootstrap confidence intervals.
 
 Computes bootstrap CIs for the benchmark comparison and the ablation study
 from stored per-observation test predictions. No model is retrained and no
@@ -7,10 +7,10 @@ gridded data is read.
 Method
 ------
 Observations are assigned to space-time clusters: a square spatial block of
-side BLOCK_KM in projected coordinates, crossed with a calendar day. Clusters,
-not individual observations, are resampled with replacement. Every replicate
-applies the same resampled rows to all methods and configurations, so method
-differences are paired within replicate and the CI on each delta is taken
+side BLOCK_KM in projected coordinates, crossed with a calendar day. 
+Clusters are resampled with replacement. 
+Every replicate applies the same resampled rows to all methods and configurations, 
+so methoddifferences are paired within replicate and the CI on each delta is taken
 directly as a percentile interval.
 
 The analysis is repeated for each block size in BLOCK_KM_GRID, plus an iid

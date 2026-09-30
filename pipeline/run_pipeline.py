@@ -1,4 +1,17 @@
-"""Run the pipeline, start to finish or a few stages at a time.
+"""STEP 2 of 2 — run the pipeline, start to finish or a few stages at a time.
+
+Run `python pipeline/get_data.py` FIRST (step 1) to download the input data
+from Zenodo into data/. This script stops with a reminder if the data it
+needs are missing.
+
+CAUTION — disk space. The preprocessing stages write large gridded files:
+about 6 GB for the 1 km IMERG grids (resample_gridded) and about 26 GB for
+the kriged surfaces (kriging_interpolation), ~33 GB per full run for both
+regions. The two newest runs of each are kept (keep_last in
+project_paths.yaml), so repeated runs can hold ~65 GB. Before starting, the
+script estimates what the selected stages will write, checks free space, and
+asks for confirmation above 5 GB (skip the question with --yes). Kriging might
+also take many hours per region.
 
 Every stage processes both regions (CA and CO), and every run of a stage
 writes a new dated folder, so nothing is overwritten (see project_paths.yaml).
@@ -37,6 +50,7 @@ Usage
   python pipeline/run_pipeline.py --only compile kriging_interpolation
   python pipeline/run_pipeline.py --list                 list the stages and exit
   python pipeline/run_pipeline.py --dry-run              print the commands only
+  python pipeline/run_pipeline.py --yes                  no confirmation prompt
 """
 
 import argparse
@@ -46,7 +60,7 @@ import sys
 import time
 from pathlib import Path
 
-from config import REGION_IDS, raw_path
+from config import REGION_IDS, REPO_ROOT, list_runs, pinned_run, raw_path
 
 HERE = Path(__file__).resolve().parent
 
@@ -111,6 +125,67 @@ def select_stages(args):
     return stages
 
 
+# Approximate size (GB) of what one run of a stage writes, per region, taken
+# from the manuscript's runs. Stages not listed write well under 1 GB.
+OUTPUT_GB = {
+    "resample_gridded": {"CA": 3.7, "CO": 2.5},
+    "kriging_interpolation": {"CA": 11.7, "CO": 14.5},
+    "compile": {"CA": 0.1, "CO": 0.1},
+}
+SMALL_STAGE_GB = 0.1
+CONFIRM_ABOVE_GB = 5
+
+
+def estimate_output_gb(stages, regions):
+    return sum(OUTPUT_GB.get(s[0], {}).get(r, SMALL_STAGE_GB)
+               for s in stages for r in regions)
+
+
+def check_disk_space(stages, regions, assume_yes):
+    """Warn about large outputs, stop if the disk is too full, ask above 5 GB."""
+    need = estimate_output_gb(stages, regions)
+    free = shutil.disk_usage(REPO_ROOT).free / 1e9
+    print(f"Estimated new output: ~{need:.0f} GB   free on this disk: {free:.0f} GB")
+    big = [s[0] for s in stages if s[0] in ("resample_gridded", "kriging_interpolation")]
+    if big:
+        print(f"  ({', '.join(big)} write large gridded files; see the note at the top "
+              "of this script)")
+    if free < need * 1.1:
+        raise SystemExit(
+            f"\nNot enough free disk space (~{need:.0f} GB needed). Free up space, or "
+            "start later in the pipeline, e.g. download the manuscript's grids with\n"
+            "  python pipeline/get_data.py --include interim\n"
+            "and run\n  python pipeline/run_pipeline.py --from build_dataset")
+    if need > CONFIRM_ABOVE_GB and not assume_yes:
+        if not sys.stdin or not sys.stdin.isatty():
+            raise SystemExit(f"\nThese stages will write ~{need:.0f} GB. "
+                             "Re-run with --yes to confirm.")
+        answer = input(f"These stages will write ~{need:.0f} GB. Continue? [y/N] ")
+        if answer.strip().lower() not in ("y", "yes"):
+            raise SystemExit("Cancelled.")
+    print()
+
+
+def check_interim_data(stages, regions):
+    """Starting after kriging needs kriging and IMERG-grid runs to read."""
+    names = {s[0] for s in stages}
+    if not names & {"build_dataset", "benchmarking", "ablation"}:
+        return
+    missing = [f"{stage} [{r}]"
+               for r in regions
+               for stage, producer in (("kriging", "kriging_interpolation"),
+                                       ("resampled_1km", "resample_gridded"))
+               if producer not in names
+               and not list_runs(stage, r) and pinned_run(stage, r) is None]
+    if missing:
+        raise SystemExit(
+            f"No {', '.join(missing)} output to start from.\n\n"
+            "Either download the manuscript's grids (~33 GB) first:\n"
+            "  python pipeline/get_data.py --include interim\n"
+            "or run the preprocessing stages too:\n"
+            "  python pipeline/run_pipeline.py\n")
+
+
 def check_raw_data(stages, regions):
     """Stop early, with a pointer to get_data.py, if the raw data are missing."""
     needs_raw = {"process_dem", "compile"}
@@ -126,15 +201,17 @@ def check_raw_data(stages, regions):
         listing = "\n".join(f"  {p}" for p in missing)
         raise SystemExit(
             f"Raw input data not found:\n{listing}\n\n"
-            "Download it first:\n  python pipeline/get_data.py\n"
+            "Step 1 is to download it from Zenodo (~2 GB):\n  python pipeline/get_data.py\n"
         )
 
 
-def run(stages, regions, dry_run):
+def run(stages, regions, dry_run, assume_yes=False):
     print(f"Regions: {', '.join(regions)}")
     print(f"Stages : {', '.join(s[0] for s in stages)}\n")
     if not dry_run:
         check_raw_data(stages, regions)
+        check_interim_data(stages, regions)
+        check_disk_space(stages, regions, assume_yes)
 
     for i, stage in enumerate(stages, start=1):
         name = stage[0]
@@ -166,7 +243,8 @@ def run(stages, regions, dry_run):
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Run the precipitation-phase pipeline.",
+        description="Step 2: run the precipitation-phase pipeline. "
+                    "Run `python pipeline/get_data.py` first (step 1).",
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     parser.add_argument("--regions", nargs="+", choices=list(REGION_IDS),
@@ -182,6 +260,8 @@ def main():
                         help=argparse.SUPPRESS)  # old flag; collection is now off by default
     parser.add_argument("--list", action="store_true",
                         help="List the stages and exit.")
+    parser.add_argument("--yes", "-y", action="store_true",
+                        help="Do not ask for confirmation before writing large outputs.")
     parser.add_argument("--dry-run", action="store_true",
                         help="Print the commands without running them.")
     args = parser.parse_args()
@@ -190,12 +270,15 @@ def main():
         print("Data collection (only with --with-collection):")
         for name, folder, script, _ in COLLECTION_STAGES:
             print(f"      {name:22s} {folder}/{script}")
-        print("\nPipeline:")
+        print("\nPipeline (writes, both regions):")
         for i, (name, folder, script, _) in enumerate(STAGES, start=1):
-            print(f"  {i:2d}  {name:22s} {folder}/{script}")
+            gb = sum(OUTPUT_GB.get(name, {}).get(r, 0) for r in REGION_IDS)
+            size = f"~{gb:.0f} GB" if gb >= 1 else "< 1 GB"
+            print(f"  {i:2d}  {name:22s} {folder + '/' + script:40s} {size}")
+        print("\nStep 1, if not done yet: python pipeline/get_data.py")
         return
 
-    run(select_stages(args), args.regions, args.dry_run)
+    run(select_stages(args), args.regions, args.dry_run, args.yes)
 
 
 if __name__ == "__main__":

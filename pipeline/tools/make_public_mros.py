@@ -1,6 +1,6 @@
 """Make the location-coarsened MRoS file that is published on Zenodo.
 
-The raw MRoS reports carry the observer's position to the millimetre, in the
+The raw MRoS reports carry the observer's position to the mm, in the
 latitude/longitude columns and again in geohash12 and the exact distances to
 named weather stations. This script writes a public copy in which:
 
@@ -36,13 +36,19 @@ import pandas as pd
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from config import raw_path  # noqa: E402
 
-DECIMALS = 4
+DECIMALS = 4          # latitude / longitude
+XY_ROUND_M = 10       # projected (UTM) x / y, metres; matches ~4 decimals
 DIST_ROUND_M = 1000
 ELEV_ROUND_M = 10
 GEOHASH_LEN = 7
 DROP = ["comment"]
 
 _BASE32 = "0123456789bcdefghjkmnpqrstuvwxyz"
+
+ACCESS_NOTE = (
+    "Full-precision MRoS observation locations can be shared on request, subject to "
+    "approval by the Mountain Rain or Snow project team."
+)
 
 
 def public_mros_path() -> Path:
@@ -80,6 +86,28 @@ def round_numeric(s, step=None, decimals=None):
     else:
         x = (x / step).round() * step
     return x
+
+
+def coarsen_point_table(src, dst):
+    """Copy a table of individual MRoS reports with its coordinates rounded the
+    same way as the public MRoS file: lat/lon to DECIMALS places, projected x/y
+    to the nearest XY_ROUND_M metres. Other columns are unchanged. Handles
+    .parquet and .csv."""
+    src, dst = Path(src), Path(dst)
+    csv = src.suffix.lower() == ".csv"
+    df = pd.read_csv(src, low_memory=False) if csv else pd.read_parquet(src)
+    for col in df.columns:
+        key = col.lower()
+        if key in ("lat", "lon", "latitude", "longitude"):
+            df[col] = pd.to_numeric(df[col], errors="coerce").round(DECIMALS)
+        elif key in ("x", "y"):
+            df[col] = round_numeric(df[col], step=XY_ROUND_M)
+    dst.parent.mkdir(parents=True, exist_ok=True)
+    if csv:
+        df.to_csv(dst, index=False)
+    else:
+        df.to_parquet(dst)
+    return dst
 
 
 def main():
@@ -125,6 +153,10 @@ To protect observers' locations, this copy differs from the raw export:
   elevation            rounded to the nearest {ELEV_ROUND_M} m
   dropped columns      {', '.join(dropped) or 'none'}
 All other columns are unchanged. Made by pipeline/tools/make_public_mros.py.
+
+Results computed from this file will differ slightly from those computed from
+the full-precision data (a few reports can fall in a neighbouring 1 km grid
+cell). {ACCESS_NOTE}
 """
     (dst.parent / "README_public_version.txt").write_text(notes)
     print(notes)

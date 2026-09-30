@@ -17,14 +17,23 @@ git clone https://github.com/emmaaagolub/MRoS-phase-prediction.git
 cd MRoS-phase-prediction
 pip install -r pipeline/requirements.txt
 
-python pipeline/get_data.py          # download the input data from Zenodo into data/
-python pipeline/run_pipeline.py      # run every stage for both regions
+python pipeline/get_data.py          # step 1: download the input data from Zenodo (~2 GB)
+python pipeline/run_pipeline.py      # step 2: run every stage for both regions
 ```
 
-That's it. Everything the pipeline writes lands in `data/interim/` and
+Always run `get_data.py` first; `run_pipeline.py` stops with a reminder if the
+data are missing. Everything the pipeline writes lands in `data/interim/` and
 `results/pipeline/`, one dated folder per run.
 
-Run part of it:
+> **Disk space.** A full pipeline run writes about **33 GB** of gridded files
+> (1 km IMERG grids ~6 GB, kriged surfaces ~26 GB), and the two newest runs of
+> each are kept, so repeated runs can hold ~65 GB. Downloading the
+> manuscript's intermediate grids (`--include interim`) is also **~33 GB**.
+> Both scripts show the size, check free space, and ask before anything over
+> 5 GB (`--yes` skips the question). `python pipeline/get_data.py --list` and
+> `python pipeline/run_pipeline.py --list` show sizes without doing anything.
+
+Run parts of it:
 
 ```bash
 python pipeline/run_pipeline.py --list                  # the 13 stages
@@ -33,20 +42,30 @@ python pipeline/run_pipeline.py --from build_dataset    # resume from a stage
 python pipeline/run_pipeline.py --only manuscript_figures
 ```
 
-Kriging (stage 5) is the slow step: it takes many hours per region. To skip it
-and start from the manuscript's interpolated grids, download them too:
+Kriging (stage 5) is slow; it can take many hours per region. The
+manuscript's intermediate products (compiled station, IMERG and MRoS tables,
+the 1 km IMERG grid, the kriged predictor surfaces and the leave-one-out MRoS
+table) can be downloaded instead:
 
 ```bash
-python pipeline/get_data.py --include interim           # adds ~30 GB
-python pipeline/run_pipeline.py --from build_dataset
+python pipeline/get_data.py --include interim           # adds ~33 GB (check free space first)
+python pipeline/run_pipeline.py --from build_dataset    # train from those grids
 ```
 
-To redraw the manuscript figures from the exact runs used in the paper:
+### MRoS observation locations
 
-```bash
-python pipeline/get_data.py --include interim results
-python pipeline/figures/manuscript_figures.py
-```
+To protect observers, every MRoS table on Zenodo has its locations rounded:
+latitude/longitude to 4 decimal places (~10 m) and projected x/y to 10 m. This
+applies to the raw reports and to the tables in the interim bundles
+(`mros_hourly.parquet`, `mros_processed.parquet`,
+`mros_loocv_point_predictions_kriging.*`). The gridded products were computed
+from the full-precision locations, so results you compute from the Zenodo data,
+whether from `build_dataset` or from the start of the pipeline, will differ
+slightly from the published ones: a few reports fall in a neighbouring 1 km
+grid cell.
+
+Full-precision MRoS observation locations can be shared on request, subject to
+approval by the Mountain Rain or Snow project team.
 
 ## Layout
 
