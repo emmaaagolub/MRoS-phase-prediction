@@ -17,7 +17,8 @@ file goes; every file is checked against its MD5 checksum. Files already in
 place are skipped, so the script can be re-run after an interruption.
 
 Groups
-  core     station tables, IMERG, MRoS observations, state boundaries, 1 km DEMs
+  core     station tables, IMERG, MRoS observations (public version, locations
+           rounded to ~10 m), state boundaries, 1 km DEMs
   dem_10m  raw 10 m DEMs (only needed to re-run process_dem)
   interim  pinned compiled tables, resampled IMERG grid and kriging output
   results  pinned model, benchmarking and ablation runs

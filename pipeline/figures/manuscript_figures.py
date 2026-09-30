@@ -507,16 +507,26 @@ class Panels:
         self.finalize = finalize
 
 
-def panel_grid(canvas, nrows=1, ncols=1, figsize=(10, 6), **kwargs):
+def panel_grid(canvas, nrows=1, ncols=1, figsize=(10, 6), side_figsize=None, **kwargs):
     """canvas.subplots(), recording the size this domain's block wants.
 
     combine_regions reads the recorded size to set the page size and the
     height ratio between the two stacked domains, so each draw function keeps
     control of its own proportions exactly as it did as a standalone figure.
+
+    When combine_regions places the domains side by side (layout="side") the
+    canvas is flagged, and `side_figsize` (if the draw function gave one)
+    replaces `figsize`, so each domain can be drawn narrower.
     """
+    if getattr(canvas, "_side", False) and side_figsize is not None:
+        figsize = side_figsize
     canvas._requested_size = figsize
     return canvas.subplots(nrows, ncols, **kwargs)
 
+
+# AMS wants figure titles in the caption, not in the image. Set True to bring
+# the bold page title back (e.g. for slides).
+SHOW_FIGURE_TITLE = False
 
 PANEL_LABEL_STYLE = dict(loc="left")  # same type as the panel titles
 
@@ -545,8 +555,15 @@ def _write_figure(root, stem: str, png: bool):
         root.savefig(PREVIEW_DIR / f"{stem}.png", dpi=110, bbox_inches="tight")
 
 
-def combine_regions(draw_fn, stem: str, regions=None, png: bool = False):
-    """Draw `draw_fn` for each domain, stack them, label panels, save PDF.
+def _combine_body(draw_fn, stem, regions, png, layout, font_scale, save):
+    """One drawing pass of combine_regions (see there). Returns the page width
+    in inches, or None if nothing could be drawn. `font_scale` multiplies the
+    hard-coded domain-header size; the rcParams sizes are scaled by the caller.
+
+    Draw `draw_fn` for each domain, arrange them, label panels, save PDF.
+
+    layout="stack" puts SNM above CRM (default); layout="side" puts SNM on the
+    left and CRM on the right.
 
     A domain whose inputs are missing is dropped and the figure is redrawn
     with the domains that remain, rather than leaving an empty half-page.
@@ -554,9 +571,13 @@ def combine_regions(draw_fn, stem: str, regions=None, png: bool = False):
     regions = list(regions or REGIONS)
     while regions:
         root = plt.figure(layout="constrained")
-        canvases = np.atleast_1d(root.subfigures(len(regions), 1, hspace=0.04))
+        if layout == "side":
+            canvases = np.atleast_1d(root.subfigures(1, len(regions), wspace=0.04))
+        else:
+            canvases = np.atleast_1d(root.subfigures(len(regions), 1, hspace=0.04))
         results = []
         for region, canvas in zip(regions, canvases):
+            canvas._side = (layout == "side")
             try:
                 res = draw_fn(region, canvas)
             except Exception as exc:
@@ -570,21 +591,29 @@ def combine_regions(draw_fn, stem: str, regions=None, png: bool = False):
         regions = [r for r in regions if r not in missing]
     else:
         print(f"  [{stem}] no domain could be drawn, not saving")
-        return
+        return None
 
     # Page size: widest block wins; heights stack. Height ratios follow the
     # requested heights so neither domain is squashed.
     sizes = [getattr(c, "_requested_size", (10, 6)) for c in canvases]
-    width = max(w for w, _ in sizes)
+    widths = [w for w, _ in sizes]
     heights = [h for _, h in sizes]
-    title_pad = 0.9  # room for the page title
-    root.set_size_inches(width, sum(heights) + title_pad)
-    if len(canvases) > 1:
-        canvases[0]._subplotspec.get_gridspec().set_height_ratios(heights)
-        for c in canvases:
-            c._redo_transform_rel_fig()
+    title_pad = 0.9 if SHOW_FIGURE_TITLE else 0.1  # room for the page title
+    if layout == "side":
+        root.set_size_inches(sum(widths), max(heights) + title_pad)
+        if len(canvases) > 1:
+            canvases[0]._subplotspec.get_gridspec().set_width_ratios(widths)
+            for c in canvases:
+                c._redo_transform_rel_fig()
+    else:
+        root.set_size_inches(max(widths), sum(heights) + title_pad)
+        if len(canvases) > 1:
+            canvases[0]._subplotspec.get_gridspec().set_height_ratios(heights)
+            for c in canvases:
+                c._redo_transform_rel_fig()
 
-    root.suptitle(results[0].title, fontweight="bold", fontsize=20)
+    if SHOW_FIGURE_TITLE:
+        root.suptitle(results[0].title, fontweight="bold", fontsize=20)
 
     # Domain headers and panel labels. A domain with a single panel carries
     # its name as that panel's title; a multi-panel domain gets a header line.
@@ -593,7 +622,7 @@ def combine_regions(draw_fn, stem: str, regions=None, png: bool = False):
         if len(res.panels) == 1:
             res.panels[0].set_title(region_full_label(region))
         else:
-            canvas.suptitle(region_full_label(region), fontsize=18)
+            canvas.suptitle(region_full_label(region), fontsize=18 * font_scale)
         for ax in res.panels:
             # A titled panel gets the label as a prefix ("b) Test"), which
             # can never collide with the title; an untitled panel gets the
@@ -609,8 +638,72 @@ def combine_regions(draw_fn, stem: str, regions=None, png: bool = False):
     for res in results:
         if res.finalize is not None:
             res.finalize(root)
-    _write_figure(root, stem, png)
+    width_in = float(root.get_size_inches()[0])
+    if save:
+        _write_figure(root, stem, png)
     plt.close(root)
+    return width_in
+
+
+# Text-size consistency across figures. Every figure is drawn at its own page
+# size and then shrunk to fit main.tex, so the same matplotlib font size prints
+# at very different sizes (a 28-inch-wide figure shrinks ~2x more than a
+# 14-inch one). combine_regions therefore scales all text in a figure so it
+# prints at the same size as text in a figure shrunk by TARGET_PAGE_SCALE.
+# PLACED_WIDTH_IN is how wide each figure is placed in main.tex (width fraction
+# x 6.5 in text width); keep it in step with the \includegraphics widths.
+# A stem missing from the table is drawn at scale 1.
+TEXTWIDTH_IN = 6.5
+TARGET_PAGE_SCALE = 0.40
+PLACED_WIDTH_IN = {stem: frac * TEXTWIDTH_IN for stem, frac in {
+    "phase_maps": 0.95,
+    "f1_by_wetbulb": 0.95,
+    "overall_accuracy_bars": 0.92,
+    "benchmark_accuracy_by_tair_ci": 0.95,
+    "csi_by_tair_appendix": 0.95,
+    "ablation_comparison": 0.95,
+    "story5_nearfreeze_twet_comparison": 0.95,
+    "selective_by_wetbulb": 0.98,
+    "band_placement_appendix": 0.95,
+    "phase_distributions": 0.92,
+    "confusion_matrix_appendix": 0.80,
+    "calibration_reliability": 0.98,
+    "f1_by_tair": 0.85,
+    "selective_by_tair": 0.98,
+    "story5_nearfreeze_tair_comparison": 0.95,
+    "benchmark_delta_forest_combined": 0.95,
+    "ablation_deltas_ci": 0.95,
+}.items()}
+_FONT_KEYS = ["font.size", "axes.titlesize", "axes.labelsize", "xtick.labelsize",
+              "ytick.labelsize", "legend.fontsize", "legend.title_fontsize",
+              "figure.titlesize"]
+
+
+def _combine_scaled(draw_fn, stem, regions, png, layout, font_scale, save):
+    scaled = {k: plt.rcParams[k] * font_scale for k in _FONT_KEYS}
+    with plt.rc_context(scaled):
+        return _combine_body(draw_fn, stem, regions, png, layout, font_scale, save)
+
+
+def combine_regions(draw_fn, stem: str, regions=None, png: bool = False,
+                    layout: str = "stack"):
+    """Draw `draw_fn` for each domain, arrange them, label panels, save PDF.
+
+    layout="stack" puts SNM above CRM (default); layout="side" puts SNM on the
+    left and CRM on the right. Text is scaled so it prints at a consistent size
+    across figures (see TARGET_PAGE_SCALE).
+    """
+    regions = list(regions or REGIONS)
+    scale = 1.0
+    placed = PLACED_WIDTH_IN.get(stem)
+    if placed:
+        # First pass only measures the page width the figure ends up with.
+        width_in = _combine_scaled(draw_fn, stem, regions, False, layout, 1.0, False)
+        if width_in is None:
+            return
+        scale = TARGET_PAGE_SCALE * width_in / placed
+        print(f"  [{stem}] page {width_in:.1f} in placed at {placed:.2f} in -> text x{scale:.2f}")
+    _combine_scaled(draw_fn, stem, regions, png, layout, scale, True)
 
 
 # ---------------------------------------------------------------------------
@@ -645,7 +738,8 @@ def draw_calibration(region: str, canvas):
     band0 = gaussian_half_band(np.array([0.0]), base_hb, extra_hb, sigma)[0]
     rain_thresh_0, snow_thresh_0 = 0.5 - band0, 0.5 + band0
 
-    axes = panel_grid(canvas, 2, 2, figsize=(14, 11), gridspec_kw={"height_ratios": [3, 1]})
+    axes = panel_grid(canvas, 2, 2, figsize=(14, 11), side_figsize=(8.2, 7.6),
+                       gridspec_kw={"height_ratios": [3, 1]})
     for col, (split_name, split_key) in enumerate([("Validation", "val"), ("Test", "test")]):
         d = df[df["split"] == split_key]
         if d.empty:
@@ -863,7 +957,7 @@ def draw_benchmark_accuracy_by_tair_ci(region: str, canvas):
     bm, bv = res["bin_mids"], res["bin_valid"]
     best = max(res["methods"], key=lambda m: np.nanmean(res["point_acc"][m]))
 
-    ax = panel_grid(canvas, figsize=(11, 6.5))
+    ax = panel_grid(canvas, figsize=(11, 6.5), side_figsize=(7.5, 6.0))
     plot_set = [(MODEL_NAME_KEY, method_label(MODEL_NAME_KEY)),
                 (best, f"{method_label(best)} (best benchmark)")]
     for m, label in plot_set:
@@ -1543,7 +1637,7 @@ def draw_band_placement(region: str, canvas):
     t_grid = np.linspace(twet_data_min - twet_pad, twet_data_max + twet_pad, 300)
     hb_grid = gaussian_half_band(t_grid, base_hb, extra_hb, sigma)
     snow_boundary, rain_boundary = 0.5 + hb_grid, 0.5 - hb_grid
-    ax = panel_grid(canvas, figsize=(11, 8))
+    ax = panel_grid(canvas, figsize=(11, 8), side_figsize=(7.5, 6.5))
     ax.fill_between(t_grid, rain_boundary, snow_boundary, alpha=0.12, color="orange")
     ax.plot(t_grid, snow_boundary, color="black", lw=1.8)
     ax.plot(t_grid, rain_boundary, color="black", lw=1.8, ls="--")
@@ -1733,7 +1827,7 @@ def draw_confusion_matrix(region: str, canvas):
     row_tot = cm.sum(axis=1, keepdims=True)
     cm_pct = np.divide(cm, row_tot, out=np.zeros_like(cm, float), where=row_tot > 0) * 100
 
-    ax = panel_grid(canvas, figsize=(8.0, 7.0))
+    ax = panel_grid(canvas, figsize=(8.0, 7.0), side_figsize=(6.5, 5.6))
     im = ax.imshow(cm_pct, cmap="Blues", vmin=0, vmax=100)
     for i in range(2):
         for j in range(2):
@@ -1919,6 +2013,25 @@ def draw_csi_by_tair(region: str, canvas):
 # figure, call the matching _draw_*, and save.
 # ---------------------------------------------------------------------------
 
+def _north_arrow(ax, x: float = 0.93, y: float = 0.84):
+    """Conventional split-shade north arrow (left half black, right half white)
+    with a bold N above it. Sized from the base font size so it scales with the
+    rest of the figure text; (x, y) is the arrow's centre in axes fraction."""
+    from matplotlib.path import Path
+    size = 2.0 * plt.rcParams["font.size"]           # arrow height, points
+    tip, notch = (0.0, 1.0), (0.0, -0.5)
+    left = Path([tip, (-0.5, -1.0), notch, tip], closed=True)
+    right = Path([tip, notch, (0.5, -1.0), tip], closed=True)
+    for path, face in ((left, "black"), (right, "white")):
+        ax.plot([x], [y], transform=ax.transAxes, marker=path, markersize=size,
+                markerfacecolor=face, markeredgecolor="black", markeredgewidth=1.0,
+                linestyle="none", clip_on=False, zorder=5)
+    ax.annotate("N", xy=(x, y), xycoords="axes fraction",
+                xytext=(0, 0.62 * size), textcoords="offset points",
+                ha="center", va="bottom", fontsize=plt.rcParams["font.size"],
+                fontweight="bold", zorder=5)
+
+
 def _draw_phase_extent_panel(ax, region: str):
     """Regional context: state outline, a few cities, and the AOI overlay.
 
@@ -1958,8 +2071,12 @@ def _draw_phase_extent_panel(ax, region: str):
 
     have_tiles = False
     try:
-        cx.add_basemap(ax, crs=dem_crs_str,
-                       source=cx.providers.CartoDB.PositronNoLabels, zorder=1)
+        # Esri's light-gray canvas needs no key. CARTO's basemaps now do: without
+        # one the server still returns tiles, but stamped "API KEY REQUIRED".
+        # attribution=False: contextily's own credit line is oversized and sat on
+        # top of ours, so one small credit is drawn below instead.
+        cx.add_basemap(ax, crs=dem_crs_str, attribution=False,
+                       source=cx.providers.Esri.WorldGrayCanvas, zorder=1)
         have_tiles = True
     except Exception as e:
         print(f"  [phase_extent:{region}] basemap tiles unavailable ({type(e).__name__}); "
@@ -1993,13 +2110,12 @@ def _draw_phase_extent_panel(ax, region: str):
         spine.set_linewidth(0.8)
 
     if have_tiles:
-        ax.text(0.01, 0.01, "© OpenStreetMap contributors, © CARTO",
-                transform=ax.transAxes, fontsize=7, color="dimgray",
+        ax.text(0.01, 0.01, "Basemap: Esri, DeLorme, NAVTEQ",
+                transform=ax.transAxes, fontsize=0.5 * plt.rcParams["font.size"],
+                color="dimgray",
                 ha="left", va="bottom", zorder=5)
 
-    ax.annotate("N", xy=(0.95, 0.90), xytext=(0.95, 0.78), xycoords="axes fraction",
-                arrowprops=dict(facecolor="black", width=3, headwidth=9, headlength=9),
-                ha="center", va="center", fontsize=13, fontweight="bold", zorder=5)
+    _north_arrow(ax)
 
     return {"aoi_proj": aoi_proj}
 
@@ -2164,9 +2280,7 @@ def _draw_phase_coverage_panel(canvas, ax, region: str, gridsize: int = 42):
         ax.add_artist(ScaleBar(1, units="m", location="lower right",
                                box_alpha=0.75, font_properties={"size": 11}))
 
-        ax.annotate("N", xy=(0.93, 0.93), xytext=(0.93, 0.80), xycoords="axes fraction",
-                    arrowprops=dict(facecolor="black", width=3, headwidth=9, headlength=9),
-                    ha="center", va="center", fontsize=13, fontweight="bold", zorder=5)
+        _north_arrow(ax)
 
         return {"bounds": bounds}
 
@@ -2557,7 +2671,8 @@ def draw_station_data_checks(region: str, canvas):
 # ---------------------------------------------------------------------------
 
 # Figure key -> [(output file stem, draw function), ...]. Each draw function
-# draws one domain; combine_regions stacks SNM above CRM and saves one PDF.
+# draws one domain; combine_regions stacks SNM above CRM (or, for entries with a
+# third element "side", places them left/right) and saves one PDF.
 FIGURES = {
     # Compilation-stage checks, drawn from the hourly observation tables.
     "station_checks": [("station_data_checks", draw_station_data_checks)],
@@ -2565,17 +2680,17 @@ FIGURES = {
     "phase_distributions": [("phase_distributions", draw_phase_distributions)],
 
     # Model and evaluation figures.
-    "calibration": [("calibration_reliability", draw_calibration)],
+    "calibration": [("calibration_reliability", draw_calibration, "side")],
     "forest": [("benchmark_delta_forest", draw_benchmark_delta_forest),
                ("benchmark_delta_forest_nearfreeze", draw_benchmark_delta_forest_nearfreeze),
                ("benchmark_delta_forest_combined", draw_benchmark_delta_forest_pair)],
-    "tair": [("benchmark_accuracy_by_tair_ci", draw_benchmark_accuracy_by_tair_ci)],
+    "tair": [("benchmark_accuracy_by_tair_ci", draw_benchmark_accuracy_by_tair_ci, "side")],
     "f1_twet": [("f1_by_wetbulb", draw_twet_performance)],
     "shap": [("shap_wetbulb_heatmap", draw_shap_wetbulb_heatmap),
              ("shap_mean_by_phase_appendix", draw_shap_mean_by_phase)],
     "ablation_ci": [("ablation_deltas_ci", draw_ablation_deltas_ci)],
     "band": [("mix_capture_by_wetbulb", draw_mix_capture_by_wetbulb),
-             ("band_placement_appendix", draw_band_placement)],
+             ("band_placement_appendix", draw_band_placement, "side")],
     "ablation_comparison": [("ablation_comparison", draw_ablation_comparison)],
     "tair_relimp_ci": [("benchmark_relative_improvement_ci",
                         draw_benchmark_relative_improvement_ci)],
@@ -2586,7 +2701,7 @@ FIGURES = {
     "overall_bars": [("overall_accuracy_bars", draw_overall_accuracy_bars)],
     "story5_tair": [("story5_nearfreeze_tair_comparison", draw_story5_nearfreeze_tair)],
     "story5_twet": [("story5_nearfreeze_twet_comparison", draw_story5_nearfreeze_twet)],
-    "confusion": [("confusion_matrix_appendix", draw_confusion_matrix)],
+    "confusion": [("confusion_matrix_appendix", draw_confusion_matrix, "side")],
     "confusion_percent": [("confusion_matrix_percent_appendix",
                            draw_confusion_matrix_percent)],
     "csi": [("csi_by_tair_appendix", draw_csi_by_tair)],
@@ -2628,9 +2743,10 @@ def main():
 
     regions = [r for r in REGIONS if r in args.regions]  # keep SNM-then-CRM order
     for fig_key in args.figures:
-        for stem, draw_fn in FIGURES[fig_key]:
+        for stem, draw_fn, *opt in FIGURES[fig_key]:
             print(f"=== {stem} ===")
-            combine_regions(draw_fn, stem, regions=regions, png=args.png)
+            combine_regions(draw_fn, stem, regions=regions, png=args.png,
+                            layout=(opt[0] if opt else "stack"))
     print("Output folders:")
     for d in output_dirs():
         print(f"  {d}")

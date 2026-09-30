@@ -17,7 +17,9 @@ data/
     stations/{CA,CO}/                 hourly station records (HADS, LCD, ASOS, SNOTEL)
                                       + station_metadata_20221001_20260501.csv
     imerg/{CA,CO}/                    GPM IMERG liquid-precipitation probability, one file per day
-    mros/                             Mountain Rain or Snow observations, both regions
+    mros/                             Mountain Rain or Snow observations, both regions. The Zenodo
+                                      copy is the public version: locations rounded to 4 decimals
+                                      (~10 m), comments removed; see README_public_version.txt
     dem/                              10 m DEMs (optional; only process_dem uses them)
     reference/                        state boundaries used on the maps
   interim/                          written by the pipeline

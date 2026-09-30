@@ -26,7 +26,8 @@ e.g. `MROS_RUN_KRIGING=data/interim/kriging/{region}/20260806_kriging`, or
 `MROS_INPUTS=pinned` to use the runs in `pinned_runs.yaml`.
 
 `get_data.py` downloads the input data from Zenodo; `tools/package_for_zenodo.py`
-builds the archives that get uploaded there.
+builds the archives that get uploaded there, using the location-coarsened MRoS
+file made by `tools/make_public_mros.py`.
 
 The R scripts in `preprocessing/` (`get_elevation.R`, `download_station_data.R`,
 `download_imerg.R`) re-collect the raw data from the source services. They

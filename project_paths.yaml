@@ -49,8 +49,7 @@ figures:
   manuscript_dir: manuscript/figures
 
 # --- Zenodo ------------------------------------------------------------------------
-# Fill these in once the data record is published. get_data.py downloads every
-# file in the record and unpacks it into data/.
+# get_data.py downloads every file in the record and unpacks it into data/.
 zenodo:
-  record_id: null        # e.g. 1234567
-  doi: null              # e.g. 10.5281/zenodo.1234567
+  record_id: 23022221
+  doi: 10.5281/zenodo.23022221

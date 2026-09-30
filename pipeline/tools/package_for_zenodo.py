@@ -10,6 +10,13 @@ record id in project_paths.yaml (zenodo.record_id) so get_data.py can find it.
 
 Archive paths are relative to the repository root, so get_data.py unpacks
 them straight into place. Zenodo allows 50 GB per record (100 files).
+
+MRoS locations: the core bundle contains the PUBLIC MRoS file made by
+make_public_mros.py (coordinates rounded to 4 decimals, etc.), stored under
+the raw.mros path so the pipeline finds it. The original file is never
+packaged. The interim and results groups still hold full-precision observer
+locations (lat/lon and UTM x/y), so they are refused unless
+--allow-precise-locations is given.
 """
 
 from __future__ import annotations
@@ -23,7 +30,9 @@ import zipfile
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from config import REGION_IDS, REGIONS, REPO_ROOT, dem_1km_path, pinned_run, raw_path  # noqa: E402
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from config import REGION_IDS, REPO_ROOT, dem_1km_path, pinned_run, raw_path  # noqa: E402
+from make_public_mros import public_mros_path  # noqa: E402
 
 OUT_DIR = REPO_ROOT / "zenodo_upload"
 SKIP_NAMES = {"run_manifest.json.tmp"}
@@ -41,19 +50,32 @@ def md5sum(path, chunk=8 * 1024 * 1024):
 def files_under(folder, recursive=True):
     folder = Path(folder)
     it = folder.rglob("*") if recursive else folder.glob("*")
-    return sorted(p for p in it if p.is_file() and p.name not in SKIP_NAMES
-                  and not SKIP_DIRS & set(p.relative_to(folder).parts[:-1]))
+    return [(p, arc(p)) for p in sorted(
+        p for p in it if p.is_file() and p.name not in SKIP_NAMES
+        and not SKIP_DIRS & set(p.relative_to(folder).parts[:-1]))]
+
+
+def arc(path):
+    """Archive name for a file: its path relative to the repository root."""
+    return Path(path).relative_to(REPO_ROOT).as_posix()
 
 
 def packages(groups):
-    """(archive name, group, [files], unzip, destination shown to users)."""
+    """(archive name, group, [(file, name inside archive)], unzip, destination)."""
     out = []
     if "core" in groups:
+        public = public_mros_path()
+        if not public.exists():
+            raise SystemExit(f"{public} not found. Make it first:\n"
+                             "  python pipeline/tools/make_public_mros.py")
+        mros = [(public, arc(raw_path("mros"))),
+                (public.parent / "README_public_version.txt",
+                 arc(raw_path("mros").parent / "README_public_version.txt"))]
         out.append(("mros_observations.zip", "core",
-                     [raw_path("mros")] + files_under(raw_path("reference")), True, "data/raw/"))
-        out.append(("dem_1km.zip", "core", [dem_1km_path(r) for r in REGION_IDS]
-                    + [p for r in REGION_IDS
-                       if (p := dem_1km_path(r).with_suffix(".tif.aux.xml")).exists()],
+                    mros + files_under(raw_path("reference")), True, "data/raw/"))
+        dems = [dem_1km_path(r) for r in REGION_IDS]
+        dems += [p for d in dems if (p := Path(str(d) + ".aux.xml")).exists()]
+        out.append(("dem_1km.zip", "core", [(p, arc(p)) for p in dems],
                     True, "data/interim/dem_1km/"))
         for r in REGION_IDS:
             out.append((f"stations_{r}.zip", "core", files_under(raw_path("stations", r)),
@@ -63,7 +85,7 @@ def packages(groups):
     if "dem_10m" in groups:
         for r in REGION_IDS:
             p = raw_path("dem_10m", r)
-            out.append((p.name, "dem_10m", [p], False, f"data/raw/dem/{p.name}"))
+            out.append((p.name, "dem_10m", [(p, arc(p))], False, f"data/raw/dem/{p.name}"))
     for group, stages in (("interim", ("hourly_compiled", "resampled_1km", "kriging")),
                           ("results", ("model", "benchmarking", "ablations"))):
         if group not in groups:
@@ -85,12 +107,23 @@ def main():
     ap.add_argument("--groups", nargs="+", default=["core"],
                     choices=["core", "dem_10m", "interim", "results"])
     ap.add_argument("--dry-run", action="store_true")
+    ap.add_argument("--allow-precise-locations", action="store_true",
+                    help="Package the interim/results groups even though they hold "
+                         "full-precision MRoS observer locations.")
     args = ap.parse_args()
+
+    precise = {"interim", "results"} & set(args.groups)
+    if precise and not args.allow_precise_locations:
+        raise SystemExit(
+            f"The {', '.join(sorted(precise))} group(s) contain full-precision MRoS "
+            "observer locations (lat/lon and UTM x/y). Rebuild them from the public MRoS "
+            "file first, or pass --allow-precise-locations if you intend to publish them."
+        )
 
     pkgs = packages(set(args.groups))
     grand = 0
     for name, group, files, _, dest in pkgs:
-        size = sum(f.stat().st_size for f in files)
+        size = sum(f.stat().st_size for f, _ in files)
         grand += size
         print(f"  [{group:7s}] {name:36s} {len(files):5d} files {size / 1e9:7.2f} GB -> {dest}")
     print(f"  total before compression: {grand / 1e9:.1f} GB")
@@ -105,10 +138,10 @@ def main():
         print(f"writing {target.name} ...")
         if unzip:
             with zipfile.ZipFile(target, "w", zipfile.ZIP_DEFLATED, allowZip64=True) as zf:
-                for f in files:
-                    zf.write(f, f.relative_to(REPO_ROOT).as_posix())
+                for f, name_in_zip in files:
+                    zf.write(f, name_in_zip)
         else:
-            shutil.copy2(files[0], target)
+            shutil.copy2(files[0][0], target)
         manifest["files"].append({"name": name, "group": group, "dest": dest,
                                   "unzip": unzip, "size": target.stat().st_size,
                                   "md5": md5sum(target)})
