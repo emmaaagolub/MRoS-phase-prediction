@@ -48,7 +48,7 @@ def process_region(region_id, target_res=TARGET_RES_M):
             print(f"  {input_tif.name} not downloaded; keeping existing {output_tif}")
             return output_tif
         raise FileNotFoundError(f"{input_tif} not found — download it with "
-                                "`python pipeline/get_data.py --include-dem-10m`.")
+                                "`python pipeline/get_data.py --include dem_10m`.")
 
     # Reproject to UTM at the DEM's native resolution.
     with rasterio.open(input_tif) as src:
