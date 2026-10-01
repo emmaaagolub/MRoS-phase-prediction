@@ -1,7 +1,11 @@
 # Python packages needed to run the pipeline.
 #
-# Versions are unpinned. To pin them to the environment that produced a given
-# set of results:
+# Versions are unpinned except XGBoost, whose trees can change between
+# releases. The manuscript's models were trained with XGBoost 3.1.2.
+# Even with the same version, re-training on a different operating system can
+# give slightly different trees (row/column subsampling), so expect test-set
+# accuracy to move by a few tenths of a percentage point; see the README.
+# To pin everything to the environment that produced a set of results:
 #     pip freeze > requirements-lock.txt
 # and keep that file alongside the results.
 
@@ -26,7 +30,7 @@ matplotlib-scalebar
 # --- interpolation and modelling ---
 pykrige            # ordinary and universal kriging
 scikit-learn
-xgboost
+xgboost==3.1.2
 betacal            # beta calibration of the predicted probabilities
 shap               # per-prediction feature attribution
 
