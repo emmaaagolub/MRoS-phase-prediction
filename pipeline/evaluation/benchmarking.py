@@ -8,7 +8,7 @@ domain. All methods are scored on the model's test split.
 The XGBoost model retrained here uses the same features and split as the
 ablation baseline_full configuration.
 
-Output: outputs/evaluation/<REGION>/benchmarking/
+Output: results/pipeline/benchmarking/<REGION>/<run_id>/
 
 Usage
 -----
@@ -57,6 +57,7 @@ from experiment_base import (
     experiment_dir, finish_step, model_dir, optimize_threshold_params, prep_loocv_table,
     sample_predictor_cube_to_points_batched, sweep_scale_pos_weight,
 )
+from config import save_stage_figure  # noqa: E402
 
 INTERP_TYPE = "kriging"
 
@@ -120,8 +121,9 @@ METHOD_LABEL = {
 # Set per region by configure().
 REGION = None
 PATHS = None
-# Model directory; its split table is reused so this experiment uses the
-# same train/val/test observations as the model.
+# Model directory. Its point table (ml_input_points_split.parquet) is the
+# input; make_split() then redraws the 70/15/15 split from it. See the note
+# on the EVALUATION SPLIT in experiment_base.py.
 SETUP_DIR = None
 BENCH_ROOT = None
 
@@ -211,7 +213,8 @@ def get_master_df(ds_interp, ds_imerg, df_loocv_raw, common_times) -> pd.DataFra
 
 
 # =============================================================================
-# Train / val / test split (same as the ablation study)
+# Train / val / test split (the evaluation split; same as the ablation study,
+# see EVALUATION SPLIT in experiment_base.py)
 # =============================================================================
 
 def make_split(master_df: pd.DataFrame) -> pd.DataFrame:
@@ -522,7 +525,7 @@ def plot_fig1_by_tair(profiles: dict[str, pd.DataFrame], out_path: Path):
     axes[0].legend(fontsize=8, ncol=2, loc="lower left", framealpha=0.9)
 
     fig.tight_layout()
-    fig.savefig(out_path, dpi=150, bbox_inches="tight")
+    save_stage_figure(fig, out_path, dpi=150, bbox_inches="tight")
     plt.close(fig)
 
 
@@ -560,7 +563,7 @@ def plot_fig2_relative_improvement(profiles: dict[str, pd.DataFrame],
                  "(positive = model better; shaded 0–4 °C = benchmark performance-dip zone)")
     ax.legend(fontsize=10); ax.grid(alpha=0.25)
     fig.tight_layout()
-    fig.savefig(out_path, dpi=150, bbox_inches="tight")
+    save_stage_figure(fig, out_path, dpi=150, bbox_inches="tight")
     plt.close(fig)
 
 
@@ -584,7 +587,7 @@ def plot_overall_bars(table: pd.DataFrame, out_path: Path):
         ax.grid(axis="x", alpha=0.25)
     fig.suptitle(f"{REGION} test split — benchmark comparison (pure rain/snow obs)", fontsize=12)
     fig.tight_layout()
-    fig.savefig(out_path, dpi=150, bbox_inches="tight")
+    save_stage_figure(fig, out_path, dpi=150, bbox_inches="tight")
     plt.close(fig)
 
 

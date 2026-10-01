@@ -33,6 +33,7 @@ from common import (  # noqa: E402
 from train_model import apply_calibration  # noqa: E402
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from config import save_stage_figure  # noqa: E402
 from config import parse_region_args  # noqa: E402
 
 PHASE_COLORS = {"snow": "#1f77b4", "rain": "#2ca02c", "mix": "#e377c2"}
@@ -130,7 +131,7 @@ def plot_mean_shap_by_phase(summary, graphics_dir, interp_type):
     ax.legend(title="Predicted phase")
     ax.grid(axis="y", alpha=0.3)
     fig.tight_layout()
-    fig.savefig(graphics_dir / f"shap_mean_by_phase_{interp_type}.png",
+    save_stage_figure(fig, graphics_dir / f"shap_mean_by_phase_{interp_type}.png",
                 dpi=200, bbox_inches="tight")
     plt.close(fig)
 
@@ -151,7 +152,7 @@ def plot_shap_heatmap(data, title, savepath, vmax=None):
             ax.add_patch(plt.Rectangle((col_i, 0), 1, len(data), fill=True,
                                        color="steelblue", alpha=0.07, zorder=0))
     fig.tight_layout()
-    fig.savefig(savepath, dpi=200, bbox_inches="tight")
+    save_stage_figure(fig, savepath, dpi=200, bbox_inches="tight")
     plt.close(fig)
 
 
@@ -185,7 +186,7 @@ def plot_top_features_across_bins(shap_df, shap_by_bin, shap_cols, graphics_dir)
     ax.grid(axis="y", alpha=0.3)
     plt.xticks(rotation=35, ha="right")
     fig.tight_layout()
-    fig.savefig(graphics_dir / "shap_wetbulb_lineplot.png", dpi=200, bbox_inches="tight")
+    save_stage_figure(fig, graphics_dir / "shap_wetbulb_lineplot.png", dpi=200, bbox_inches="tight")
     plt.close(fig)
     return top_features
 
@@ -199,7 +200,7 @@ def plot_beeswarm(mask, features_matrix, shap_values, title, savepath, max_displ
                       show=False, plot_size=None)
     plt.title(title, fontsize=11)
     plt.tight_layout()
-    plt.savefig(savepath, dpi=200, bbox_inches="tight")
+    save_stage_figure(plt.gcf(), savepath, dpi=200, bbox_inches="tight")
     plt.close(fig)
 
 

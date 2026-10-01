@@ -8,7 +8,7 @@ Calibration matches the main model: beta calibration, fitted separately for
 near-freezing and clear-phase observations.
 
 Each experiment writes its own subfolder under
-  outputs/evaluation/<REGION>/ablation/
+  results/pipeline/ablations/<REGION>/<run_id>/<config>/
 
 Usage
 -----
@@ -67,6 +67,7 @@ from experiment_base import (
     experiment_dir, finish_step, model_dir, optimize_threshold_params, prep_loocv_table,
     sample_predictor_cube_to_points_batched, sweep_scale_pos_weight,
 )
+from config import save_stage_figure  # noqa: E402
 
 INTERP_TYPE = "kriging"
 
@@ -99,8 +100,9 @@ ABLATION_CONFIGS: list[dict] = [
 # Set per region by configure().
 REGION = None
 PATHS = None
-# Model directory; its split table is reused so this experiment uses the
-# same train/val/test observations as the model.
+# Model directory. Its point table (ml_input_points_split.parquet) is the
+# input; make_split() then redraws the 70/15/15 split from it. See the note
+# on the EVALUATION SPLIT in experiment_base.py.
 SETUP_DIR = None
 ABLATION_ROOT = None
 
@@ -166,7 +168,7 @@ def plot_per_experiment_stories(
             tick_fontsize=11, cell_fontsize=10, title_fontsize=11)
 
     plt.tight_layout()
-    fig.savefig(graphics_dir / "story1a_confusion_matrices.png", dpi=150, bbox_inches="tight")
+    save_stage_figure(fig, graphics_dir / "story1a_confusion_matrices.png", dpi=150, bbox_inches="tight")
     plt.close(fig)
 
     # ── Story 1b: ROC and PR curves ───────────────────────────────────────────
@@ -201,7 +203,7 @@ def plot_per_experiment_stories(
     ax_pr.legend(fontsize=10); ax_pr.grid(alpha=0.25)
 
     plt.tight_layout()
-    fig.savefig(graphics_dir / "story1b_roc_pr.png", dpi=150, bbox_inches="tight")
+    save_stage_figure(fig, graphics_dir / "story1b_roc_pr.png", dpi=150, bbox_inches="tight")
     plt.close(fig)
 
  # ── Story 2 ───────────────────────────────────────────────────────────────
@@ -253,7 +255,7 @@ def plot_per_experiment_stories(
         ax_hist.grid(alpha=0.2)
 
     plt.tight_layout()
-    fig.savefig(graphics_dir / "story2_calibration.png", dpi=150, bbox_inches="tight")
+    save_stage_figure(fig, graphics_dir / "story2_calibration.png", dpi=150, bbox_inches="tight")
     plt.close(fig)
 
     # ── Story 3 ───────────────────────────────────────────────────────────────
@@ -336,7 +338,7 @@ def plot_per_experiment_stories(
         ax.legend(fontsize=9)
 
     plt.tight_layout()
-    fig.savefig(graphics_dir / "story3_twet_performance.png", dpi=150, bbox_inches="tight")
+    save_stage_figure(fig, graphics_dir / "story3_twet_performance.png", dpi=150, bbox_inches="tight")
     plt.close(fig)
 
     # ── Story 4 ───────────────────────────────────────────────────────────────
@@ -515,7 +517,7 @@ def plot_per_experiment_stories(
             ax.legend(fontsize=8, loc="lower left"); ax.grid(alpha=0.3)
 
         plt.tight_layout()
-        fig.savefig(out_path, dpi=150, bbox_inches="tight")
+        save_stage_figure(fig, out_path, dpi=150, bbox_inches="tight")
         plt.close(fig)
 
     # T_wet profiles
@@ -722,7 +724,7 @@ def run_experiment(cfg: dict, split_df: pd.DataFrame, out_dir: Path) -> dict:
     ax.axvline(booster.best_iteration, ls="--", alpha=0.6, label=f"best={booster.best_iteration}")
     ax.set(xlabel="Iteration", ylabel="Logloss", title=f"{name} — training curve")
     ax.legend(); ax.grid(alpha=0.3); fig.tight_layout()
-    fig.savefig(graphics_dir / "training_curve.png", dpi=150, bbox_inches="tight")
+    save_stage_figure(fig, graphics_dir / "training_curve.png", dpi=150, bbox_inches="tight")
     plt.close(fig)
 
     # ── Beta calibration ──────────────────────────────────────────────────────
@@ -786,7 +788,7 @@ def run_experiment(cfg: dict, split_df: pd.DataFrame, out_dir: Path) -> dict:
         ax.set(xlabel="p(snow)", ylabel="Density", title=f"{name} — {split_label} score dist.")
         ax.legend(fontsize=9); ax.grid(alpha=0.25)
     fig.tight_layout()
-    fig.savefig(graphics_dir / "score_distribution.png", dpi=150, bbox_inches="tight")
+    save_stage_figure(fig, graphics_dir / "score_distribution.png", dpi=150, bbox_inches="tight")
     plt.close(fig)
 
     # ── Metrics ───────────────────────────────────────────────────────────────
@@ -869,7 +871,7 @@ def run_experiment(cfg: dict, split_df: pd.DataFrame, out_dir: Path) -> dict:
     ax.barh(imp_df["feature"], imp_df["gain"], color="steelblue")
     ax.set(xlabel="Gain", title=f"{name} — XGBoost feature importance")
     ax.invert_yaxis(); fig.tight_layout()
-    fig.savefig(graphics_dir / "feature_importance.png", dpi=150, bbox_inches="tight")
+    save_stage_figure(fig, graphics_dir / "feature_importance.png", dpi=150, bbox_inches="tight")
     plt.close(fig)
 
     # ── SHAP ──────────────────────────────────────────────────────────────────
@@ -946,7 +948,7 @@ def run_experiment(cfg: dict, split_df: pd.DataFrame, out_dir: Path) -> dict:
            title=f"{name} — feature importance by predicted phase")
     ax.legend(title="Predicted phase"); ax.grid(axis="y", alpha=0.3)
     fig.tight_layout()
-    fig.savefig(graphics_dir / "shap_mean_by_phase.png", dpi=150, bbox_inches="tight")
+    save_stage_figure(fig, graphics_dir / "shap_mean_by_phase.png", dpi=150, bbox_inches="tight")
     plt.close(fig)
 
     # ── SHAP plot 2: top-N features across T_wet bins (line plot) ─────────────
@@ -984,7 +986,7 @@ def run_experiment(cfg: dict, split_df: pd.DataFrame, out_dir: Path) -> dict:
            title=f"{name} — top {TOP_N_SHAP_FEATURES} features across T_wet bins")
     ax.legend(fontsize=9); ax.grid(axis="y", alpha=0.3)
     plt.xticks(rotation=35, ha="right"); fig.tight_layout()
-    fig.savefig(graphics_dir / "shap_wetbulb_lineplot.png", dpi=150, bbox_inches="tight")
+    save_stage_figure(fig, graphics_dir / "shap_wetbulb_lineplot.png", dpi=150, bbox_inches="tight")
     plt.close(fig)
 
     def plot_calibration_detail(y_true_bin, p_cal, name, out_path, n_bins=15):
@@ -1050,7 +1052,7 @@ def run_experiment(cfg: dict, split_df: pd.DataFrame, out_dir: Path) -> dict:
         ax.grid(axis="y", alpha=0.25)
 
         fig.tight_layout()
-        fig.savefig(out_path, dpi=150, bbox_inches="tight")
+        save_stage_figure(fig, out_path, dpi=150, bbox_inches="tight")
         plt.close(fig)
 
     plot_calibration_detail(
@@ -1197,7 +1199,7 @@ def save_cross_experiment_plots(all_metrics: list[dict], ablation_root: Path) ->
                         fontsize=8, color="dimgrey")
 
     plt.tight_layout()
-    fig.savefig(ablation_root / "ablation_comparison.png", dpi=150, bbox_inches="tight")
+    save_stage_figure(fig, ablation_root / "ablation_comparison.png", dpi=150, bbox_inches="tight")
     plt.close(fig)
 
     # ── ECE bar chart — delta from baseline ──────────────────────────────────
@@ -1235,7 +1237,7 @@ def save_cross_experiment_plots(all_metrics: list[dict], ablation_root: Path) ->
                         fontsize=8, color="dimgrey")
 
             fig.tight_layout()
-            fig.savefig(ablation_root / "ablation_calibration_ece.png",
+            save_stage_figure(fig, ablation_root / "ablation_calibration_ece.png",
                         dpi=150, bbox_inches="tight")
             plt.close(fig)
 
@@ -1260,7 +1262,7 @@ def save_cross_experiment_plots(all_metrics: list[dict], ablation_root: Path) ->
             title="Abstention band capture vs. binary F1\n"
                     "(color = near-freeze ROC AUC)")
         ax.grid(alpha=0.25); fig.tight_layout()
-        fig.savefig(ablation_root / "ablation_mix_tradeoff.png", dpi=150, bbox_inches="tight")
+        save_stage_figure(fig, ablation_root / "ablation_mix_tradeoff.png", dpi=150, bbox_inches="tight")
         plt.close(fig)
 
     # ── Parallel coordinates ──────────────────────────────────────────────────
@@ -1291,7 +1293,7 @@ def save_cross_experiment_plots(all_metrics: list[dict], ablation_root: Path) ->
         ax.set_title("Ablation — normalized metrics (parallel coordinates)")
         ax.legend(fontsize=7, bbox_to_anchor=(1.01, 1), loc="upper left")
         ax.grid(axis="y", alpha=0.25); fig.tight_layout()
-        fig.savefig(ablation_root / "ablation_parallel_coords.png", dpi=150, bbox_inches="tight")
+        save_stage_figure(fig, ablation_root / "ablation_parallel_coords.png", dpi=150, bbox_inches="tight")
         plt.close(fig)
 
     print(f"\nAll cross-experiment plots saved to: {ablation_root}")

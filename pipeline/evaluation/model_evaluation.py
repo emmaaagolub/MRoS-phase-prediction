@@ -39,6 +39,7 @@ from common import (  # noqa: E402
 )
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from config import save_stage_figure  # noqa: E402
 from config import parse_region_args  # noqa: E402
 
 PHASE_COLORS = {"snow": "#3a86ff", "rain": "#2dc653", "mix": "#e377c2"}
@@ -332,7 +333,7 @@ def story1_discrimination(frames, metrics, graphics_dir, interp_type):
     ax_pr.legend(fontsize=10)
 
     fig.tight_layout()
-    fig.savefig(graphics_dir / f"story1_discrimination_{interp_type}.png",
+    save_stage_figure(fig, graphics_dir / f"story1_discrimination_{interp_type}.png",
                 dpi=180, bbox_inches="tight")
     plt.close(fig)
 
@@ -378,7 +379,7 @@ def story2_calibration(frames, metrics, band_at_zero, graphics_dir, interp_type)
         ax_hist.yaxis.set_major_formatter(mticker.FuncFormatter(lambda x, _: f"{int(x)}"))
 
     fig.tight_layout()
-    fig.savefig(graphics_dir / f"story2_calibration_{interp_type}.png",
+    save_stage_figure(fig, graphics_dir / f"story2_calibration_{interp_type}.png",
                 dpi=180, bbox_inches="tight")
     plt.close(fig)
 
@@ -408,7 +409,7 @@ def story3_twet_performance(profiles, graphics_dir, interp_type):
         ax.legend(fontsize=9)
 
     fig.tight_layout()
-    fig.savefig(graphics_dir / f"story3_twet_performance_{interp_type}.png",
+    save_stage_figure(fig, graphics_dir / f"story3_twet_performance_{interp_type}.png",
                 dpi=180, bbox_inches="tight")
     plt.close(fig)
 
@@ -491,7 +492,7 @@ def story4_band_placement(frames, band, graphics_dir, interp_type):
               fontsize=9, loc="upper right")
 
     fig.tight_layout()
-    fig.savefig(graphics_dir / f"story4_band_placement_{interp_type}.png",
+    save_stage_figure(fig, graphics_dir / f"story4_band_placement_{interp_type}.png",
                 dpi=180, bbox_inches="tight")
     plt.close(fig)
 
@@ -522,7 +523,7 @@ def story5_near_freezing(frames, graphics_dir, interp_type):
                            f"{split.capitalize()} — {flag_label} (n={len(subset)})")
 
     fig.tight_layout()
-    fig.savefig(graphics_dir / f"story5_near_freezing_{interp_type}.png",
+    save_stage_figure(fig, graphics_dir / f"story5_near_freezing_{interp_type}.png",
                 dpi=180, bbox_inches="tight")
     plt.close(fig)
 
