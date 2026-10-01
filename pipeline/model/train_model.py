@@ -19,7 +19,7 @@ Steps:
    validation set.
 
 Input:  the table from build_dataset.py
-Output: outputs/model/<REGION>/
+Output: results/pipeline/model/<REGION>/<run_id>/ (the run build_dataset created)
 """
 
 import itertools

@@ -45,6 +45,12 @@ Outputs (<benchmarking run>/bootstrap/)
   bootstrap_ablation_deltas_ci.csv      baseline-minus-config deltas, same
                                         seven metrics, paired within replicate
   bootstrap_sensitivity_block_size.csv  headline CIs vs. block size + iid
+  xgbfull_decision_rules_ci.csv         XGB-Full under the BINARY rule and under
+                                        the SELECTIVE rule side by side (all
+                                        observations and near freezing), with
+                                        CIs: the manuscript's binary-rule and
+                                        selective-rule tables. See
+                                        decision_rule_tables() for definitions.
   graphics/fig1_accuracy_by_tair_ci.png     accuracy vs T_air with CI ribbons
   graphics/fig2_relative_improvement_ci.png delta accuracy vs T_air with ribbons
   graphics/benchmark_delta_forest.png       forest plot of overall deltas
@@ -71,6 +77,7 @@ import numpy as np
 import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from config import save_stage_figure  # noqa: E402
 from config import REGION_IDS, append_run, finish_step, input_run, repo_path  # noqa: E402
 
 # =============================================================================
@@ -435,6 +442,132 @@ def benchmark_tables(res: dict, out_dir: Path) -> tuple[pd.DataFrame, pd.DataFra
 
 
 # =============================================================================
+# XGB-Full under the two decision rules (manuscript: binary-rule and
+# selective-rule tables)
+# =============================================================================
+#
+# Binary rule:    snow where p(snow) >= 0.5, rain otherwise. Every observation
+#                 gets a call. Scored on rain and snow observations.
+#                 (column pred_xgboost_mros_bin05)
+# Selective rule: the uncertainty envelope (Gaussian half-band) is applied;
+#                 inside it the model abstains ("flag"). Accuracy, macro F1 and
+#                 recall are scored on the rain and snow observations the model
+#                 committed to; coverage is the share of rain and snow
+#                 observations it committed to; flag rate is the share of ALL
+#                 observations (mixed included) inside the envelope; mix
+#                 capture is the share of observer-reported mixed events inside
+#                 it. (column pred_xgboost_mros_band)
+# Rule-independent: AUROC and Brier score use p(snow) directly.
+#
+# Binary-rule rows are copied from the primary benchmark bootstrap (pure-phase
+# clusters), so they are identical to bootstrap_benchmark_metrics_ci.csv.
+# Selective-rule rows resample space-time clusters of ALL test observations,
+# because flag rate and mix capture need the mixed reports.
+
+def _brier(y_bin, p, idx):
+    return float(np.mean((p[idx] - y_bin[idx]) ** 2)) if len(idx) else np.nan
+
+
+def run_selective_bootstrap(df: pd.DataFrame, block_km: float | None, n_boot: int,
+                            rng: np.random.Generator) -> dict:
+    d = df.reset_index(drop=True)
+    y = d["phase_full"].to_numpy(int)
+    pred = d[f"pred_{MODEL_NAME}_band"].to_numpy(int)
+    p = d[f"p_snow_cal_{MODEL_NAME}"].to_numpy(float)
+    nf = np.abs(d["temp_wet"].to_numpy(float)) <= NEARFREEZE_TWET_C
+    pure = np.isin(y, [SNOW_CODE, RAIN_CODE])
+    mixed = y == MIX_CODE
+    flagged = pred == MIX_CODE
+    committed_pure = pure & ~flagged
+    y_bin = (y == SNOW_CODE).astype(int)
+
+    def metrics(idx):
+        out = {}
+        for subset, m in (("all", np.ones(len(y), bool)), ("near_freezing", nf)):
+            s = idx[m[idx]]
+            sp = s[pure[s]]
+            sc = s[committed_pure[s]]
+            sm = s[mixed[s]]
+            out[(subset, "coverage")] = float(np.mean(~flagged[sp])) if len(sp) else np.nan
+            out[(subset, "accuracy")] = (float(np.mean(pred[sc] == y[sc]))
+                                         if len(sc) >= 5 else np.nan)
+            out[(subset, "macro_f1")] = macro_f1_binary(y, pred, sc)
+            out[(subset, "snow_recall")] = phase_recall(y, pred, sc, SNOW_CODE)
+            out[(subset, "rain_recall")] = phase_recall(y, pred, sc, RAIN_CODE)
+            out[(subset, "flag_rate")] = float(np.mean(flagged[s])) if len(s) else np.nan
+            out[(subset, "mix_capture")] = (float(np.mean(flagged[sm]))
+                                            if len(sm) >= 5 else np.nan)
+            out[(subset, "brier")] = _brier(y_bin, p, sp)
+        return out
+
+    point = metrics(np.arange(len(y)))
+    clusters = build_cluster_index(make_cluster_codes(d, block_km))
+    samples = {k: np.empty(n_boot) for k in point}
+    for b in range(n_boot):
+        vals = metrics(bootstrap_row_indices(clusters, rng))
+        for k, v in vals.items():
+            samples[k][b] = v
+    counts = {}
+    for subset, m in (("all", np.ones(len(y), bool)), ("near_freezing", nf)):
+        counts[subset] = dict(n_all=int(m.sum()), n_rain_snow=int((m & pure).sum()),
+                              n_mixed=int((m & mixed).sum()),
+                              n_committed=int((m & committed_pure).sum()))
+    return dict(point=point, samples=samples, counts=counts, n_clusters=len(clusters))
+
+
+def decision_rule_tables(res: dict, df: pd.DataFrame, block_km: float | None,
+                         n_boot: int, seed: int, out_dir: Path) -> pd.DataFrame:
+    """Write xgbfull_decision_rules_ci.csv: XGB-Full under each decision rule."""
+    sel = run_selective_bootstrap(df, block_km, n_boot, np.random.default_rng(seed))
+    pure_n = int(df["phase_full"].isin([SNOW_CODE, RAIN_CODE]).sum())
+    nf_pure_n = int((df["phase_full"].isin([SNOW_CODE, RAIN_CODE])
+                     & (df["temp_wet"].abs() <= NEARFREEZE_TWET_C)).sum())
+    rows = []
+
+    def add(rule, subset, metric, pt, samp, n):
+        lo, hi = pct_ci(samp) if samp is not None else (np.nan, np.nan)
+        rows.append(dict(rule=rule, subset=subset, metric=metric,
+                         point=round(pt, 4) if pt == pt else np.nan,
+                         ci_lo=round(lo, 4) if lo == lo else np.nan,
+                         ci_hi=round(hi, 4) if hi == hi else np.nan, n=n))
+
+    m = MODEL_NAME
+    for subset, key, n in (("all", "", pure_n), ("near_freezing", "nf", nf_pure_n)):
+        add("binary", subset, "coverage", 1.0, None, n)
+        add("binary", subset, "accuracy", res["point"][f"{key}acc"][m], res[f"{key}acc"][m], n)
+        add("binary", subset, "macro_f1", res["point"][f"{key}f1"][m], res[f"{key}f1"][m], n)
+        if subset == "all":
+            for metric, k in (("snow_recall", "srec"), ("rain_recall", "rrec"),
+                              ("snow_bias_pct", "sbias"), ("rain_bias_pct", "rbias")):
+                add("binary", subset, metric, res["point"][k][m], res[k][m], n)
+    for subset in ("all", "near_freezing"):
+        c = sel["counts"][subset]
+        for metric in ("coverage", "accuracy", "macro_f1", "snow_recall", "rain_recall",
+                       "flag_rate", "mix_capture"):
+            n = {"coverage": c["n_rain_snow"], "flag_rate": c["n_all"],
+                 "mix_capture": c["n_mixed"]}.get(metric, c["n_committed"])
+            add("selective", subset, metric, sel["point"][(subset, metric)],
+                sel["samples"][(subset, metric)], n)
+    add("rule_independent", "all", "roc_auc", res["point"]["auc"], res["auc"], pure_n)
+    add("rule_independent", "near_freezing", "roc_auc", res["point"]["nfauc"],
+        res["nfauc"], nf_pure_n)
+    add("rule_independent", "all", "brier", sel["point"][("all", "brier")],
+        sel["samples"][("all", "brier")], pure_n)
+    add("rule_independent", "near_freezing", "brier", sel["point"][("near_freezing", "brier")],
+        sel["samples"][("near_freezing", "brier")], nf_pure_n)
+
+    table = pd.DataFrame(rows)
+    table.to_csv(out_dir / "xgbfull_decision_rules_ci.csv", index=False)
+    show = table.assign(value=table.apply(
+        lambda r: f"{r.point:.3f} ({r.ci_lo:.3f}-{r.ci_hi:.3f})" if r.ci_lo == r.ci_lo
+        else f"{r.point:.3f}", axis=1))
+    print("\nXGB-Full by decision rule (point, 95% CI):")
+    print(show.pivot_table(index=["subset", "metric"], columns="rule", values="value",
+                           aggfunc="first").fillna("").to_string())
+    return table
+
+
+# =============================================================================
 # Ablation bootstrap, from the stored shap_values_all.parquet per config
 # =============================================================================
 
@@ -639,7 +772,7 @@ def plot_ribbons(res: dict, region: str, graphics: Path):
                  "cluster-bootstrap CIs")
     ax.legend(fontsize=9); ax.grid(alpha=0.25)
     fig.tight_layout()
-    fig.savefig(graphics / "fig1_accuracy_by_tair_ci.png", dpi=150, bbox_inches="tight")
+    save_stage_figure(fig, graphics / "fig1_accuracy_by_tair_ci.png", dpi=150, bbox_inches="tight")
     plt.close(fig)
 
     # Delta ribbons: model minus best benchmark, model minus average benchmark
@@ -665,7 +798,7 @@ def plot_ribbons(res: dict, region: str, graphics: Path):
                  "paired cluster-bootstrap CIs")
     ax.legend(fontsize=9); ax.grid(alpha=0.25)
     fig.tight_layout()
-    fig.savefig(graphics / "fig2_relative_improvement_ci.png", dpi=150, bbox_inches="tight")
+    save_stage_figure(fig, graphics / "fig2_relative_improvement_ci.png", dpi=150, bbox_inches="tight")
     plt.close(fig)
 
 
@@ -690,7 +823,7 @@ def plot_delta_forest(deltas_df: pd.DataFrame, region: str, graphics: Path):
                title=f"{region} — {title}\n(95% paired cluster-bootstrap CIs)")
         ax.grid(axis="x", alpha=0.25)
         fig.tight_layout()
-        fig.savefig(graphics / fname, dpi=150, bbox_inches="tight")
+        save_stage_figure(fig, graphics / fname, dpi=150, bbox_inches="tight")
         plt.close(fig)
 
 
@@ -736,6 +869,9 @@ def main():
         metrics_df, deltas_df = benchmark_tables(res, out_dir)
         plot_ribbons(res, region, graphics)
         plot_delta_forest(deltas_df, region, graphics)
+
+        # XGB-Full under the binary and the selective rule, side by side.
+        decision_rule_tables(res, df, args.block_km, args.n_boot, args.seed, out_dir)
 
         print("\nModel-minus-benchmark deltas (95% CI):")
         print(deltas_df[deltas_df.metric == "delta_accuracy"]

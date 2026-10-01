@@ -48,6 +48,11 @@ GRID_FEATURES = [
     ] if use
 ]
 
+# Sampled from the grid and stored in the point table, but NOT used as model
+# predictors. benchmarking.py needs relative humidity for the binary logistic
+# regression of Jennings et al. (2018).
+EXTRA_GRID_COLUMNS = [name for name in ("rh",) if name not in GRID_FEATURES]
+
 # Leave-one-out MRoS indicators come from the observation table, not the grid.
 MROS_LOOCV_FEATURES = ["mros_p_snow_loocv", "mros_p_mix_loocv", "mros_p_rain_loocv"]
 FEATURES = GRID_FEATURES + (MROS_LOOCV_FEATURES if USE_MROS_LOOCV else [])
@@ -112,8 +117,8 @@ def model_paths(region_id, model_dir):
         "model_dir": model_dir,
         "graphics_dir": model_dir / "graphics",
         "master_table": model_dir / "ml_input_points.parquet",
-        # The evaluation experiments reuse this table so their train/val/test
-        # split is identical to the model's.
+        # benchmarking.py and ablation.py start from this table and redraw the
+        # split from it (see EVALUATION SPLIT in evaluation/experiment_base.py).
         "split_table": model_dir / "ml_input_points_split.parquet",
     }
 
@@ -124,7 +129,24 @@ def make_output_dirs(paths):
 
 
 # ---------------------------------------------------------------------------
-# Uncertainty band
+# Decision rules (manuscript section 4.4)
+# ---------------------------------------------------------------------------
+# The model always outputs a calibrated p(snow). Two rules turn it into a
+# phase; neither changes training or calibration, so both are computed from
+# the same predictions in every run:
+#
+#   BINARY rule     snow if p(snow) >= 0.5, else rain. Every observation gets
+#                   a call. Used for the benchmark comparison and ablations.
+#                   Columns: prediction_binary05, pred_xgboost_mros_bin05.
+#   SELECTIVE rule  the uncertainty envelope below: inside the band the model
+#                   abstains (code MIX_CODE = "flagged"). Optional output.
+#                   Columns: prediction_phase_uncertainty, pred_xgboost_mros_band.
+#
+# The results table for each rule (with CIs) is
+# results/pipeline/benchmarking/<R>/<run>/bootstrap/xgbfull_decision_rules_ci.csv.
+
+# ---------------------------------------------------------------------------
+# Uncertainty band (the selective rule)
 # ---------------------------------------------------------------------------
 
 def gaussian_half_band(temp_wet, base_half_band, extra_half_band, sigma):
