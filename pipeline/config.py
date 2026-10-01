@@ -127,6 +127,21 @@ def region_paths(region_id):
     }
 
 
+# Per-stage PNG figures (diagnostics drawn by benchmarking, ablation,
+# bootstrap_cis, model_evaluation and shap_analysis). manuscript_figures.py
+# redraws every figure the paper uses from the CSV/parquet outputs, so these
+# are off unless figures.stage_figures is true in project_paths.yaml.
+STAGE_FIGURES = bool(SETTINGS.get("figures", {}).get("stage_figures", False))
+
+
+def save_stage_figure(fig, path, **kwargs):
+    """fig.savefig(path) when per-stage figures are switched on; otherwise skip.
+    The caller still closes the figure."""
+    if STAGE_FIGURES:
+        Path(path).parent.mkdir(parents=True, exist_ok=True)
+        fig.savefig(path, **kwargs)
+
+
 def manuscript_figures_dir():
     """The LaTeX figures folder, or None when copying is switched off."""
     fig = SETTINGS.get("figures", {})
@@ -146,6 +161,7 @@ FINAL_STEP = {
     "hourly_compiled": "compile",
     "resampled_1km": "resample_gridded",
     "kriging": "kriging_interpolation",
+    "kriging_test": "kriging_interpolation",
     "model": "train_model",
     "benchmarking": "benchmarking",
     "ablations": "ablation",

@@ -1,39 +1,57 @@
 # Mountain Rain or Snow — gridded precipitation phase
 
 Code for a 1 km hourly precipitation-phase product over two mountain regions:
-the Sierra Nevada / Lake Tahoe area of California (CA) and the Colorado
-Mountains (CO).
+the Sierra Nevada Mountains (SNM; folder and file key `CA`) and the Colorado
+Rocky Mountains (CRM; key `CO`), October 2022 – May 2026.
 
-Crowdsourced observations from the Mountain Rain or Snow project provide the
-labels. Weather stations and satellite (GPM IMERG) data provide the
-predictors. A gradient-boosted model predicts rain versus snow, and an
-uncertainty band around the resulting probability produces a third "mix" class
-where the answer is genuinely ambiguous.
+Crowdsourced reports from the Mountain Rain or Snow (MRoS) project provide the
+labels. Weather stations, GPM IMERG probability of liquid precipitation (pLP)
+and elevation provide the predictors, interpolated onto an hourly 1 km grid.
+A calibrated XGBoost model (XGB-Full) gives p(snow) for every observation,
+which is turned into a phase by one of two decision rules (see
+[Decision rules](#decision-rules-binary-and-selective)).
 
 ## Quick start
 
 ```bash
 git clone https://github.com/emmaaagolub/MRoS-phase-prediction.git
 cd MRoS-phase-prediction
-pip install -r pipeline/requirements.txt
+pip install -r pipeline/requirements.txt      # Python 3.10+
 
-python pipeline/get_data.py          # step 1: download the input data from Zenodo (~2 GB)
-python pipeline/run_pipeline.py      # step 2: run every stage for both regions
+python pipeline/get_data.py                   # step 1: input data from Zenodo (~2 GB)
+python pipeline/run_pipeline.py               # step 2: every stage, both regions
 ```
 
-Always run `get_data.py` first; `run_pipeline.py` stops with a reminder if the
-data are missing. Everything the pipeline writes lands in `data/interim/` and
-`results/pipeline/`, one dated folder per run.
+Run `get_data.py` first; `run_pipeline.py` stops with a reminder if the
+data are missing. The R data-collection scripts are not needed: the raw data
+come from Zenodo.
 
-> **Disk space.** A full pipeline run writes about **33 GB** of gridded files
-> (1 km IMERG grids ~6 GB, kriged surfaces ~26 GB), and the two newest runs of
-> each are kept, so repeated runs can hold ~65 GB. Downloading the
-> manuscript's intermediate grids (`--include interim`) is also **~33 GB**.
-> Both scripts show the size, check free space, and ask before anything over
-> 5 GB (`--yes` skips the question). `python pipeline/get_data.py --list` and
-> `python pipeline/run_pipeline.py --list` show sizes without doing anything.
+### The faster route: start from the manuscript's grids
 
-Run parts of it:
+Kriging (stage 5) takes many hours per region. To skip it, download the
+manuscript's intermediate products and start at `build_dataset`:
+
+```bash
+python pipeline/get_data.py --include interim            # + ~33 GB
+python pipeline/run_pipeline.py --from build_dataset      # ~2 h on a laptop, mostly SHAP
+```
+
+### What it needs
+
+| | Full run | `--from build_dataset` |
+| --- | --- | --- |
+| Download | ~2 GB | ~35 GB |
+| New output | ~33 GB (IMERG grids ~6 GB, kriged surfaces ~26 GB) | < 1 GB |
+| Memory | 8 GB is enough; 16 GB is comfortable | 4 GB |
+| Time | kriging: many hours per region; everything else ~2–3 h | ~2 h |
+
+The two newest runs of the large grids are kept (`keep_last` in
+`project_paths.yaml`), so repeated full runs can hold ~65 GB. Both scripts
+estimate the size, check free space, and ask before anything over 5 GB
+(`--yes` skips the question). `--list` on either script shows sizes without
+doing anything.
+
+### Running parts of it
 
 ```bash
 python pipeline/run_pipeline.py --list                  # the 13 stages
@@ -42,64 +60,133 @@ python pipeline/run_pipeline.py --from build_dataset    # resume from a stage
 python pipeline/run_pipeline.py --only manuscript_figures
 ```
 
-Kriging (stage 5) is slow; it can take many hours per region. The
-manuscript's intermediate products (compiled station, IMERG and MRoS tables,
-the 1 km IMERG grid, the kriged predictor surfaces and the leave-one-out MRoS
-table) can be downloaded instead:
+Every script also runs on its own, e.g. `python pipeline/model/train_model.py
+--regions CO`. See [pipeline/README.md](pipeline/README.md) for what each
+stage reads and writes.
+
+### Checking the kriging without running it in full
 
 ```bash
-python pipeline/get_data.py --include interim           # adds ~33 GB (check free space first)
-python pipeline/run_pipeline.py --from build_dataset    # train from those grids
+python pipeline/preprocessing/kriging_interpolation.py --test --regions CO   # < 1 min
 ```
 
-### MRoS observation locations
+`--test` interpolates the two days with the most MRoS reports over a 50 km
+box: variogram fitting, lapse-rate detrending with kriged residuals, kriging of
+humidity with elevation as drift, indicator kriging of the three MRoS phases,
+and the leave-one-out MRoS table all run. If the full kriging output is
+present (the interim download), the test kriges with its variograms and
+prints the largest cell-by-cell difference from it, which should be at
+floating-point level. `--start/--end/--bbox` choose your own window. Test runs
+go to `data/interim/kriging_test/`, which no later stage reads.
 
-To protect observers, every MRoS table on Zenodo has its locations rounded:
-latitude/longitude to 4 decimal places (~10 m) and projected x/y to 10 m. This
-applies to the raw reports and to the tables in the interim bundles
-(`mros_hourly.parquet`, `mros_processed.parquet`,
-`mros_loocv_point_predictions_kriging.*`). The gridded products were computed
-from the full-precision locations, so results you compute from the Zenodo data,
-whether from `build_dataset` or from the start of the pipeline, will differ
-slightly from the published ones: a few reports fall in a neighbouring 1 km
-grid cell.
+## What the pipeline writes
 
-Full-precision MRoS observation locations can be shared on request, subject to
-approval by the Mountain Rain or Snow project team.
+Every run of a stage writes a **new** folder named by date and time, so
+re-running never overwrites earlier results, and later stages read the newest
+completed run of the stage before them. Each folder holds a
+`run_manifest.json` (when it ran, git commit, which input runs it read).
+
+```
+data/interim/                         intermediate grids
+  dem_1km/                              1 km DEMs (define the model grid)
+  hourly_compiled/<R>/<run>/            stations, IMERG, MRoS on an hourly grid (parquet)
+  resampled_1km/<R>/<run>/              IMERG pLP on the 1 km grid (netCDF)
+  kriging/<R>/<run>/                    kriged predictor surfaces (netCDF) and the
+                                        leave-one-out MRoS table
+results/pipeline/
+  model/<R>/<run>/                      point table, trained model, calibrators,
+                                        val/test predictions, SHAP (diagnostic fit)
+  benchmarking/<R>/<run>/               XGB-Full vs the benchmark methods
+    benchmark_comparison.csv              point estimates for every method
+    benchmark_predictions_test.parquet    every test observation, every method,
+                                          both decision rules
+    bootstrap/                            95% cluster-bootstrap CIs:
+      xgbfull_decision_rules_ci.csv         XGB-Full, binary and selective rule
+                                            (the paper's two XGB-Full tables)
+      bootstrap_benchmark_metrics_ci.csv    every method (benchmark table)
+      bootstrap_benchmark_deltas_ci.csv     XGB-Full minus each benchmark
+      bootstrap_ablation_metrics_ci.csv     every ablation configuration (ablation table)
+      bootstrap_ablation_deltas_ci.csv      full minus each configuration
+  ablations/<R>/<run>/                  one subfolder per predictor configuration
+    ablation_comparison.csv               all configurations side by side
+  figures/<run>/                        every manuscript figure (PDF)
+```
+
+`<R>` is `CA` or `CO`. Folder names in `data/` and `results/` say CA/CO; the
+figures say SNM/CRM.
+
+All test-set numbers in the manuscript come
+from `benchmarking/` and `ablations/` (the same XGB-Full model appears in
+both, as `xgboost_mros` and `baseline_full`). The `model/` run is a separate
+fit of the same configuration on a different random split, kept for its
+diagnostics; see "EVALUATION SPLIT" in `pipeline/evaluation/experiment_base.py`.
+
+## Decision rules: binary and selective
+
+The model's output is a calibrated probability, p(snow). Two rules turn it
+into a phase. Neither changes training, so both are computed from the same
+predictions in every run.
+
+| Rule | What it does | Where |
+| --- | --- | --- |
+| **Binary** | snow if p(snow) ≥ 0.5, else rain; every observation gets a call | columns `pred_xgboost_mros_bin05` / `prediction_binary05`; benchmark and ablation results |
+| **Selective** (optional) | applies the uncertainty envelope (Eq. 1); inside it the model abstains and the observation is flagged | columns `pred_xgboost_mros_band` / `prediction_phase_uncertainty` (flag = code 2); `rule == "selective"` rows |
+
+`bootstrap/xgbfull_decision_rules_ci.csv` holds both side by side. Under the
+selective rule, accuracy, macro F1 and recall are computed on the rain and
+snow observations the model committed to; coverage is the share of rain and
+snow observations it committed to; flag rate is the share of all
+observations (mixed included) inside the envelope; mix capture is the share
+of observer-reported mixed events inside it. AUROC and Brier score do not
+depend on the rule.
+
+## Reproducing the published numbers
+
+* **Benchmarks, ablation inputs and the evaluation split** reproduce exactly
+  from the Zenodo grids.
+* **XGBoost re-training** can differ slightly between machines even with the
+  pinned version (XGBoost 3.1.2): the row/column subsampling draws differ
+  between operating systems. In our tests on Linux, with identical inputs and
+  split, XGB-Full test accuracy came out 90.7% (SNM) and 92.0% (CRM) against
+  the published 91.2% and 91.4%, well inside the published intervals; the
+  benchmark methods reproduced to the decimal.
+* **MRoS locations** on Zenodo are rounded to protect observers (lat/lon to 4
+  decimals, ~10 m; projected x/y to 10 m), in the raw reports and in the
+  interim tables (`mros_hourly.parquet`, `mros_processed.parquet`,
+  `mros_loocv_point_predictions_kriging.*`). The gridded products were
+  computed from full-precision locations, so a few reports may fall in a
+  neighbouring 1 km cell. Full-precision locations can be shared on request,
+  subject to approval by the Mountain Rain or Snow project team.
+
+## Configuration files
+
+Two YAML files sit at the repository root.
+
+* `project_paths.yaml` — details where every input and output lives, how many old
+  runs to keep, and figure options (`figures.stage_figures: true` also writes
+  each stage's diagnostic PNGs; `figures.copy_to_manuscript` copies the paper
+  figures into a LaTeX folder and is used by the authors only).
+* `pinned_runs.yaml` — the run folders the manuscript was made from. Its
+  interim entries match the folders `get_data.py --include interim` creates;
+  its model/benchmarking/ablation entries are the authors' local runs and are
+  skipped when absent, i.e., when newest runs are used.
+
+To read a specific run instead of the newest, set an environment variable,
+e.g. `MROS_RUN_KRIGING=data/interim/kriging/{region}/20260806_kriging`.
 
 ## Layout
 
 ```
-pipeline/              the code (this is what the repository tracks)
-  run_pipeline.py        runs the stages in order
+pipeline/              the code (tracked in repository)
   get_data.py            downloads the data from Zenodo
+  run_pipeline.py        runs the stages in order
   config.py              regions, study period, run-folder handling
-  preprocessing/  model/  evaluation/  figures/
+  preprocessing/  model/  evaluation/  figures/  tools/
 project_paths.yaml     where every input and output lives
 pinned_runs.yaml       the runs the manuscript figures are drawn from
 data/                  NOT in git; filled by get_data.py (see data/README.md)
-  raw/                   stations, IMERG, MRoS observations, DEMs, boundaries
-  interim/               derived grids, one folder per run
 results/               NOT in git; created when you run the pipeline
-  pipeline/              model, benchmarking, ablations, figures (one folder per run)
 ```
-
-## How runs are stored
-
-Every run of a stage writes a **new** folder named by date and time, e.g.
-`results/pipeline/model/CA/20261002-1415/`, so re-running never overwrites
-earlier results. Each folder holds a `run_manifest.json` recording when it
-ran, the git commit, and which input runs it read. Later stages read the
-newest completed run of the stage before them.
-
-The kriging and resampled-IMERG stages are large (3–14 GB per run), so only
-the newest two runs are kept (`keep_last` in `project_paths.yaml`); runs
-listed in `pinned_runs.yaml` are never removed.
-
-`manuscript_figures.py` draws from the runs in `pinned_runs.yaml` by default
-and copies each PDF into the manuscript folder (turn that off with
-`figures.copy_to_manuscript: false`). `--inputs latest` draws from your newest
-runs instead.
 
 ## Requirements
 
@@ -111,16 +198,3 @@ devtools, geosphere, and the
 [rainOrSnowTools](https://github.com/LynkerIntel/rainOrSnowTools) package
 checked out alongside this repository. IMERG downloads need a free NASA
 Earthdata account; put `NASA_DATA_USER` and `NASA_DATA_PASSWORD` in `.Renviron`.
-
-## Notes on the approach
-
-The model is fitted on observations reported as pure rain or pure snow.
-Reports of mixed precipitation are excluded from fitting and retained for
-evaluation. Predicted probabilities are calibrated separately for near-freezing
-and clear-phase observations. Mix is then assigned where the calibrated
-probability falls inside a band around 0.5 whose width increases as wet-bulb
-temperature approaches freezing.
-
-The MRoS-derived predictors are computed leave-one-out: each observation's
-predictor value is interpolated from the other observations in that hour, not
-from itself.

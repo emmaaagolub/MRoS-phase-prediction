@@ -1,6 +1,14 @@
-# Outline of where everything lives. 
-# Paths are relative to the repository root.
-# Read by pipeline/config.py and by legacy/legacy_paths.py, so a folder that moves only needs to be changed here.
+# project_paths.yaml — where every input and output lives.
+#
+# If you have just cloned the repository, there is no need to edit this file:
+# get_data.py and the pipeline already use these locations. Edit it only to
+# move data to another disk, keep more or fewer old runs (keep_last), or
+# change how old runs are removed (prune_older_runs) or which figures are
+# written (figures:).
+#
+# Paths are relative to the repository root. Read by pipeline/config.py (and
+# by the authors' legacy/ scripts), so a folder that moves only needs to be
+# changed here.
 
 # --- Input data (download from Zenodo with `python pipeline/get_data.py`) ----
 raw:
@@ -27,6 +35,7 @@ stages:
   hourly_compiled: {root: data/interim/hourly_compiled, keep_last: null}  # ~70 MB per run
   resampled_1km:   {root: data/interim/resampled_1km,   keep_last: 2}     # ~3 GB per run
   kriging:         {root: data/interim/kriging,         keep_last: 2}     # ~11-14 GB per run
+  kriging_test:    {root: data/interim/kriging_test,    keep_last: 3}     # --test / --start / --bbox runs; never read downstream
   model:           {root: results/pipeline/model,        keep_last: null}
   benchmarking:    {root: results/pipeline/benchmarking, keep_last: null}
   ablations:       {root: results/pipeline/ablations,    keep_last: null}
@@ -46,6 +55,7 @@ figures:
   # Also copy each manuscript figure PDF into the LaTeX figures folder.
   copy_to_manuscript: true
   manuscript_dir: manuscript/figures
+  stage_figures: false
 
 # --- Zenodo ------------------------------------------------------------------------
 # get_data.py downloads every file in the record and unpacks it into data/.

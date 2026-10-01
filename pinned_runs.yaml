@@ -1,12 +1,20 @@
-# Runs the manuscript is drawn from.
+# pinned_runs.yaml — which run folders the MANUSCRIPT was made from.
 #
-# - pipeline/figures/manuscript_figures.py reads these by default
-#   (use --inputs latest to draw from the newest pipeline runs instead).
-# - legacy/ code reads its inputs from these.
-# - Pinned runs are never removed by keep_last pruning.
+# If you have just cloned the repository, there is no need to edit this file.
+#   - The hourly_compiled / resampled_1km / kriging entries are the folders
+#     `python pipeline/get_data.py --include interim` unpacks, so the
+#     downloaded grids are picked up automatically.
+#   - The model / benchmarking / ablations entries are the authors' own run
+#     folders (results/legacy/..., not distributed).
 #
-# Paths are relative to the repository root. If a pinned path does not exist
-# (for example in a fresh clone), the newest completed pipeline run is used.
+# What reads it:
+#   - pipeline/figures/manuscript_figures.py, by default (--inputs latest
+#     ignores it; run_pipeline.py always passes --inputs latest).
+#   - Any stage, when MROS_INPUTS=pinned is set.
+#   - prune_runs: pinned runs are never deleted by keep_last.
+#   - kriging_interpolation.py --test, as the reference run to compare with.
+#
+# Paths are relative to the repository root.
 CA:
   hourly_compiled: data/interim/hourly_compiled/CA/20260528_compiled
   resampled_1km:   data/interim/resampled_1km/CA/20260528_resampled
