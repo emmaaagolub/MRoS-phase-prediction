@@ -24,6 +24,33 @@ Results are written one day at a time and appended to the output file in
 batches, so an interrupted run resumes from the last completed day: the next
 run reopens the newest unfinished run folder instead of starting a new one.
 Only the newest two completed runs are kept (keep_last in project_paths.yaml).
+
+Quick test on a small window
+----------------------------
+The full run takes many hours per region. To check that the method works
+without that cost, interpolate a few days over a small box:
+
+  python kriging_interpolation.py --test --regions CO
+  python kriging_interpolation.py --start 2024-02-03 --end 2024-02-04 \
+      --bbox -120.3 38.9 -119.9 39.3 --regions CA
+
+--test picks the two days with the most MRoS reports and a 50 km box around
+where most of those reports were made. Every step of the method runs: the
+variogram fit (on the test window), the hourly lapse-rate fit and kriged
+residuals for air, dewpoint and wet-bulb temperature, kriging of humidity with
+elevation as drift, indicator kriging of the three MRoS phases with closure,
+and the leave-one-out MRoS table. Only the target grid is cropped; every
+station and report in the region is still used, so each grid cell gets the
+same value it would get in a full run.
+
+If a full kriging run exists (pinned, or the newest), the test kriges with
+that run's variograms and compares its output with it, cell by cell and
+report by report. Differences should be at floating-point level, except
+for the MRoS-derived values when the reference run was made from
+full-precision locations and the test from the rounded public file.
+
+Test runs are written to data/interim/kriging_test/, never to
+data/interim/kriging/, so later stages never read them.
 """
 
 from __future__ import annotations
@@ -53,7 +80,7 @@ from tqdm import tqdm
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from config import (  # noqa: E402
-    REGIONS, WY_END, WY_START, finish_step, input_run, open_run, parse_region_args,
+    REGIONS, WY_END, WY_START, finish_step, input_run, open_run,
     region_paths,
 )
 
@@ -106,21 +133,28 @@ SETTINGS = {
 }
 
 
-def build_config(region_id):
+def build_config(region_id, window=None):
+    """Settings for one region. `window` (from parse_args) restricts the run to
+    a time window and/or a box, and sends the output to the kriging_test stage."""
     paths = region_paths(region_id)
     compiled = input_run("hourly_compiled", region_id)
+    window = window or {}
+    is_test = bool(window)
     cfg = dict(SETTINGS)
     cfg.update({
         "region": region_id,
         "label": REGIONS[region_id]["label"],
-        "wy_start": WY_START,
-        "wy_end": WY_END,
+        "wy_start": window.get("start", WY_START),
+        "wy_end": window.get("end", WY_END),
+        "bbox_lonlat": window.get("bbox"),
+        "is_test": is_test,
         "mros_active_months": REGIONS[region_id]["mros_active_months"],
         "proj_fallback": REGIONS[region_id]["utm_crs"],
         "dem_path": paths["dem_1km"],
         "stations_parquet": compiled / "stations_hourly.parquet",
         "mros_parquet": compiled / "mros_hourly.parquet",
-        "out_dir": open_run("kriging", region_id, step="kriging_interpolation", resume=True,
+        "out_dir": open_run("kriging_test" if is_test else "kriging", region_id,
+                            step="kriging_interpolation", resume=not is_test,
                             inputs={"hourly_compiled": compiled, "dem_1km": paths["dem_1km"]}),
     })
     for sub in ("", "processed_inputs", "variogram_calibration"):
@@ -796,7 +830,7 @@ def loocv_mros_hour(mros_t, variogram_params, cfg):
         "n_points": len(df), "n_eval": len(details),
         "accuracy": accuracy_score(details["obs_phase"], details["pred_phase"]),
         "macro_f1": f1_score(details["obs_phase"], details["pred_phase"],
-                             labels=PHASE_ORDER, average="macro"),
+                             labels=PHASE_ORDER, average="macro", zero_division=0),
     }
     try:
         metrics["multiclass_logloss"] = log_loss(
@@ -813,7 +847,7 @@ def _score_block(block):
     row = {
         "accuracy": accuracy_score(block["obs_phase"], block["pred_phase"]),
         "macro_f1": f1_score(block["obs_phase"], block["pred_phase"],
-                             labels=PHASE_ORDER, average="macro"),
+                             labels=PHASE_ORDER, average="macro", zero_division=0),
     }
     try:
         row["multiclass_logloss"] = log_loss(
@@ -917,6 +951,7 @@ def interpolate_all_hours(st_hr, mros_hr, dem_data, dem_profile, proj_crs,
                 ds_batch = xr.concat(opened, dim="time").sortby("time")
                 encoding = {v: {"zlib": True, "complevel": 4} for v in out_vars}
                 encoding["time"] = {"units": "hours since 2022-10-01", "calendar": "standard"}
+                # (fixed origin, so a resumed run can append in place below)
                 ds_batch.to_netcdf(final_nc, unlimited_dims=["time"], encoding=encoding)
                 ds_batch.close()
                 for handle in opened:
@@ -1081,9 +1116,15 @@ def interpolate_all_hours(st_hr, mros_hr, dem_data, dem_profile, proj_crs,
     return xr.open_dataset(final_nc), loocv_summary, loocv_points
 
 
-def process_region(region_id, force_rebuild=False):
-    cfg = build_config(region_id)
+def process_region(region_id, force_rebuild=False, window=None):
+    window = dict(window or {})
+    if window.pop("auto", False):
+        window.update(pick_test_window(region_id))
+    cfg = build_config(region_id, window)
     print(f"\n=== {region_id}: {cfg['label']} ===")
+    if cfg["is_test"]:
+        print(f"  TEST RUN: {cfg['wy_start']} to {cfg['wy_end']}"
+              + (f", box {cfg['bbox_lonlat']}" if cfg["bbox_lonlat"] else ""))
 
     for label, path in [("DEM", cfg["dem_path"]),
                         ("stations parquet", cfg["stations_parquet"]),
@@ -1097,6 +1138,22 @@ def process_region(region_id, force_rebuild=False):
     variogram_params, variogram_summary, _ = calibrate_variograms(st_hr, mros_hr, cfg)
     print(variogram_summary.to_string(index=False))
 
+    reference = None
+    if cfg["is_test"]:
+        reference = reference_kriging_run(region_id, window.get("reference"))
+        if reference is not None:
+            # Krige with the full run's variograms so the two can be compared
+            # cell for cell. The window's own fit (above) is kept for inspection.
+            ref_params = reference / "variogram_calibration" / "variogram_params.json"
+            if ref_params.exists():
+                variogram_params = json.loads(ref_params.read_text())
+                shutil.copy(ref_params, cfg["out_dir"] / "variogram_calibration"
+                            / "variogram_params_used_from_reference.json")
+                print(f"  kriging with the variograms of {reference}")
+        if cfg["bbox_lonlat"]:
+            dem_data, dem_profile = crop_grid(dem_data, dem_profile, proj_crs,
+                                              cfg["bbox_lonlat"])
+
     expected = ([f"{v}_resid" for v in cfg["temp_vars"] if v in st_hr.columns]
                 + [v for v in cfg["station_uk_vars"] if v in st_hr.columns]
                 + list(cfg["mros_phase_probs"]))
@@ -1109,13 +1166,168 @@ def process_region(region_id, force_rebuild=False):
     )
     print(loocv_summary.head(1).to_string(index=False))
     print(f"  outputs written to {cfg['out_dir']}")
+    if reference is not None:
+        compare_with_reference(cfg["out_dir"], reference)
     finish_step(cfg["out_dir"], "kriging_interpolation")
 
 
-def main(regions=None):
+# ---------------------------------------------------------------------------
+# Test runs on a small window
+# ---------------------------------------------------------------------------
+
+TEST_DAYS = 2
+TEST_BOX_HALF_WIDTH_KM = 25.0
+
+
+def pick_test_window(region_id, n_days=TEST_DAYS, half_width_km=TEST_BOX_HALF_WIDTH_KM):
+    """The n_days (consecutive) with the most MRoS reports, and a box around
+    the median report location on those days."""
+    compiled = input_run("hourly_compiled", region_id, quiet=True)
+    mros = pd.read_parquet(compiled / "mros_hourly.parquet")
+    mros["hour_utc"] = to_utc(mros["hour_utc"])
+    months = REGIONS[region_id]["mros_active_months"]
+    mros = mros[mros["hour_utc"].dt.month.isin(months)]
+    per_day = mros.groupby(mros["hour_utc"].dt.floor("D")).size()
+    per_day = per_day.asfreq("D", fill_value=0)
+    totals = per_day.rolling(n_days).sum().dropna()
+    last_day = totals.idxmax()
+    first_day = last_day - pd.Timedelta(days=n_days - 1)
+    on_days = mros[mros["hour_utc"].between(first_day, last_day + pd.Timedelta(hours=23))]
+
+    utm = REGIONS[region_id]["utm_crs"]
+    to_utm = Transformer.from_crs("EPSG:4326", utm, always_xy=True)
+    to_ll = Transformer.from_crs(utm, "EPSG:4326", always_xy=True)
+    cx, cy = to_utm.transform(on_days["lon"].median(), on_days["lat"].median())
+    d = half_width_km * 1000.0
+    lon0, lat0 = to_ll.transform(cx - d, cy - d)
+    lon1, lat1 = to_ll.transform(cx + d, cy + d)
+    print(f"  test window: {first_day.date()} to {last_day.date()} "
+          f"({int(totals.max())} MRoS reports), {2 * half_width_km:.0f} km box")
+    return {"start": first_day.strftime("%Y-%m-%dT00:00:00Z"),
+            "end": last_day.strftime("%Y-%m-%dT23:00:00Z"),
+            "bbox": [round(v, 4) for v in (lon0, lat0, lon1, lat1)]}
+
+
+def crop_grid(dem_data, dem_profile, proj_crs, bbox_lonlat):
+    """Restrict the target grid to a lon/lat box (stations are not cropped)."""
+    from rasterio.transform import rowcol, xy  # noqa: F401
+    from rasterio.windows import Window, transform as window_transform
+
+    lon0, lat0, lon1, lat1 = bbox_lonlat
+    to_proj = Transformer.from_crs("EPSG:4326", proj_crs, always_xy=True)
+    xs, ys = to_proj.transform([lon0, lon1, lon0, lon1], [lat0, lat0, lat1, lat1])
+    rows, cols = rowcol(dem_profile["transform"], xs, ys)
+    r0, r1 = max(min(rows), 0), min(max(rows) + 1, dem_data.shape[0])
+    c0, c1 = max(min(cols), 0), min(max(cols) + 1, dem_data.shape[1])
+    if r1 <= r0 or c1 <= c0:
+        raise ValueError(f"Box {bbox_lonlat} does not overlap the {dem_data.shape} grid.")
+    win = Window(c0, r0, c1 - c0, r1 - r0)
+    profile = dict(dem_profile, height=r1 - r0, width=c1 - c0,
+                   transform=window_transform(win, dem_profile["transform"]))
+    cropped = dem_data[r0:r1, c0:c1]
+    print(f"  grid cropped to {cropped.shape[0]} x {cropped.shape[1]} cells "
+          f"({np.isfinite(cropped).sum()} inside the study area)")
+    return cropped, profile
+
+
+def reference_kriging_run(region_id, explicit=None):
+    """The full run to compare a test against: --reference, else the pinned
+    run, else the newest completed one. None if there is none."""
+    if explicit:
+        path = Path(explicit.format(region=region_id))
+        return path if path.exists() else None
+    try:
+        run = input_run("kriging", region_id, prefer_pinned=True, quiet=True)
+    except FileNotFoundError:
+        print("  no full kriging run to compare with; the test uses its own variograms")
+        return None
+    if not (run / "hourly_predictors_1km_indicator_kriging.nc").exists():
+        return None
+    return run
+
+
+def compare_with_reference(test_dir, ref_dir):
+    """Print the largest differences between a test run and a full run."""
+    print(f"\n  Comparison with {ref_dir}")
+    name = "hourly_predictors_1km_indicator_kriging.nc"
+    rows = []
+    with xr.open_dataset(Path(test_dir) / name) as test, \
+            xr.open_dataset(Path(ref_dir) / name) as ref:
+        times = np.intersect1d(test.time.values, ref.time.values)
+        if len(times) == 0:
+            print("    no hours in common with the reference run")
+        else:
+            ref_sub = ref.sel(time=times, x=test.x.values, y=test.y.values,
+                              method="nearest", tolerance=1.0)
+            for var in test.data_vars:
+                if var not in ref_sub or test[var].ndim != 3:
+                    continue
+                a = test[var].sel(time=times).values
+                b = ref_sub[var].values
+                both = np.isfinite(a) & np.isfinite(b)
+                only_one = np.isfinite(a) != np.isfinite(b)
+                diff = np.abs(a[both] - b[both])
+                rows.append({"variable": var, "cells_compared": int(both.sum()),
+                             "max_abs_diff": float(diff.max()) if diff.size else np.nan,
+                             "mean_abs_diff": float(diff.mean()) if diff.size else np.nan,
+                             "cells_missing_in_one": int(only_one.sum())})
+    loocv_name = "mros_loocv_point_predictions_kriging.parquet"
+    if (Path(test_dir) / loocv_name).exists() and (Path(ref_dir) / loocv_name).exists():
+        t = pd.read_parquet(Path(test_dir) / loocv_name)
+        r = pd.read_parquet(Path(ref_dir) / loocv_name)
+        for df in (t, r):
+            df["hour_utc"] = pd.to_datetime(df["hour_utc"], utc=True)
+            df["_x"], df["_y"] = df["x"].round(-1), df["y"].round(-1)
+        r = r[r["hour_utc"].isin(t["hour_utc"].unique())]
+        merged = t.merge(r, on=["hour_utc", "_x", "_y", "obs_phase"], suffixes=("", "_ref"))
+        for col in ("mros_p_snow_loocv", "mros_p_mix_loocv", "mros_p_rain_loocv"):
+            diff = (merged[col] - merged[f"{col}_ref"]).abs()
+            rows.append({"variable": f"LOOCV {col}", "cells_compared": len(merged),
+                         "max_abs_diff": float(diff.max()) if len(diff) else np.nan,
+                         "mean_abs_diff": float(diff.mean()) if len(diff) else np.nan,
+                         "cells_missing_in_one": abs(len(t) - len(r))})
+    table = pd.DataFrame(rows)
+    table.to_csv(Path(test_dir) / "comparison_with_reference.csv", index=False)
+    print(table.to_string(index=False))
+    print("    (cells_missing_in_one: finite in one run only; for LOOCV, the difference in reports scored)")
+
+
+def parse_args(argv=None):
+    import argparse
+
+    ap = argparse.ArgumentParser(description=__doc__,
+                                 formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("--regions", nargs="+", choices=list(REGIONS), default=list(REGIONS))
+    ap.add_argument("--test", action="store_true",
+                    help="Quick check: two busy days over a 50 km box (see above).")
+    ap.add_argument("--start", help="First day of a test window, YYYY-MM-DD.")
+    ap.add_argument("--end", help="Last day of a test window, YYYY-MM-DD.")
+    ap.add_argument("--bbox", nargs=4, type=float,
+                    metavar=("LON_MIN", "LAT_MIN", "LON_MAX", "LAT_MAX"),
+                    help="Only interpolate grid cells inside this box.")
+    ap.add_argument("--reference", help="Full kriging run to compare a test run with "
+                                         "(default: the pinned run). {region} is filled in.")
+    args = ap.parse_args(argv)
+
+    window = {}
+    if args.test:
+        window["auto"] = True
+    if args.start:
+        window["start"] = f"{args.start}T00:00:00Z"
+        window["end"] = f"{args.end or args.start}T23:00:00Z"
+    if args.bbox:
+        window["bbox"] = list(args.bbox)
+    if args.reference:
+        window["reference"] = args.reference
+    if window and not ({"auto", "start", "bbox"} & set(window)):
+        ap.error("--reference only applies to a test run (--test, --start or --bbox)")
+    return args.regions, window
+
+
+def main(regions=None, window=None):
     for region_id in regions or REGIONS:
-        process_region(region_id)
+        process_region(region_id, window=window)
 
 
 if __name__ == "__main__":
-    main(parse_region_args())
+    main(*parse_args())

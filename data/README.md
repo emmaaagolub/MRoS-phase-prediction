@@ -6,7 +6,7 @@ into this folder with
 ```bash
 python pipeline/get_data.py                     # core inputs, ~2 GB
 python pipeline/get_data.py --include dem_10m   # + raw 10 m DEMs (~6 GB)
-python pipeline/get_data.py --include interim   # + the manuscript's intermediate and processed products (~30 GB)
+python pipeline/get_data.py --include interim   # + the manuscript's intermediate and processed products (~33 GB)
 ```
 
 (Zenodo DOI: 10.5281/zenodo.23022221)
@@ -27,6 +27,8 @@ data/
     hourly_compiled/{CA,CO}/<run>/    stations, IMERG and MRoS on a common hourly grid
     resampled_1km/{CA,CO}/<run>/      IMERG on the 1 km hourly grid
     kriging/{CA,CO}/<run>/            kriged predictor surfaces + leave-one-out MRoS table
+    kriging_test/{CA,CO}/<run>/       small test runs (kriging_interpolation.py --test);
+                                      never read by later stages
 ```
 
 All MRoS locations on Zenodo are rounded to ~10 m, so results computed from
