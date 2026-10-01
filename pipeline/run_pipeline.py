@@ -54,6 +54,7 @@ Usage
 """
 
 import argparse
+import os
 import shutil
 import subprocess
 import sys
@@ -176,6 +177,7 @@ def check_interim_data(stages, regions):
                for stage, producer in (("kriging", "kriging_interpolation"),
                                        ("resampled_1km", "resample_gridded"))
                if producer not in names
+               and not os.environ.get(f"MROS_RUN_{stage.upper()}")
                and not list_runs(stage, r) and pinned_run(stage, r) is None]
     if missing:
         raise SystemExit(
