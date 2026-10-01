@@ -17,7 +17,8 @@ MRoS
   Keeps the last report per observer per hour and maps the reported phase to a
   numeric proxy (snow 0, mix 50, rain 100).
 
-All three are given DEM elevation and clipped to the study-area polygon.
+All three are given DEM elevation. Stations and MRoS reports are clipped to the
+study-area polygon; IMERG keeps its full rectangle for regridding.
 
 Inputs: data/raw/{stations,imerg}/<REGION>/, data/raw/mros/, data/interim/dem_1km/
 Output: data/interim/hourly_compiled/<REGION>/<run_id>/{stations,imerg,mros}_hourly.parquet
@@ -191,23 +192,42 @@ def apply_physical_cutoffs(df, verbose=False):
     return df
 
 
+def _per_location(df, lon_col, lat_col, values_for_locations):
+    """Evaluate a per-point function once per distinct location and map the
+    result back to every row. The IMERG table repeats ~900 cells over ~30,000
+    hours, so this avoids sampling the DEM or building a geometry per row."""
+    key = pd.MultiIndex.from_arrays([df[lon_col].to_numpy(), df[lat_col].to_numpy()])
+    locs = key.unique()
+    values = values_for_locations(locs.get_level_values(0).to_numpy(),
+                                  locs.get_level_values(1).to_numpy())
+    return pd.Series(values, index=locs).reindex(key).to_numpy()
+
+
 def add_elev_from_dem(df, dem_path, lon_col="lon", lat_col="lat"):
     """Attach DEM elevation at each point."""
-    with rio.open(dem_path) as src:
-        transformer = Transformer.from_crs(CRS_WGS84, src.crs, always_xy=True)
-        xs, ys = transformer.transform(df[lon_col].values, df[lat_col].values)
-        elev = np.array([v[0] for v in src.sample(zip(xs, ys))])
-        if src.nodata is not None:
-            elev = np.where(elev == src.nodata, np.nan, elev)
-    return df.assign(elev=elev)
+    def sample(lons, lats):
+        with rio.open(dem_path) as src:
+            transformer = Transformer.from_crs(CRS_WGS84, src.crs, always_xy=True)
+            xs, ys = transformer.transform(lons, lats)
+            elev = np.array([v[0] for v in src.sample(zip(xs, ys))])
+            if src.nodata is not None:
+                elev = np.where(elev == src.nodata, np.nan, elev)
+        return elev
+
+    if df.empty:
+        return df.assign(elev=np.array([], dtype=float))
+    return df.assign(elev=_per_location(df, lon_col, lat_col, sample))
 
 
 def filter_points_to_aoi(df, aoi_poly):
     """Keep only points inside the study-area polygon."""
-    gdf = gpd.GeoDataFrame(
-        df, geometry=gpd.points_from_xy(df["lon"], df["lat"]), crs=CRS_WGS84
-    )
-    return df.loc[gdf.within(aoi_poly).values]
+    def inside(lons, lats):
+        points = gpd.GeoSeries(gpd.points_from_xy(lons, lats), crs=CRS_WGS84)
+        return points.within(aoi_poly).to_numpy()
+
+    if df.empty:
+        return df
+    return df.loc[_per_location(df, "lon", "lat", inside).astype(bool)]
 
 
 # ---------------------------------------------------------------------------
@@ -381,7 +401,8 @@ def lapse_adjusted_idw(st_hr, utm_crs, value_cols=("temp_dew", "rh"),
 
     for var in value_cols:
         df[f"{var}_modeled"] = modeled[var]
-        print(f"  filled {np.sum(~np.isnan(modeled[var])):,} hourly {var} values")
+        print(f"  interpolated {np.sum(~np.isnan(modeled[var])):,} hourly {var} values "
+              "(used only where the station's own value is missing)")
 
     return df.drop(columns=["_px", "_py"])
 
@@ -397,6 +418,8 @@ def build_stations(paths, utm_crs):
     value_cols = ("temp_dew", "rh")
     st_hr = lapse_adjusted_idw(st_hr, utm_crs, value_cols=value_cols)
     for var in value_cols:
+        gap = st_hr[var].isna() & st_hr[f"{var}_modeled"].notna()
+        print(f"  filled {gap.sum():,} missing {var} values")
         st_hr[var] = st_hr[var].where(st_hr[var].notna(), st_hr[f"{var}_modeled"])
     st_hr = st_hr.drop(columns=[f"{v}_modeled" for v in value_cols])
 
@@ -459,20 +482,30 @@ def build_imerg(imerg_dir):
         return empty
 
     start_ts, end_ts = pd.to_datetime(WY_START, utc=True), pd.to_datetime(WY_END, utc=True)
+    keys = ["hour_utc", "lat", "lon"]
     frames = []
     for path in files:
         df = read_imerg_wide_to_long(path)
         df = df[(df["time_utc"] >= start_ts) & (df["time_utc"] <= end_ts)]
-        if not df.empty:
-            frames.append(df)
+        if df.empty:
+            continue
+        # Reduce each file to hourly sums and counts before combining, so the
+        # full half-hourly table (~55 million rows for CA) is never held in
+        # memory. The hourly mean below is the same as averaging all slots at once.
+        df["hour_utc"] = df["time_utc"].dt.floor("h")
+        frames.append(df.groupby(keys, as_index=False)
+                        .agg(plp_sum=("plp", "sum"), plp_n=("plp", "count")))
 
     if not frames:
         print("  IMERG files found but none within the study window")
         return empty
 
     imerg = pd.concat(frames, ignore_index=True)
-    imerg["hour_utc"] = imerg["time_utc"].dt.floor("h")
-    return imerg.groupby(["hour_utc", "lat", "lon"], as_index=False).agg(plp=("plp", "mean"))
+    frames.clear()
+    imerg = imerg.groupby(keys, as_index=False, sort=False)[["plp_sum", "plp_n"]].sum()
+    imerg = imerg.sort_values(keys, ignore_index=True)
+    imerg["plp"] = imerg["plp_sum"] / imerg["plp_n"].where(imerg["plp_n"] > 0)
+    return imerg[keys + ["plp"]]
 
 
 # ---------------------------------------------------------------------------
@@ -554,12 +587,15 @@ def process_region(region_id):
     )
     print(f"  {len(mros_hr):,} reports")
 
+    # Stations and MRoS reports are clipped to the study-area polygon. IMERG is
+    # NOT: resample_gridded.py needs the full rectangle of 0.1-degree cells to
+    # rebuild each hourly field (and bilinear regridding near the edge of the
+    # study area uses cells just outside it).
     aoi_poly = Polygon(cfg["aoi_lonlat"])
     st_hr = filter_points_to_aoi(st_hr, aoi_poly)
-    imerg_hr = filter_points_to_aoi(imerg_hr, aoi_poly)
     mros_hr = filter_points_to_aoi(mros_hr, aoi_poly)
-    print(f"Inside study area — stations {len(st_hr):,}, "
-          f"IMERG {len(imerg_hr):,}, MRoS {len(mros_hr):,}")
+    print(f"Inside study area — stations {len(st_hr):,}, MRoS {len(mros_hr):,}; "
+          f"IMERG {len(imerg_hr):,} cell-hours (full rectangle, not clipped)")
 
     st_hr.to_parquet(out_dir / "stations_hourly.parquet", index=False)
     imerg_hr.to_parquet(out_dir / "imerg_hourly.parquet", index=False)

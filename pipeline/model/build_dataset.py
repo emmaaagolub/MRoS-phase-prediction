@@ -24,7 +24,7 @@ from pyproj import Transformer
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from common import (  # noqa: E402
-    FEATURES, GRID_FEATURES, INTERP_TYPE, REGIONS, TARGET_FULL,
+    EXTRA_GRID_COLUMNS, FEATURES, GRID_FEATURES, INTERP_TYPE, REGIONS, TARGET_FULL,
     finish_step, make_output_dirs, model_paths, open_run, predictor_inputs,
 )
 
@@ -146,7 +146,7 @@ def prep_loocv_table(df, grid_crs):
 def build_predictor_cube(ds_interp, ds_imerg):
     """Merge the interpolated and IMERG grids into one aligned cube."""
     parts = []
-    interp_keep = [v for v in GRID_FEATURES if v in ds_interp]
+    interp_keep = [v for v in GRID_FEATURES + EXTRA_GRID_COLUMNS if v in ds_interp]
     if interp_keep:
         parts.append(ds_interp[interp_keep])
     if "imerg_plp" in GRID_FEATURES and "imerg_plp" in ds_imerg:
@@ -169,6 +169,43 @@ def nearest_index_1d(coord_vals, query_vals):
     if not ascending:
         out = (len(coord_vals) - 1) - out
     return out.astype(np.int64)
+
+
+def load_imerg_hours(path, hours, y_values):
+    """Read imerg_plp at the given hours into memory, oriented to y_values.
+
+    The IMERG grid from Zenodo stores ~3,000 hours per chunk, so reading it one
+    hour at a time decompresses every chunk thousands of times. Reading one
+    spatial tile across the whole record and keeping only the needed hours
+    decompresses each chunk once. Values are unchanged."""
+    import netCDF4 as nc4
+
+    with xr.open_dataset(path) as ds:
+        file_hours = pd.to_datetime(ds.time.values).floor("h")
+        file_y = ds.y.values
+        chunks = ds["imerg_plp"].encoding.get("chunksizes") or ds["imerg_plp"].shape
+    pos = pd.Index(file_hours).get_indexer(pd.to_datetime(hours))
+    if (pos < 0).any():
+        raise ValueError("Some hours are missing from the IMERG grid.")
+    with nc4.Dataset(path) as nc:
+        var = nc.variables["imerg_plp"]
+        var.set_auto_mask(False)
+        fill = getattr(var, "_FillValue", None)
+        ny, nx = var.shape[1:]
+        out = np.empty((len(pos), ny, nx), dtype=var.dtype)
+        ct, cy, cx = chunks
+        if ct == 1:  # one hour per chunk (resample_gridded.py output): read each hour
+            for i, p in enumerate(pos):
+                out[i] = var[int(p)]
+        else:        # long time-chunks (the Zenodo grid): read tile by tile
+            for y0 in range(0, ny, cy):
+                for x0 in range(0, nx, cx):
+                    out[:, y0:y0 + cy, x0:x0 + cx] = var[:, y0:y0 + cy, x0:x0 + cx][pos]
+    if fill is not None:
+        out = np.where(out == fill, np.nan, out)
+    if not np.array_equal(file_y, y_values):  # flipped to match the kriging grid
+        out = out[:, ::-1, :]
+    return out
 
 
 def sample_cube_at_points(points_df, ds_pred, predictor_vars, verbose=True):
@@ -254,7 +291,17 @@ def build_region(region_id, interp_type=INTERP_TYPE):
     print(f"  {len(loocv_df):,} observations within the shared hours")
     print(loocv_df["phase_full"].value_counts().sort_index().to_string())
 
-    master_df = sample_cube_at_points(loocv_df, ds_pred, GRID_FEATURES)
+    # Only the hours with observations are sampled. The IMERG grid from Zenodo
+    # is stored in long time-chunks, which are slow to read one hour at a time,
+    # so those hours are read once, tile by tile (values are unchanged).
+    obs_hours = np.intersect1d(common_times, pd.to_datetime(loocv_df["time"]).unique()
+                               .to_numpy().astype(common_times.dtype))
+    ds_pred = ds_pred.sel(time=obs_hours)
+    if "imerg_plp" in ds_pred:
+        ds_pred["imerg_plp"] = ds_pred["imerg_plp"].copy(
+            data=load_imerg_hours(paths["imerg"], obs_hours, ds_pred.y.values))
+
+    master_df = sample_cube_at_points(loocv_df, ds_pred, GRID_FEATURES + EXTRA_GRID_COLUMNS)
 
     required = FEATURES + [TARGET_FULL]
     missing = [c for c in required if c not in master_df.columns]
