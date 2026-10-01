@@ -177,10 +177,20 @@ def main():
         return
 
     OUT_DIR.mkdir(exist_ok=True)
+    # Add to the manifest of earlier runs rather than replacing it, so the
+    # groups can be packaged one at a time (e.g. core, then interim) and the
+    # uploaded manifest still lists every file. Entries for archives rebuilt
+    # now are replaced.
+    manifest_path = OUT_DIR / "zenodo_manifest.json"
+    rebuilt = {name for name, *_ in pkgs}
+    previous = []
+    if manifest_path.exists():
+        previous = [f for f in json.loads(manifest_path.read_text()).get("files", [])
+                    if f["name"] not in rebuilt and (OUT_DIR / f["name"]).exists()]
     manifest = {"description": "Mountain Rain or Snow gridded precipitation-phase data. "
                                "Unpack with pipeline/get_data.py. MRoS observation "
                                "locations are rounded to ~10 m; " + ACCESS_NOTE,
-                "files": []}
+                "files": previous}
     for name, group, files, unzip, dest in pkgs:
         target = OUT_DIR / name
         print(f"writing {target.name} ...")
@@ -199,7 +209,13 @@ def main():
         manifest["files"].append({"name": name, "group": group, "dest": dest,
                                   "unzip": unzip, "size": target.stat().st_size,
                                   "md5": md5sum(target)})
-    (OUT_DIR / "zenodo_manifest.json").write_text(json.dumps(manifest, indent=2))
+    manifest_path.write_text(json.dumps(manifest, indent=2))
+    groups = sorted({f["group"] for f in manifest["files"]})
+    print(f"\nzenodo_manifest.json lists {len(manifest['files'])} file(s) in group(s): "
+          f"{', '.join(groups)}")
+    if "core" not in groups:
+        print("WARNING: no core group in the manifest; get_data.py needs it. Run with "
+              "--groups core as well before uploading.")
     print(f"\nUpload everything in {OUT_DIR} (including zenodo_manifest.json) to one "
           "Zenodo record, then set zenodo.record_id in project_paths.yaml.")
 
