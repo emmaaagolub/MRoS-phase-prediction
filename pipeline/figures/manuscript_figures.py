@@ -16,11 +16,12 @@ Every figure is drawn once for both domains and saved as a single PDF, with
 the Sierra Nevada (CA) version on top and the Colorado (CO) version below.
 Each PDF is written to a new run folder
   results/pipeline/figures/<run_id>/<description>[_appendix].pdf
-and, when figures.copy_to_manuscript is true in project_paths.yaml, also to
-  manuscript/figures/<description>[_appendix].pdf
+and, when figures.copy_to_manuscript is true in project_paths.yaml, the
+figures that appear in the paper are also written to
+  manuscript/figures/<name used in main.tex>        (see MANUSCRIPT_FILE_NAMES)
 Pass --png to also write PNG previews to <run folder>/png_previews/.
 
-Naming and labelling conventions
+Naming and labeling conventions
 --------------------------------
   - Nothing drawn inside a figure says CA or CO: the domains are labeled
     SNM and CRM (see REGION_DISPLAY / REGION_FULL_LABEL). The "CA" / "CO"
@@ -51,7 +52,8 @@ still written.
 
 Usage
 -----
-  python manuscript_figures.py                       # every figure
+  python manuscript_figures.py                       # the figures in the manuscript
+  python manuscript_figures.py --all                 # + extra figures not in the paper
   python manuscript_figures.py --figures shap band   # a subset
   python manuscript_figures.py --png                 # also write PNG previews
   python manuscript_figures.py --regions CA          # one domain only (drafts)
@@ -95,6 +97,7 @@ try:
 except ImportError:
     HAVE_GIS = False
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from config import (  # noqa: E402
     REGIONS as REGION_CONFIG, REGION_IDS, dem_1km_path, finish_step, input_run,
@@ -487,7 +490,7 @@ class Panels:
     """What a draw_* function hands back to combine_regions.
 
     panels     the axes to label a), b), ..., in reading order. Twin axes and
-               colorbars are left out so they are never labelled.
+               colorbars are left out so they are never labeled.
     title      the figure title (Title Case), shared by both domains.
     finalize   optional callable(root_figure) run after layout is fixed, for
                artists that need final positions (the phase-map connectors).
@@ -537,11 +540,47 @@ def _panel_label(i: int) -> str:
 # manuscript folder holds just the PDFs that main.tex includes.
 
 
+# The figures that appear in the manuscript, in order of appearance in
+# main.tex: output stem -> the file name main.tex includes. Only these are
+# copied into the manuscript folder, under these names, so re-running the
+# script updates exactly the files the paper uses. Every other stem is an
+# extra (diagnostic or superseded) figure and stays in the run folder.
+MANUSCRIPT_FILE_NAMES = {
+    "phase_maps": "study-domains-and-reports.pdf",
+    "f1_by_wetbulb": "f1-by-wetbulb-binary-rule.pdf",
+    "overall_accuracy_bars": "accuracy-vs-benchmarks.pdf",
+    "benchmark_accuracy_by_tair_ci": "accuracy-by-air-temperature.pdf",
+    "csi_by_tair_appendix": "csi-by-air-temperature.pdf",
+    "ablation_comparison": "ablation-change-in-skill.pdf",
+    "story5_nearfreeze_twet_comparison": "mros-effect-near-freezing-wetbulb.pdf",
+    "selective_by_wetbulb": "selective-rule-by-wetbulb.pdf",
+    "band_placement_appendix": "mixed-events-vs-envelope.pdf",
+    # Appendix
+    "phase_distributions": "report-elevation-and-monthly-counts.pdf",
+    "kriged_surfaces_CA": "kriged-surfaces-sierra-nevada.png",
+    "kriged_surfaces_CO": "kriged-surfaces-colorado.png",
+    "confusion_matrix_appendix": "confusion-matrices.pdf",
+    "calibration_reliability": "calibration-reliability-diagrams.pdf",
+    "f1_by_tair": "f1-by-air-temperature-binary-rule.pdf",
+    "selective_by_tair": "selective-rule-by-air-temperature.pdf",
+    "story5_nearfreeze_tair_comparison": "mros-effect-near-freezing-air-temperature.pdf",
+    "benchmark_delta_forest_combined": "accuracy-difference-vs-benchmarks.pdf",
+    "ablation_deltas_ci": "ablation-differences-with-intervals.pdf",
+}
+# (framework-flowchart.pdf, the flowchart, is drawn by hand and not produced here.)
+
+
 def _write_figure(root, stem: str, png: bool):
-    for d in output_dirs():
+    dirs = output_dirs()
+    for i, d in enumerate(dirs):
+        name = f"{stem}.pdf"
+        if i > 0:  # the manuscript folder: paper figures only, under main.tex's names
+            if stem not in MANUSCRIPT_FILE_NAMES:
+                continue
+            name = MANUSCRIPT_FILE_NAMES[stem]
         d.mkdir(parents=True, exist_ok=True)
-        root.savefig(d / f"{stem}.pdf", bbox_inches="tight")
-        print(f"  wrote {d / (stem + '.pdf')}")
+        root.savefig(d / name, bbox_inches="tight")
+        print(f"  wrote {d / name}")
     if png:
         PREVIEW_DIR.mkdir(parents=True, exist_ok=True)
         root.savefig(PREVIEW_DIR / f"{stem}.png", dpi=110, bbox_inches="tight")
@@ -1467,7 +1506,7 @@ def draw_ablation_deltas_ci(region: str, canvas):
 
     # The metric KEYS are the literal values stored in the CSV and must keep
     # the on-disk "..._baseline_minus_config" spelling; only the axis labels
-    # are relabelled.
+    # are relabeled.
     metric_titles = {
         "delta_auc_baseline_minus_config":
             "Δ AUROC (full configuration − ablation)",
@@ -2662,6 +2701,30 @@ def draw_station_data_checks(region: str, canvas):
 # Main
 # ---------------------------------------------------------------------------
 
+def draw_kriged_surfaces(regions):
+    """Appendix figure: one hour of kriged predictor surfaces per domain, drawn
+    by plot_kriged_surfaces.py from the kriging run (needs the gridded kriging
+    output, i.e. the interim download or your own kriging run)."""
+    import plot_kriged_surfaces as pks
+    for region in regions:
+        stem = f"kriged_surfaces_{region}"
+        print(f"=== {stem} ===")
+        try:
+            run = _run("kriging", region)
+        except FileNotFoundError as exc:
+            print(f"  [{stem}] no kriging run ({exc}); skipping")
+            continue
+        dirs = output_dirs()
+        out = dirs[0] / f"{stem}.png"
+        if not pks.draw(region, run, out):
+            continue
+        for d in dirs[1:]:
+            d.mkdir(parents=True, exist_ok=True)
+            target = d / MANUSCRIPT_FILE_NAMES[stem]
+            target.write_bytes(out.read_bytes())
+            print(f"  wrote {target}")
+
+
 # Figure key -> [(output file stem, draw function), ...]. Each draw function
 # draws one domain; combine_regions stacks SNM above CRM (or, for entries with a
 # third element "side", places them left/right) and saves one PDF.
@@ -2714,10 +2777,12 @@ def main():
                         help="Domains to draw (default: all, SNM on top of CRM). A "
                              "subset still writes to the same file names, so use it "
                              "for drafts only.")
-    default_keys = [k for k in FIGURES if k != "phase_combined"]
-    parser.add_argument("--figures", nargs="+", choices=list(FIGURES),
-                        default=default_keys,
-                        help="Figure keys to draw (default: all).")
+    parser.add_argument("--figures", nargs="+", choices=list(FIGURES) + ["kriged_surfaces"],
+                        default=None,
+                        help="Figure keys to draw (default: the figures in the manuscript).")
+    parser.add_argument("--all", action="store_true",
+                        help="Also draw the extra figures that are not in the manuscript "
+                             "(SHAP, station checks, single-panel variants, ...).")
     parser.add_argument("--png", action="store_true",
                         help="Also write a PNG preview next to each PDF.")
     parser.add_argument("--inputs", choices=["pinned", "latest"], default="pinned",
@@ -2734,15 +2799,24 @@ def main():
     COPY_TO_MANUSCRIPT = not args.no_manuscript_copy
 
     regions = [r for r in REGIONS if r in args.regions]  # keep SNM-then-CRM order
-    for fig_key in args.figures:
+    # Default: only the stems that appear in the manuscript. --all adds the
+    # extras; naming keys with --figures draws every stem of those keys.
+    paper_only = args.figures is None and not args.all
+    keys = args.figures or ([k for k in FIGURES if k != "phase_combined"] + ["kriged_surfaces"])
+    for fig_key in keys:
+        if fig_key == "kriged_surfaces":
+            draw_kriged_surfaces(regions)
+            continue
         for stem, draw_fn, *opt in FIGURES[fig_key]:
+            if paper_only and stem not in MANUSCRIPT_FILE_NAMES:
+                continue
             print(f"=== {stem} ===")
             combine_regions(draw_fn, stem, regions=regions, png=args.png,
                             layout=(opt[0] if opt else "stack"))
     print("Output folders:")
     for d in output_dirs():
         print(f"  {d}")
-    finish_step(_FIG_RUN, "figures", figures=list(args.figures))
+    finish_step(_FIG_RUN, "figures", figures=list(keys))
 
 
 if __name__ == "__main__":
