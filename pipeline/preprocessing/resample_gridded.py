@@ -11,6 +11,7 @@ Output:  data/interim/resampled_1km/<REGION>/<run_id>/imerg_hourly_1km.nc
 import sys
 from pathlib import Path
 
+import netCDF4 as nc4
 import numpy as np
 import pandas as pd
 import rasterio
@@ -39,31 +40,77 @@ def load_grid_template(dem_path):
         return src.crs, src.transform, src.height, src.width
 
 
-def resample_imerg(imerg_parquet, template):
-    """Regrid the hourly IMERG probabilities onto the 1 km grid."""
+# Hours regridded and written to the output file at a time. The full CA cube is
+# ~20 GB in memory (31,000 hours x 333 x 235 cells, float64), so it is written
+# in batches instead of being assembled first.
+BATCH_HOURS = 744
+TIME_UNITS = "hours since 2022-10-01"
+
+
+def iter_imerg_batches(imerg_parquet, template, batch_hours=BATCH_HOURS):
+    """Regrid the hourly IMERG probabilities onto the 1 km grid, yielding one
+    xarray Dataset per batch of hours."""
     crs, transform, ny, nx = template
 
-    imerg = pd.read_parquet(imerg_parquet)
+    imerg = pd.read_parquet(imerg_parquet, columns=["hour_utc", "lat", "lon", "plp"])
     imerg["hour_utc"] = pd.to_datetime(imerg["hour_utc"]).dt.floor("h")
+    if imerg["hour_utc"].dt.tz is not None:  # plain UTC datetime64, not objects
+        imerg["hour_utc"] = imerg["hour_utc"].dt.tz_convert(None)
+    if not imerg["hour_utc"].is_monotonic_increasing:  # compile writes it sorted
+        imerg = imerg.sort_values("hour_utc", kind="stable", ignore_index=True)
 
     lons = np.sort(imerg["lon"].unique())
     lats = np.sort(imerg["lat"].unique())[::-1]
 
+    hours = imerg["hour_utc"].to_numpy()
+    starts = np.flatnonzero(np.r_[True, hours[1:] != hours[:-1]])
+    unique_hours = hours[starts]
+    bounds = list(starts) + [len(imerg)]
+    del hours
+
     slices = []
-    for hour in np.sort(imerg["hour_utc"].unique()):
-        da = frame_to_grid(imerg[imerg["hour_utc"] == hour], "plp", lats, lons,
-                           name="imerg_plp")
+    for i, hour in enumerate(unique_hours):
+        rows = imerg.iloc[bounds[i]:bounds[i + 1]]
+        da = frame_to_grid(rows, "plp", lats, lons, name="imerg_plp")
         da_1km = da.rio.reproject(dst_crs=crs, transform=transform, shape=(ny, nx),
                                   resampling=Resampling.bilinear)
         slices.append(da_1km.to_dataset().assign_coords(time=hour))
+        if len(slices) == batch_hours or i == len(unique_hours) - 1:
+            batch = xr.concat(slices, dim="time")
+            slices = []
+            yield batch.assign_coords(
+                time=pd.to_datetime(batch.time.values).tz_localize(None))
 
-    return xr.concat(slices, dim="time")
 
-
-def write_netcdf(ds, path):
-    encoding = {v: {"zlib": True, "complevel": 4} for v in ds.data_vars}
-    ds.to_netcdf(path, format="NETCDF4", encoding=encoding)
-    print(f"  wrote {path}")
+def write_netcdf(batches, path):
+    """Write the first batch with xarray, then append the rest in place.
+    Chunks hold one hour each, so later stages can read single hours quickly."""
+    n_hours = 0
+    for batch in batches:
+        if n_hours == 0:
+            ny, nx = batch.sizes["y"], batch.sizes["x"]
+            encoding = {v: {"zlib": True, "complevel": 4, "chunksizes": (1, ny, nx)}
+                        for v in batch.data_vars if batch[v].ndim == 3}
+            encoding["time"] = {"units": TIME_UNITS, "calendar": "standard",
+                                "dtype": "float64"}
+            batch.to_netcdf(path, format="NETCDF4", encoding=encoding,
+                            unlimited_dims=["time"])
+        else:
+            origin = pd.Timestamp(TIME_UNITS.split("since ")[1])
+            with nc4.Dataset(path, "a") as dst:
+                start = len(dst.variables["time"])
+                k = batch.sizes["time"]
+                dst.variables["time"][start:start + k] = (
+                    (pd.to_datetime(batch.time.values) - origin) / pd.Timedelta(hours=1)
+                ).to_numpy(dtype=np.float64)
+                for v in batch.data_vars:
+                    if batch[v].ndim == 3:
+                        dst.variables[v][start:start + k] = batch[v].transpose(
+                            "time", "y", "x").values
+        n_hours += batch.sizes["time"]
+        print(f"    {n_hours:,} hours written", end="\r", flush=True)
+    print(f"\n  wrote {path}")
+    return n_hours
 
 
 def process_region(region_id):
@@ -76,13 +123,9 @@ def process_region(region_id):
                        inputs={"hourly_compiled": compiled, "dem_1km": paths["dem_1km"]})
 
     template = load_grid_template(paths["dem_1km"])
-    imerg_hourly = resample_imerg(imerg_parquet, template)
-    imerg_hourly = imerg_hourly.assign_coords(
-        time=pd.to_datetime(imerg_hourly.time.values).tz_localize(None)
-    )
-    print(f"  {imerg_hourly.sizes['time']:,} hours")
-
-    write_netcdf(imerg_hourly, out_dir / "imerg_hourly_1km.nc")
+    n_hours = write_netcdf(iter_imerg_batches(imerg_parquet, template),
+                           out_dir / "imerg_hourly_1km.nc")
+    print(f"  {n_hours:,} hours")
     finish_step(out_dir, "resample_gridded")
 
 
