@@ -27,6 +27,25 @@ from config import (  # noqa: F401,E402  (REGIONS and finish_step are re-exporte
 )
 
 # ---------------------------------------------------------------------------
+# EVALUATION SPLIT — read this before comparing numbers across stages
+# ---------------------------------------------------------------------------
+# benchmarking.py and ablation.py load the model run's table
+# ml_input_points_split.parquet (rows ordered train, val, test as written by
+# train_model.py) and pass it through make_split(): the same stratified
+# 70/15/15 split with RANDOM_SEED. Because the rows arrive in a different
+# order, this can draw a different random partition from the one train_model.py
+# used (about half the rows might change split). 
+# This is the split behind every test-set number in the
+# manuscript: benchmarking's xgboost_mros model and ablation's baseline_full
+# are the same model ("XGB-Full"), trained on this evaluation split.
+#
+# The model run itself (train_model.py, shap_analysis.py,
+# model_evaluation.py) is a separate fit of the same configuration on the
+# first split. Its tables and figures are diagnostics; the manuscript's
+# tables and figures come from benchmarking/, ablations/ and bootstrap/.
+
+
+# ---------------------------------------------------------------------------
 # Settings shared by every experiment
 # ---------------------------------------------------------------------------
 
@@ -95,8 +114,8 @@ def interp_paths(region, interp_type="kriging"):
 
 
 def model_dir(region):
-    """The trained model run (read only). Its split table is reused so the
-    experiments see the same train/val/test observations as the model."""
+    """The trained model run (read only), whose point table the experiments
+    start from. See EVALUATION SPLIT below."""
     return input_run("model", region)
 
 
